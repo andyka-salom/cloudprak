@@ -3,615 +3,1360 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Presensi QR Dinamis</title>
+<title>Presensi QR — Sistem Lengkap</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+
+<!-- ── LEAFLET ── -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
 <style>
-  :root{--blue:#1F4E79;--blue-light:#2E75B6;--green:#1E5631;--green-light:#2d7a47;--red:#C00000;--orange:#7B3F00;--bg:#f0f4f8;--card:#ffffff;--text:#1a1a2e;--muted:#6b7280;--border:#e2e8f0;--r:12px;--sh:0 4px 20px rgba(0,0,0,.08)}
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-  nav{background:var(--blue);color:#fff;padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:60px;box-shadow:0 2px 10px rgba(0,0,0,.2);position:sticky;top:0;z-index:100}
-  nav h1{font-size:1.1rem;font-weight:700}
-  .nav-right{display:flex;align-items:center;gap:12px}
-  .badge-role{border-radius:20px;padding:3px 12px;font-size:.78rem;font-weight:600}
-  .badge-role.dosen{background:#FF9900;color:#000}
-  .badge-role.mahasiswa{background:#00B050;color:#fff}
-  #btn-logout{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:5px 14px;border-radius:6px;cursor:pointer;font-size:.82rem}
-  #btn-logout:hover{background:rgba(255,255,255,.3)}
-  .container{max-width:900px;margin:0 auto;padding:28px 16px}
-  .page{display:none}.page.active{display:block}
-  .card{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:28px;margin-bottom:20px}
-  .card h2{font-size:1.1rem;font-weight:700;color:var(--blue);margin-bottom:18px;display:flex;align-items:center;gap:8px}
-  .tabs{display:flex;gap:4px;background:var(--border);border-radius:8px;padding:4px;margin-bottom:24px}
-  .tab{flex:1;padding:9px;border:none;border-radius:6px;cursor:pointer;background:transparent;font-size:.88rem;font-weight:600;color:var(--muted);transition:all .2s}
-  .tab.active{background:var(--card);color:var(--blue);box-shadow:0 1px 6px rgba(0,0,0,.1)}
-  .tab-content{display:none}.tab-content.active{display:block}
-  .form-group{margin-bottom:16px}
-  label{display:block;font-size:.83rem;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px}
-  input,select{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:.92rem;background:#fff;transition:border .2s}
-  input:focus,select:focus{outline:none;border-color:var(--blue-light)}
-  .row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-  .btn{display:inline-flex;align-items:center;gap:7px;padding:11px 22px;border:none;border-radius:8px;font-size:.9rem;font-weight:600;cursor:pointer;transition:all .2s}
-  .btn-primary{background:var(--blue);color:#fff;width:100%;justify-content:center}
-  .btn-primary:hover{background:var(--blue-light)}
-  .btn-green{background:var(--green);color:#fff}
-  .btn-green:hover{background:var(--green-light)}
-  .btn-red{background:var(--red);color:#fff}
-  .btn-full{width:100%;justify-content:center}
-  .alert{padding:12px 16px;border-radius:8px;font-size:.88rem;margin-top:14px;display:none}
-  .alert.show{display:block}
-  .alert-success{background:#d1fae5;color:#065f46;border:1px solid #6ee7b7}
-  .alert-error{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5}
-  .alert-info{background:#dbeafe;color:#1e40af;border:1px solid #93c5fd}
-  #qr-display-box{text-align:center;padding:24px;background:linear-gradient(135deg,#f0f4ff,#e8f5e9);border-radius:12px;margin-top:16px}
-  #qr-display-box canvas,#qr-display-box img{margin:0 auto;display:block;border:4px solid #fff;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.15)}
-  .token-badge{display:inline-block;background:var(--blue);color:#fff;font-family:monospace;font-size:1.3rem;font-weight:700;padding:8px 22px;border-radius:8px;margin:12px 0;letter-spacing:2px}
-  .timer{font-size:1.2rem;font-weight:700;margin-top:8px}
-  #reader{width:100%;max-width:420px;margin:0 auto;border-radius:10px;overflow:hidden}
-  .table-wrap{overflow-x:auto}
-  table{width:100%;border-collapse:collapse;font-size:.85rem}
-  thead th{background:var(--blue);color:#fff;padding:10px 12px;text-align:left;font-weight:600}
-  tbody td{padding:9px 12px;border-bottom:1px solid var(--border)}
-  tbody tr:hover{background:#f8fafc}
-  .badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:.75rem;font-weight:700}
-  .badge-ok{background:#d1fae5;color:#065f46}
-  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
-  .stat-card{background:var(--card);border-radius:10px;padding:18px;text-align:center;box-shadow:var(--sh);border-top:4px solid var(--blue)}
-  .stat-card.green{border-color:var(--green)}
-  .stat-num{font-size:2rem;font-weight:800;color:var(--blue)}
-  .stat-card.green .stat-num{color:var(--green)}
-  .stat-lbl{font-size:.78rem;color:var(--muted);margin-top:4px;font-weight:600;text-transform:uppercase}
-  .spinner{display:inline-block;width:16px;height:16px;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  .mt-2{margin-top:8px}.mt-3{margin-top:16px}
-  .muted{color:var(--muted);font-size:.85rem}
-  .empty{text-align:center;padding:32px;color:var(--muted)}
-  @media(max-width:600px){.row{grid-template-columns:1fr}.stats{grid-template-columns:1fr}}
+:root{
+  --blue:#1F4E79;--blue2:#2E75B6;--green:#1E5631;--green2:#2d7a47;
+  --red:#C00000;--org:#7B3F00;--pur:#4A235A;--bg:#f0f4f8;
+  --card:#fff;--txt:#1a1a2e;--mut:#6b7280;--bdr:#e2e8f0;--r:12px;
+  --sh:0 4px 20px rgba(0,0,0,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh}
+/* NAV */
+nav{background:var(--blue);color:#fff;padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:58px;box-shadow:0 2px 10px rgba(0,0,0,.25);position:sticky;top:0;z-index:200}
+nav h1{font-size:1rem;font-weight:700}
+.nav-r{display:flex;align-items:center;gap:10px}
+.chip{border-radius:20px;padding:3px 11px;font-size:.75rem;font-weight:700}
+.chip.admin{background:#FF5722;color:#fff}.chip.dosen{background:#FF9900;color:#000}.chip.mahasiswa{background:#00B050;color:#fff}
+.btn-nav{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:5px 13px;border-radius:6px;cursor:pointer;font-size:.8rem}
+.btn-nav:hover{background:rgba(255,255,255,.3)}
+/* LAYOUT */
+.wrap{max-width:960px;margin:0 auto;padding:24px 14px}
+.page{display:none}.page.active{display:block}
+/* SIDEBAR TABS */
+.layout{display:grid;grid-template-columns:200px 1fr;gap:16px}
+.sidebar{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:12px;height:fit-content;position:sticky;top:74px}
+.sidebar-btn{display:flex;align-items:center;gap:9px;width:100%;padding:10px 12px;border:none;border-radius:8px;cursor:pointer;background:transparent;font-size:.88rem;font-weight:600;color:var(--mut);text-align:left;transition:all .15s;margin-bottom:3px}
+.sidebar-btn:hover{background:var(--bg);color:var(--blue)}
+.sidebar-btn.active{background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff}
+.sidebar-label{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--mut);padding:10px 12px 4px;margin-top:6px}
+.tab-panel{display:none}.tab-panel.active{display:block}
+/* CARD */
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:24px;margin-bottom:16px}
+.card h2{font-size:1rem;font-weight:700;color:var(--blue);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.card-title-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+/* FORM */
+.fg{margin-bottom:14px}
+label{display:block;font-size:.78rem;font-weight:700;color:var(--mut);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+input,select,textarea{width:100%;padding:9px 13px;border:1.5px solid var(--bdr);border-radius:8px;font-size:.9rem;background:#fff;transition:border .2s}
+input:focus,select:focus{outline:none;border-color:var(--blue2)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+/* BTN */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border:none;border-radius:8px;font-size:.88rem;font-weight:700;cursor:pointer;transition:all .18s}
+.btn:disabled{opacity:.6;cursor:not-allowed}
+.btn-blue{background:var(--blue);color:#fff}.btn-blue:not(:disabled):hover{background:var(--blue2)}
+.btn-green{background:var(--green);color:#fff}.btn-green:not(:disabled):hover{background:var(--green2)}
+.btn-red{background:var(--red);color:#fff}
+.btn-pur{background:var(--pur);color:#fff}
+.btn-org{background:var(--org);color:#fff}
+.btn-sm{padding:6px 13px;font-size:.8rem}
+.btn-full{width:100%;justify-content:center}
+/* ALERT */
+.alert{padding:11px 15px;border-radius:8px;font-size:.86rem;margin-top:12px;display:none}
+.alert.show{display:block}
+.a-ok{background:#d1fae5;color:#065f46;border:1px solid #6ee7b7}
+.a-err{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5}
+.a-info{background:#dbeafe;color:#1e40af;border:1px solid #93c5fd}
+/* QR */
+#qr-box{text-align:center;padding:22px;background:linear-gradient(135deg,#eef2ff,#e8f5e9);border-radius:12px;margin-top:14px}
+#qr-box canvas,#qr-box img{margin:0 auto;display:block;border:4px solid #fff;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.15)}
+.token-badge{display:inline-block;background:var(--blue);color:#fff;font-family:monospace;font-size:1.2rem;font-weight:700;padding:7px 20px;border-radius:8px;margin:10px 0;letter-spacing:2px}
+.qr-timer{font-size:1.1rem;font-weight:700;margin-top:6px;transition:color .3s}
+/* TABLE */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.83rem}
+thead th{background:var(--blue);color:#fff;padding:9px 11px;text-align:left;font-weight:600;white-space:nowrap}
+tbody td{padding:8px 11px;border-bottom:1px solid var(--bdr);vertical-align:middle}
+tbody tr:hover{background:#f8fafc}
+tbody tr:last-child td{border:none}
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.72rem;font-weight:700;white-space:nowrap}
+.b-ok{background:#d1fae5;color:#065f46}.b-no{background:#fee2e2;color:#991b1b}
+.b-adm{background:#FF5722;color:#fff}.b-dos{background:#fef3c7;color:#92400e}.b-mhs{background:#dbeafe;color:#1e40af}
+.b-org{background:#fff7ed;color:#9a3412}
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.stat{background:var(--card);border-radius:10px;padding:16px;text-align:center;box-shadow:var(--sh);border-top:4px solid var(--blue)}
+.stat.g{border-color:var(--green)}.stat.p{border-color:var(--pur)}.stat.o{border-color:var(--org)}
+.stat-n{font-size:1.9rem;font-weight:800;color:var(--blue)}
+.stat.g .stat-n{color:var(--green)}.stat.p .stat-n{color:var(--pur)}.stat.o .stat-n{color:var(--org)}
+.stat-l{font-size:.73rem;color:var(--mut);margin-top:3px;font-weight:700;text-transform:uppercase}
+
+/* ─── LEAFLET MAP STYLES ─── */
+.map-container{border-radius:10px;overflow:hidden;border:2px solid var(--bdr);box-shadow:0 2px 12px rgba(0,0,0,.1);margin-top:14px;position:relative}
+#gps-map{width:100%;height:360px}
+#checkin-map{width:100%;height:240px}
+
+/* Map info overlay */
+.map-info-bar{
+  position:absolute;bottom:0;left:0;right:0;
+  background:rgba(31,78,121,.92);
+  backdrop-filter:blur(6px);
+  color:#fff;padding:8px 14px;
+  display:flex;align-items:center;justify-content:space-between;
+  font-size:.78rem;z-index:400;
+}
+.map-info-bar strong{font-size:.88rem}
+.map-info-bar a{color:#7EB8F7;text-decoration:none;font-size:.78rem}
+.map-info-bar a:hover{text-decoration:underline}
+
+/* Map controls */
+.map-controls{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+
+/* Track status indicator */
+.track-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--mut);margin-right:5px;vertical-align:middle;transition:background .3s}
+.track-dot.active{background:#00B050;animation:pulse-dot 1.4s ease-in-out infinite}
+@keyframes pulse-dot{0%,100%{box-shadow:0 0 0 0 rgba(0,176,80,.5)}50%{box-shadow:0 0 0 6px rgba(0,176,80,0)}}
+
+/* Leaflet popup custom */
+.leaflet-popup-content-wrapper{border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.2)}
+.leaflet-popup-content{font-size:.82rem;line-height:1.5}
+.pop-title{font-weight:700;color:var(--blue);margin-bottom:4px}
+
+/* SENSOR CHART */
+.accel-bars{display:flex;gap:8px;margin-top:12px;height:80px;align-items:flex-end}
+.bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.bar{width:100%;border-radius:4px 4px 0 0;transition:height .3s;min-height:2px}
+.bar.bx{background:var(--blue2)}.bar.by{background:var(--green2)}.bar.bz{background:var(--red)}
+.bar-lbl{font-size:.72rem;font-weight:700;color:var(--mut)}
+.accel-vals{display:flex;gap:16px;margin-top:8px;font-size:.85rem;font-weight:600}
+.accel-vals span{color:var(--mut)}.accel-vals strong{color:var(--txt)}
+/* MISC */
+.spinner{display:inline-block;width:14px;height:14px;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.mt2{margin-top:8px}.mt3{margin-top:14px}
+.mut{color:var(--mut);font-size:.83rem}
+.empty{text-align:center;padding:28px;color:var(--mut)}
+.maps-link{color:var(--blue2);font-size:.78rem;text-decoration:none}
+.maps-link:hover{text-decoration:underline}
+.divider{border:none;border-top:1px solid var(--bdr);margin:16px 0}
+#reader{width:100%;max-width:400px;margin:0 auto;border-radius:10px;overflow:hidden}
+@media(max-width:680px){
+  .layout{grid-template-columns:1fr}
+  .sidebar{position:static;display:flex;flex-wrap:wrap;gap:4px;padding:8px}
+  .sidebar-btn{flex:1;min-width:120px;justify-content:center}
+  .sidebar-label{width:100%}
+  .stats{grid-template-columns:1fr 1fr}.row2,.row3{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
 
 <nav>
-  <h1>🎓 Presensi QR Dinamis</h1>
-  <div class="nav-right" id="nav-user" style="display:none">
-    <span id="nav-name" style="font-size:.88rem;opacity:.85"></span>
-    <span class="badge-role" id="nav-role-badge"></span>
-    <button id="btn-logout" onclick="logout()">Keluar</button>
+  <h1>🎓 Presensi QR Dinamis v3</h1>
+  <div class="nav-r" id="nav-user" style="display:none">
+    <span id="nav-name" style="font-size:.85rem;opacity:.85"></span>
+    <span class="chip" id="nav-chip"></span>
+    <button class="btn-nav" onclick="logout()">Keluar</button>
   </div>
 </nav>
 
-<!-- ══ PAGE: AUTH ══ -->
+<!-- ══════════════ PAGE: AUTH ══════════════ -->
 <div class="page active" id="page-auth">
-  <div class="container" style="max-width:440px">
-    <div class="card" style="margin-top:40px">
-      <div style="text-align:center;margin-bottom:22px">
-        <div style="font-size:3rem">🎓</div>
-        <h2 style="justify-content:center;margin-bottom:4px">Sistem Presensi</h2>
-        <p class="muted">Login atau daftar akun baru</p>
+  <div class="wrap" style="max-width:420px">
+    <div class="card" style="margin-top:36px">
+      <div style="text-align:center;margin-bottom:20px">
+        <div style="font-size:2.8rem">🎓</div>
+        <h2 style="justify-content:center;margin-bottom:4px;font-size:1.2rem">Sistem Presensi QR</h2>
+        <p class="mut">Masuk atau daftar akun baru</p>
       </div>
-      <div class="tabs" id="auth-tabs">
-        <button class="tab active" onclick="switchTab('auth','login',this)">Masuk</button>
-        <button class="tab" onclick="switchTab('auth','register',this)">Daftar</button>
+      <div style="display:flex;gap:4px;background:var(--bdr);border-radius:8px;padding:4px;margin-bottom:18px">
+        <button id="tab-login" style="flex:1;padding:8px;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:.88rem;background:var(--card);color:var(--blue);box-shadow:0 1px 4px rgba(0,0,0,.1)" onclick="authTab('login')">Masuk</button>
+        <button id="tab-reg"   style="flex:1;padding:8px;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:.88rem;background:transparent;color:var(--mut)" onclick="authTab('reg')">Daftar</button>
       </div>
-      <div class="tab-content active" id="auth-tab-login">
-        <div class="form-group"><label>Email</label><input id="login-email" type="email" placeholder="email@kampus.ac.id"></div>
-        <div class="form-group"><label>Password</label><input id="login-password" type="password" placeholder="••••••••"></div>
-        <button class="btn btn-primary" onclick="doLogin(this)"><span class="btn-spinner"></span>Masuk</button>
-        <div class="alert" id="login-alert"></div>
+      <div id="auth-login">
+        <div class="fg"><label>Email</label><input id="l-email" type="email" placeholder="email@kampus.ac.id"></div>
+        <div class="fg"><label>Password</label><input id="l-pw" type="password" placeholder="••••••••"></div>
+        <button class="btn btn-blue btn-full" id="btn-login" onclick="doLogin()"><span class="ls"></span>Masuk</button>
+        <div class="alert" id="l-alert"></div>
       </div>
-      <div class="tab-content" id="auth-tab-register">
-        <div class="form-group"><label>Nama Lengkap</label><input id="reg-name" placeholder="Dr. Budi / Siti Rahayu"></div>
-        <div class="form-group"><label>Email</label><input id="reg-email" type="email" placeholder="email@kampus.ac.id"></div>
-        <div class="form-group"><label>Password</label><input id="reg-password" type="password" placeholder="Min. 6 karakter"></div>
-        <div class="form-group">
+      <div id="auth-reg" style="display:none">
+        <div class="fg"><label>Nama Lengkap</label><input id="r-name" placeholder="Nama sesuai KTP"></div>
+        <div class="fg"><label>Email</label><input id="r-email" type="email" placeholder="email@kampus.ac.id"></div>
+        <div class="fg"><label>Password</label><input id="r-pw" type="password" placeholder="Min. 6 karakter"></div>
+        <div class="fg">
           <label>Role</label>
-          <select id="reg-role" onchange="toggleNim()">
-            <option value="">-- Pilih Role --</option>
+          <select id="r-role" onchange="showNim()">
+            <option value="">-- Pilih --</option>
             <option value="mahasiswa">Mahasiswa</option>
             <option value="dosen">Dosen</option>
           </select>
         </div>
-        <div class="form-group" id="nim-field" style="display:none">
-          <label>NIM</label><input id="reg-nim" placeholder="Nomor Induk Mahasiswa">
-        </div>
-        <button class="btn btn-primary" onclick="doRegister(this)"><span class="btn-spinner"></span>Daftar Sekarang</button>
-        <div class="alert" id="reg-alert"></div>
+        <div id="nim-wrap" class="fg" style="display:none"><label>NIM</label><input id="r-nim" placeholder="Nomor Induk Mahasiswa"></div>
+        <button class="btn btn-blue btn-full" id="btn-reg" onclick="doRegister()"><span class="rs"></span>Daftar</button>
+        <div class="alert" id="r-alert"></div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ══ PAGE: DOSEN ══ -->
-<div class="page" id="page-dosen">
-  <div class="container">
-    <div class="tabs" id="dosen-tabs">
-      <button class="tab active" onclick="switchTab('dosen','qr',this)">🔲 QR Absen</button>
-      <button class="tab" onclick="switchTab('dosen','history',this);loadHistoryAll()">📋 History</button>
-      <button class="tab" onclick="switchTab('dosen','setup',this);loadDosenSetup()">⚙️ Setup</button>
-    </div>
+<!-- ══════════════ PAGE: APP ══════════════ -->
+<div class="page" id="page-app">
+  <div class="wrap">
+    <div class="layout">
 
-    <!-- QR -->
-    <div class="tab-content active" id="dosen-tab-qr">
-      <div class="card">
-        <h2>🔲 Generate QR Token</h2>
-        <div class="row">
-          <div class="form-group">
-            <label>Mata Kuliah</label>
-            <select id="d-course-sel" onchange="loadSessionsDosen()">
-              <option value="">-- Pilih Matkul --</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Sesi</label>
-            <select id="d-session-sel"><option value="">-- Pilih Sesi --</option></select>
+      <!-- SIDEBAR -->
+      <div class="sidebar" id="sidebar"></div>
+
+      <!-- CONTENT -->
+      <div id="content">
+
+        <!-- ── PANEL: Dashboard ── -->
+        <div class="tab-panel active" id="panel-dash">
+          <div class="card">
+            <h2>👋 Selamat Datang</h2>
+            <p class="mut" id="dash-greeting"></p>
+            <hr class="divider">
+            <div class="stats" id="dash-stats"></div>
           </div>
         </div>
-        <button class="btn btn-green btn-full" onclick="doGenerateQR(this)"><span class="btn-spinner"></span>⚡ Generate QR</button>
-        <div class="alert" id="qr-alert"></div>
-        <div id="qr-display-box" style="display:none">
-          <p class="muted" style="margin-bottom:12px;font-size:.85rem">Tampilkan di proyektor — mahasiswa scan QR ini</p>
-          <div id="qrcode-container"></div>
-          <div class="token-badge" id="qr-token-text"></div>
-          <div class="timer" id="qr-timer">⏱ 02:00</div>
-          <p class="muted" style="margin-top:8px;font-size:.8rem">Token expired otomatis. Generate lagi untuk token baru.</p>
-        </div>
-      </div>
-    </div>
 
-    <!-- HISTORY -->
-    <div class="tab-content" id="dosen-tab-history">
-      <div class="card">
-        <h2>📋 Rekap Absen Mahasiswa</h2>
-        <div class="row">
-          <div class="form-group">
-            <label>Mata Kuliah</label>
-            <select id="h-course-sel" onchange="loadSessionsHistory()"><option value="">-- Pilih --</option></select>
-          </div>
-          <div class="form-group">
-            <label>Sesi</label>
-            <select id="h-session-sel"><option value="">-- Pilih --</option></select>
-          </div>
-        </div>
-        <button class="btn btn-primary btn-full" onclick="loadHistoryAll()">🔍 Tampilkan</button>
-        <div class="stats mt-3" id="history-stats" style="display:none">
-          <div class="stat-card green"><div class="stat-num" id="st-hadir">0</div><div class="stat-lbl">Hadir</div></div>
-          <div class="stat-card"><div class="stat-num" id="st-sesi">-</div><div class="stat-lbl">Sesi</div></div>
-          <div class="stat-card"><div class="stat-num" id="st-date">-</div><div class="stat-lbl">Tanggal</div></div>
-        </div>
-        <div class="table-wrap mt-3">
-          <table>
-            <thead><tr><th>#</th><th>NIM</th><th>Nama</th><th>Waktu</th><th>Status</th><th>Device</th></tr></thead>
-            <tbody id="history-tbody"><tr><td colspan="6" class="empty">Pilih sesi terlebih dahulu</td></tr></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- SETUP -->
-    <div class="tab-content" id="dosen-tab-setup">
-      <div class="row">
-        <div class="card">
-          <h2>📚 Buat Mata Kuliah</h2>
-          <div class="form-group"><label>Course ID</label><input id="new-cid" placeholder="cloud-101"></div>
-          <div class="form-group"><label>Nama</label><input id="new-cname" placeholder="Praktik Komputasi Awan"></div>
-          <button class="btn btn-primary btn-full" onclick="doCreateCourse(this)"><span class="btn-spinner"></span>Buat</button>
-          <div class="alert" id="course-alert"></div>
-        </div>
-        <div class="card">
-          <h2>📅 Buat Sesi</h2>
-          <div class="form-group"><label>Mata Kuliah</label><select id="ses-csel"><option value="">-- Pilih --</option></select></div>
-          <div class="form-group"><label>Tanggal</label><input id="ses-date" type="date"></div>
-          <div class="form-group"><label>Label</label><input id="ses-label" placeholder="Pertemuan 1, UTS ..."></div>
-          <button class="btn btn-green btn-full" onclick="doCreateSession(this)"><span class="btn-spinner"></span>Buat</button>
-          <div class="alert" id="session-alert"></div>
-        </div>
-      </div>
-      <div class="card">
-        <h2>📋 Daftar Mata Kuliah</h2>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Course ID</th><th>Nama Mata Kuliah</th><th>Dibuat</th></tr></thead>
-            <tbody id="courses-tbody"><tr><td colspan="3" class="empty">Memuat...</td></tr></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ══ PAGE: MAHASISWA ══ -->
-<div class="page" id="page-mhs">
-  <div class="container">
-    <div class="tabs" id="mhs-tabs">
-      <button class="tab active" onclick="switchTab('mhs','scan',this)">📷 Scan QR</button>
-      <button class="tab" onclick="switchTab('mhs','history',this);loadHistoryMhs()">📋 History</button>
-      <button class="tab" onclick="switchTab('mhs','manual',this)">⌨️ Manual</button>
-    </div>
-
-    <!-- SCAN -->
-    <div class="tab-content active" id="mhs-tab-scan">
-      <div class="card">
-        <h2>📷 Scan QR Absen</h2>
-        <p class="muted" style="margin-bottom:16px">Arahkan kamera ke QR Code yang dosen tampilkan.</p>
-        <div style="text-align:center">
-          <button class="btn btn-green" id="btn-start" onclick="startScan()">📷 Buka Kamera</button>
-          <button class="btn btn-red" id="btn-stop" style="display:none" onclick="stopScan()">⏹ Stop</button>
-        </div>
-        <div id="reader" class="mt-3"></div>
-        <div id="scan-result-box" style="display:none;margin-top:16px">
-          <div class="alert alert-info show">Token terdeteksi: <strong id="scan-token-val"></strong></div>
-          <div class="row mt-2">
-            <div class="form-group"><label>Course ID</label><input id="mhs-cid" placeholder="cloud-101"></div>
-            <div class="form-group"><label>Session ID</label><input id="mhs-sid" placeholder="SES-XXXXXX"></div>
-          </div>
-          <button class="btn btn-green btn-full" onclick="doCheckin(this)"><span class="btn-spinner"></span>✅ Absen Sekarang</button>
-          <div class="alert" id="checkin-alert"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- HISTORY MHS -->
-    <div class="tab-content" id="mhs-tab-history">
-      <div class="card">
-        <h2>📋 History Absen Saya</h2>
-        <div class="row">
-          <div class="form-group"><label>Course ID</label><input id="mhs-hist-cid" placeholder="cloud-101"></div>
-          <div style="display:flex;align-items:flex-end;padding-bottom:16px">
-            <button class="btn btn-primary btn-full" onclick="loadHistoryMhs()">🔍 Cari</button>
+        <!-- ── PANEL: Admin — Kelola User ── -->
+        <div class="tab-panel" id="panel-admin-users">
+          <div class="card">
+            <div class="card-title-bar"><h2>👤 Kelola User</h2></div>
+            <div class="row2">
+              <div>
+                <div class="fg"><label>Nama</label><input id="au-name" placeholder="Nama lengkap"></div>
+                <div class="fg"><label>Email</label><input id="au-email" type="email" placeholder="email@kampus.ac.id"></div>
+                <div class="fg"><label>Password</label><input id="au-pw" type="password" placeholder="Password awal"></div>
+                <div class="fg">
+                  <label>Role</label>
+                  <select id="au-role" onchange="toggleAdminNim()">
+                    <option value="">-- Pilih --</option>
+                    <option value="mahasiswa">Mahasiswa</option>
+                    <option value="dosen">Dosen</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                <div id="au-nim-wrap" class="fg" style="display:none"><label>NIM</label><input id="au-nim" placeholder="NIM mahasiswa"></div>
+                <button class="btn btn-blue btn-full" id="btn-add-user" onclick="doAddUser()"><span class="aus"></span>Tambah User</button>
+                <div class="alert" id="au-alert"></div>
+              </div>
+              <div>
+                <div class="fg"><label>Reset Password</label></div>
+                <div class="fg"><label>Email Target</label><input id="rp-email" placeholder="email@kampus.ac.id"></div>
+                <div class="fg"><label>Password Baru</label><input id="rp-pw" type="password" placeholder="Password baru"></div>
+                <button class="btn btn-org btn-full mt2" id="btn-reset-pw" onclick="doResetPw()"><span class="rps"></span>Reset Password</button>
+                <div class="alert" id="rp-alert"></div>
+                <hr class="divider">
+                <div class="fg">
+                  <label>Filter Role</label>
+                  <select id="ul-filter" onchange="loadUserList()">
+                    <option value="">Semua Role</option>
+                    <option value="admin">Admin</option>
+                    <option value="dosen">Dosen</option>
+                    <option value="mahasiswa">Mahasiswa</option>
+                  </select>
+                </div>
+                <button class="btn btn-green btn-full" onclick="loadUserList()">🔄 Refresh</button>
+              </div>
+            </div>
+            <hr class="divider">
+            <div class="tbl-wrap">
+              <table>
+                <thead><tr><th>#</th><th>Nama</th><th>Email</th><th>Role</th><th>NIM</th><th>Dibuat</th></tr></thead>
+                <tbody id="user-list-tbody"><tr><td colspan="6" class="empty">Klik Refresh</td></tr></tbody>
+              </table>
+            </div>
           </div>
         </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>#</th><th>Pertemuan</th><th>Waktu</th><th>Status</th></tr></thead>
-            <tbody id="mhs-hist-tbody"><tr><td colspan="4" class="empty">Masukkan Course ID lalu klik Cari</td></tr></tbody>
-          </table>
-        </div>
-        <p class="muted mt-2">Total Hadir: <strong id="mhs-total">0</strong></p>
-      </div>
-    </div>
 
-    <!-- MANUAL -->
-    <div class="tab-content" id="mhs-tab-manual">
-      <div class="card">
-        <h2>⌨️ Input Token Manual</h2>
-        <p class="muted" style="margin-bottom:16px">Gunakan jika kamera tidak tersedia.</p>
-        <div class="form-group"><label>QR Token</label><input id="m-token" placeholder="TKN-XXXXXX" style="font-family:monospace;font-size:1.1rem;text-transform:uppercase"></div>
-        <div class="row">
-          <div class="form-group"><label>Course ID</label><input id="m-cid" placeholder="cloud-101"></div>
-          <div class="form-group"><label>Session ID</label><input id="m-sid" placeholder="SES-XXXXXX"></div>
+        <!-- ── PANEL: Setup Kelas ── -->
+        <div class="tab-panel" id="panel-setup">
+          <div class="row2">
+            <div class="card">
+              <h2>📚 Mata Kuliah</h2>
+              <div class="fg"><label>Course ID</label><input id="ci-id" placeholder="cloud-101"></div>
+              <div class="fg"><label>Nama</label><input id="ci-name" placeholder="Praktik Komputasi Awan"></div>
+              <button class="btn btn-blue btn-full" id="btn-cc" onclick="doCreateCourse()"><span class="ccs"></span>Buat</button>
+              <div class="alert" id="cc-alert"></div>
+              <hr class="divider">
+              <div class="tbl-wrap">
+                <table><thead><tr><th>ID</th><th>Nama</th></tr></thead>
+                <tbody id="course-tbl"><tr><td colspan="2" class="empty">Memuat…</td></tr></tbody></table>
+              </div>
+            </div>
+            <div class="card">
+              <h2>📅 Sesi</h2>
+              <div class="fg"><label>Mata Kuliah</label><select id="ses-csel"><option value="">-- Pilih --</option></select></div>
+              <div class="fg"><label>Tanggal</label><input id="ses-date" type="date"></div>
+              <div class="fg"><label>Label</label><input id="ses-label" placeholder="Pertemuan 1, UTS …"></div>
+              <button class="btn btn-green btn-full" id="btn-cs" onclick="doCreateSession()"><span class="css2"></span>Buat</button>
+              <div class="alert" id="cs-alert"></div>
+            </div>
+          </div>
         </div>
-        <button class="btn btn-primary btn-full" onclick="doCheckinManual(this)"><span class="btn-spinner"></span>✅ Absen</button>
-        <div class="alert" id="manual-alert"></div>
-      </div>
-    </div>
+
+        <!-- ── PANEL: Generate QR ── -->
+        <div class="tab-panel" id="panel-qr">
+          <div class="card">
+            <h2>🔲 Generate QR Token Presensi</h2>
+            <div class="row2">
+              <div class="fg"><label>Mata Kuliah</label><select id="qr-csel" onchange="loadQrSessions()"><option value="">-- Pilih --</option></select></div>
+              <div class="fg"><label>Sesi</label><select id="qr-ssel"><option value="">-- Pilih --</option></select></div>
+            </div>
+            <button class="btn btn-green btn-full" id="btn-gen" onclick="doGenQR()"><span class="gens"></span>⚡ Generate QR</button>
+            <div class="alert" id="gen-alert"></div>
+            <div id="qr-box" style="display:none">
+              <p class="mut" style="margin-bottom:10px;font-size:.83rem">Tampilkan di proyektor — mahasiswa scan QR ini</p>
+              <div id="qrcode"></div>
+              <div class="token-badge" id="qr-tok"></div>
+              <div class="qr-timer" id="qr-timer">⏱ 02:00</div>
+              <p class="mut mt2" style="font-size:.78rem">Token expired otomatis. Klik Generate untuk baru.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── PANEL: History Dosen/Admin ── -->
+        <div class="tab-panel" id="panel-history-all">
+          <div class="card">
+            <h2>📋 Rekap Absen Mahasiswa</h2>
+            <div class="row2">
+              <div class="fg"><label>Mata Kuliah</label><select id="ha-csel" onchange="loadHaSessions()"><option value="">-- Pilih --</option></select></div>
+              <div class="fg"><label>Sesi</label><select id="ha-ssel"><option value="">-- Pilih --</option></select></div>
+            </div>
+            <button class="btn btn-blue btn-full" onclick="loadHistoryAll()">🔍 Tampilkan</button>
+            <div class="stats mt3" id="ha-stats" style="display:none">
+              <div class="stat g"><div class="stat-n" id="ha-n">0</div><div class="stat-l">Hadir</div></div>
+              <div class="stat"><div class="stat-n" id="ha-sesi">-</div><div class="stat-l">Sesi</div></div>
+              <div class="stat o"><div class="stat-n" id="ha-tgl">-</div><div class="stat-l">Tanggal</div></div>
+            </div>
+            <!-- Peta rekap check-in mahasiswa -->
+            <div id="recap-map-wrap" style="display:none">
+              <p style="font-size:.82rem;font-weight:700;color:var(--mut);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">📍 Peta Lokasi Absen</p>
+              <div class="map-container" style="margin-top:0">
+                <div id="recap-map" style="height:280px"></div>
+              </div>
+            </div>
+            <div class="tbl-wrap mt3">
+              <table>
+                <thead><tr><th>#</th><th>NIM</th><th>Nama</th><th>Jam Absen</th><th>Lokasi</th><th>Status</th><th>Device</th></tr></thead>
+                <tbody id="ha-tbody"><tr><td colspan="7" class="empty">Pilih sesi</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── PANEL: Scan QR (Mahasiswa) ── -->
+        <div class="tab-panel" id="panel-scan">
+          <div class="card">
+            <h2>📷 Scan QR Absen</h2>
+            <p class="mut" style="margin-bottom:14px">Arahkan kamera ke QR Code yang dosen tampilkan.</p>
+            <div style="text-align:center;display:flex;gap:8px;justify-content:center">
+              <button class="btn btn-green" id="btn-cam" onclick="startScan()">📷 Buka Kamera</button>
+              <button class="btn btn-red" id="btn-stop" style="display:none" onclick="stopScan()">⏹ Stop</button>
+            </div>
+            <div id="reader" class="mt3"></div>
+            <div id="scan-res" style="display:none;margin-top:14px">
+              <div class="alert a-info show">Token: <strong id="scan-tok"></strong></div>
+              <div class="row2 mt2">
+                <div class="fg"><label>Course ID</label><input id="sc-cid" placeholder="cloud-101"></div>
+                <div class="fg"><label>Session ID</label><input id="sc-sid" placeholder="SES-XXXXXX"></div>
+              </div>
+              <!-- Mini map untuk pilih/konfirmasi lokasi -->
+              <div class="fg">
+                <label>Lokasi Absen</label>
+                <div class="map-controls">
+                  <button class="btn btn-green btn-sm" type="button" onclick="getMyLocationScan()">📍 Deteksi Otomatis</button>
+                  <button class="btn btn-blue btn-sm" type="button" onclick="toggleCheckinMap()">🗺️ Pilih di Peta</button>
+                </div>
+                <small id="loc-status-scan" class="mut"></small>
+                <div id="checkin-map-wrap" style="display:none">
+                  <div class="map-container" style="margin-top:8px">
+                    <div id="checkin-map"></div>
+                    <div class="map-info-bar" id="checkin-map-info">Klik peta untuk memilih lokasi</div>
+                  </div>
+                  <small class="mut" style="display:block;margin-top:4px">Klik pada peta untuk memilih lokasi absen Anda.</small>
+                </div>
+              </div>
+              <div class="row2" style="display:none" id="sc-latlon-row">
+                <div class="fg"><label>Latitude</label><input id="sc-lat" type="number" step="any" placeholder="-7.2575" readonly></div>
+                <div class="fg"><label>Longitude</label><input id="sc-lng" type="number" step="any" placeholder="112.7521" readonly></div>
+              </div>
+              <button class="btn btn-green btn-full" id="btn-cin" onclick="doCheckin()"><span class="cins"></span>✅ Absen Sekarang</button>
+              <div class="alert" id="cin-alert"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── PANEL: Manual (Mahasiswa) ── -->
+        <div class="tab-panel" id="panel-manual">
+          <div class="card">
+            <h2>⌨️ Input Token Manual</h2>
+            <p class="mut" style="margin-bottom:14px">Ketik token yang tertera di layar dosen jika kamera tidak tersedia.</p>
+            <div class="fg"><label>QR Token</label><input id="mt" placeholder="TKN-XXXXXX" style="font-family:monospace;font-size:1.1rem;text-transform:uppercase"></div>
+            <div class="row2">
+              <div class="fg"><label>Course ID</label><input id="mc" placeholder="cloud-101"></div>
+              <div class="fg"><label>Session ID</label><input id="ms" placeholder="SES-XXXXXX"></div>
+            </div>
+            <div class="fg">
+              <label>Lokasi</label>
+              <div class="map-controls">
+                <button class="btn btn-green btn-sm" type="button" onclick="getMyLocationManual()">📍 Deteksi Otomatis</button>
+                <button class="btn btn-blue btn-sm" type="button" onclick="toggleManualMap()">🗺️ Pilih di Peta</button>
+              </div>
+              <small class="mut" id="loc-status-m"></small>
+              <div id="manual-map-wrap" style="display:none">
+                <div class="map-container" style="margin-top:8px">
+                  <div id="manual-map" style="height:240px"></div>
+                  <div class="map-info-bar" id="manual-map-info">Klik peta untuk memilih lokasi</div>
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-blue btn-full mt2" id="btn-man" onclick="doCheckinManual()"><span class="mans"></span>✅ Absen</button>
+            <div class="alert" id="man-alert"></div>
+          </div>
+        </div>
+
+        <!-- ── PANEL: History Mahasiswa ── -->
+        <div class="tab-panel" id="panel-history-mhs">
+          <div class="card">
+            <h2>📋 History Absen Saya</h2>
+            <div class="row2">
+              <div class="fg"><label>Course ID</label><input id="mh-cid" placeholder="cloud-101"></div>
+              <div style="display:flex;align-items:flex-end;padding-bottom:14px">
+                <button class="btn btn-blue btn-full" onclick="loadHistoryMhs()">🔍 Cari</button>
+              </div>
+            </div>
+            <p class="mut">Total Hadir: <strong id="mh-total">0</strong></p>
+            <!-- Peta history lokasi absen mahasiswa -->
+            <div id="mhs-map-wrap" style="display:none;margin-top:12px">
+              <p style="font-size:.82rem;font-weight:700;color:var(--mut);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">📍 Peta Lokasi Absen Saya</p>
+              <div class="map-container" style="margin-top:0">
+                <div id="mhs-map" style="height:220px"></div>
+              </div>
+            </div>
+            <div class="tbl-wrap mt2">
+              <table>
+                <thead><tr><th>#</th><th>Pertemuan</th><th>Tanggal</th><th>Jam Absen</th><th>Lokasi</th><th>Status</th></tr></thead>
+                <tbody id="mh-tbody"><tr><td colspan="6" class="empty">Masukkan Course ID</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── PANEL: Accelerometer ── -->
+        <div class="tab-panel" id="panel-accel">
+          <div class="card">
+            <h2>📈 Accelerometer Realtime</h2>
+            <p class="mut" style="margin-bottom:14px">Data sensor accelerometer dari perangkat (gunakan browser mobile untuk sensor nyata).</p>
+            <div class="row2">
+              <div class="fg"><label>Device ID</label><input id="ac-dev" value="web-browser-01"></div>
+              <div style="display:flex;align-items:flex-end;padding-bottom:14px;gap:8px">
+                <button class="btn btn-green" id="btn-ac-start" onclick="startAccel()">▶ Mulai</button>
+                <button class="btn btn-red" id="btn-ac-stop" style="display:none" onclick="stopAccel()">⏹ Stop</button>
+              </div>
+            </div>
+            <div class="accel-vals">
+              <div><span>X: </span><strong id="av-x">0.00</strong> m/s²</div>
+              <div><span>Y: </span><strong id="av-y">0.00</strong> m/s²</div>
+              <div><span>Z: </span><strong id="av-z">9.81</strong> m/s²</div>
+            </div>
+            <div class="accel-bars">
+              <div class="bar-wrap"><div class="bar bx" id="bar-x" style="height:30px"></div><div class="bar-lbl">X</div></div>
+              <div class="bar-wrap"><div class="bar by" id="bar-y" style="height:30px"></div><div class="bar-lbl">Y</div></div>
+              <div class="bar-wrap"><div class="bar bz" id="bar-z" style="height:60px"></div><div class="bar-lbl">Z</div></div>
+            </div>
+            <div class="alert" id="ac-alert"></div>
+            <hr class="divider">
+            <h2>📊 Data Terbaru dari Server</h2>
+            <div class="fg"><label>Device ID</label>
+              <div style="display:flex;gap:8px">
+                <input id="ac-q-dev" placeholder="web-browser-01">
+                <button class="btn btn-blue btn-sm" onclick="fetchAccelLatest()">Ambil</button>
+              </div>
+            </div>
+            <div id="accel-latest" class="mut">—</div>
+          </div>
+        </div>
+
+        <!-- ── PANEL: GPS ── -->
+        <div class="tab-panel" id="panel-gps">
+          <div class="card">
+            <h2>🗺️ GPS Tracking</h2>
+            <div class="row2" style="margin-bottom:8px">
+              <div class="fg"><label>Device ID</label><input id="gps-dev" value="web-browser-01"></div>
+              <div style="display:flex;align-items:flex-end;padding-bottom:14px;gap:8px">
+                <button class="btn btn-green" id="btn-gps-start" onclick="startGPS()">▶ Track</button>
+                <button class="btn btn-red" id="btn-gps-stop" style="display:none" onclick="stopGPS()">⏹ Stop</button>
+              </div>
+            </div>
+            <!-- Status bar -->
+            <div style="background:var(--bg);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:.85rem;display:flex;align-items:center;gap:8px;justify-content:space-between">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="track-dot" id="track-dot"></span>
+                <span id="gps-status-txt">Tidak aktif</span>
+              </div>
+              <span id="gps-accuracy-badge" style="display:none;background:var(--green);color:#fff;padding:2px 9px;border-radius:20px;font-size:.72rem;font-weight:700"></span>
+            </div>
+            <!-- ── LEAFLET MAP ── -->
+            <div class="map-container">
+              <div id="gps-map"></div>
+              <div class="map-info-bar" id="gps-map-bar" style="display:none">
+                <div>
+                  <span id="gps-coords-display">—</span>
+                  <br><span style="opacity:.7;font-size:.73rem" id="gps-time-display"></span>
+                </div>
+                <a id="gps-gmaps-link" href="#" target="_blank">🌐 Google Maps</a>
+              </div>
+            </div>
+            <div class="alert" id="gps-alert"></div>
+            <hr class="divider">
+            <!-- Riwayat dari server -->
+            <h2>📍 Riwayat GPS dari Server</h2>
+            <div class="fg">
+              <label>Device ID</label>
+              <div style="display:flex;gap:8px">
+                <input id="gps-q-dev" placeholder="web-browser-01">
+                <button class="btn btn-blue btn-sm" onclick="fetchGpsHistory()">Ambil & Tampilkan di Peta</button>
+              </div>
+            </div>
+            <!-- Peta khusus untuk riwayat server -->
+            <div id="history-map-wrap" style="display:none;margin-bottom:12px">
+              <div class="map-container" style="margin-top:0">
+                <div id="gps-history-map" style="height:280px"></div>
+              </div>
+              <p class="mut" style="margin-top:6px;font-size:.78rem">🔵 Jalur perjalanan (polyline)  •  🟢 Titik awal  •  🔴 Titik akhir</p>
+            </div>
+            <div class="tbl-wrap mt2">
+              <table>
+                <thead><tr><th>#</th><th>Waktu</th><th>Lat</th><th>Lng</th><th>Akurasi</th><th>Maps</th></tr></thead>
+                <tbody id="gps-hist-tbody"><tr><td colspan="6" class="empty">Masukkan Device ID</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /content -->
+    </div><!-- /layout -->
   </div>
 </div>
 
 <script>
-// ════════════════════════════════════════════
-//  ⚠️ GANTI BASE_URL DENGAN URL DEPLOYMENT GAS ANDA
-// ════════════════════════════════════════════
-const BASE_URL = "https://script.google.com/macros/s/AKfycbxJiqheOnPrYe7Zrg7bvFCturLGGxqjXhdK5sNKGOXbUKxBguionuoTpMYZMCVgWM-mZA/exec";
+// ═══════════════════════════════════════════════
+//  ⚠️  GANTI BASE_URL DENGAN URL DEPLOYMENT GAS
+// ═══════════════════════════════════════════════
+const BASE_URL = "https://script.google.com/macros/s/AKfycbx85Sb45S4bQ4b_NQVxdizFIWJdah8A-Rqs8nrasFN_6PvLW7lcu7gqzDlSaVzpEC4mjw/exec";
 
-// ── STATE ─────────────────────────────────
-let S = { token:null, user_id:null, name:null, role:null, nim:null };
-let qrTimer = null, scanner = null;
+// ── STATE ─────────────────────────────────────
+let S = {}, qrTimer = null, scanner = null, accelTimer = null, gpsWatcher = null;
+let accelBatch = [], manLat = null, manLng = null;
 
-// ══════════════════════════════════════════
-//  CORE API CALL
-//  ✅ SOLUSI CORS: semua pakai POST + no-cors
-//  Data routing via field "path" di body JSON
-// ══════════════════════════════════════════
-async function api(path, data = {}) {
+// ─── LEAFLET MAP INSTANCES ────────────────────
+const MAPS = {};  // keyed by id
+const TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+const TILE_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+const DEFAULT_CENTER = [-7.2575, 112.7521]; // Surabaya sebagai default
+const DEFAULT_ZOOM   = 15;
+
+// Custom Leaflet icons
+function makeIcon(color, size=30) {
+  return L.divIcon({
+    className: "",
+    html: `<div style="background:${color};width:${size}px;height:${size}px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;font-size:${size*0.4}px">📍</div>`,
+    iconSize: [size, size],
+    iconAnchor: [size/2, size/2],
+    popupAnchor: [0, -size/2]
+  });
+}
+function makeSmallDot(color) {
+  return L.divIcon({
+    className: "",
+    html: `<div style="background:${color};width:10px;height:10px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.3)"></div>`,
+    iconSize: [10, 10], iconAnchor: [5, 5]
+  });
+}
+const ICON_BLUE  = makeIcon("#2E75B6");
+const ICON_GREEN = makeIcon("#1E5631", 28);
+const ICON_RED   = makeIcon("#C00000", 28);
+const ICON_USER  = makeIcon("#4A235A");
+
+// Init a Leaflet map if not already done
+function initMap(id, center=DEFAULT_CENTER, zoom=DEFAULT_ZOOM) {
+  if (MAPS[id]) { MAPS[id].invalidateSize(); return MAPS[id]; }
+  const m = L.map(id, { zoomControl: true }).setView(center, zoom);
+  L.tileLayer(TILE_URL, { attribution: TILE_ATTR, maxZoom: 19 }).addTo(m);
+  MAPS[id] = m;
+  return m;
+}
+
+// ─────────────────────────────────────────────
+//  MENUS per role
+// ─────────────────────────────────────────────
+const MENUS = {
+  admin: [
+    { icon:"🏠", lbl:"Dashboard", panel:"dash" },
+    { sep:"Administrasi" },
+    { icon:"👤", lbl:"Kelola User", panel:"admin-users", fn: loadUserList },
+    { sep:"Akademik" },
+    { icon:"⚙️", lbl:"Setup Kelas", panel:"setup", fn: loadSetup },
+    { icon:"🔲", lbl:"Generate QR", panel:"qr", fn: loadQrCourses },
+    { icon:"📋", lbl:"Rekap Absen", panel:"history-all", fn: loadHaCourses },
+    { sep:"Sensor" },
+    { icon:"📈", lbl:"Accelerometer", panel:"accel" },
+    { icon:"🗺️", lbl:"GPS Tracking", panel:"gps", fn: initGpsPanel },
+  ],
+  dosen: [
+    { icon:"🏠", lbl:"Dashboard", panel:"dash" },
+    { sep:"Akademik" },
+    { icon:"⚙️", lbl:"Setup Kelas", panel:"setup", fn: loadSetup },
+    { icon:"🔲", lbl:"Generate QR", panel:"qr", fn: loadQrCourses },
+    { icon:"📋", lbl:"Rekap Absen", panel:"history-all", fn: loadHaCourses },
+    { sep:"Sensor" },
+    { icon:"🗺️", lbl:"GPS Tracking", panel:"gps", fn: initGpsPanel },
+  ],
+  mahasiswa: [
+    { icon:"🏠", lbl:"Dashboard", panel:"dash" },
+    { sep:"Presensi" },
+    { icon:"📷", lbl:"Scan QR", panel:"scan" },
+    { icon:"⌨️", lbl:"Token Manual", panel:"manual" },
+    { icon:"📋", lbl:"History Saya", panel:"history-mhs" },
+    { sep:"Sensor" },
+    { icon:"📈", lbl:"Accelerometer", panel:"accel" },
+    { icon:"🗺️", lbl:"GPS Tracking", panel:"gps", fn: initGpsPanel },
+  ]
+};
+
+// ─────────────────────────────────────────────
+//  API
+// ─────────────────────────────────────────────
+async function api(path, data={}) {
   const body = { path, ...data };
   if (S.token) body.auth_token = S.token;
-
   try {
-    // no-cors: browser tidak bisa baca response langsung
-    // Kita pakai mode 'cors' dulu — jika gagal, pakai iframe trick
-    const res  = await fetch(BASE_URL, {
-      method : "POST",
-      body   : JSON.stringify(body),
-      // Jangan set Content-Type untuk avoid preflight OPTIONS
-      // GAS akan parse body sebagai text lalu JSON.parse
-    });
-    const text = await res.text();
-    return JSON.parse(text);
-  } catch (err) {
-    // Jika masih CORS error, gunakan metode no-cors via form submission
-    // (response tidak bisa dibaca, tapi data tersimpan di Sheets)
-    console.error("Fetch error:", err);
-    return { ok: false, error: "Network error: " + err.message + ". Pastikan BASE_URL sudah benar dan GAS sudah di-deploy ulang." };
+    const r = await fetch(BASE_URL, { method:"POST", body: JSON.stringify(body) });
+    return JSON.parse(await r.text());
+  } catch(e) {
+    return { ok: false, error: "Network error: " + e.message };
   }
 }
 
-// ══════════════════════════════════════════
+// ─────────────────────────────────────────────
 //  HELPERS
-// ══════════════════════════════════════════
-const $ = id => document.getElementById(id);
-
-function alert_(id, msg, type="error") {
-  const el = $(id);
-  el.textContent = msg;
-  el.className = `alert show alert-${type}`;
-  if (type !== "info") setTimeout(() => el.className = "alert", 6000);
+// ─────────────────────────────────────────────
+const $  = id => document.getElementById(id);
+const _v = id => $(id) ? $(id).value.trim() : "";
+function showAlert(id, msg, type="err") {
+  const el=$(id); el.textContent=msg; el.className=`alert show a-${type}`;
+  if(type!=="info") setTimeout(()=>el.className="alert",6000);
+}
+function setSpin(id, on) { const el=$(id); if(el) el.innerHTML = on?'<span class="spinner"></span>&nbsp;':""; }
+function fmtDt(ts) {
+  if(!ts) return "-";
+  try { return new Date(ts).toLocaleString("id-ID",{dateStyle:"short",timeStyle:"short"}); } catch { return ts; }
+}
+function fmtTime(ts) {
+  if(!ts) return "-";
+  try { return new Date(ts).toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit",second:"2-digit"}); } catch { return ts; }
 }
 
-function spin(btn, loading) {
-  const s = btn.querySelector(".btn-spinner");
-  if (s) s.innerHTML = loading ? '<span class="spinner"></span>&nbsp;' : "";
-  btn.disabled = loading;
-}
-
-function switchTab(group, tab, el) {
-  const page = group === "auth" ? "page-auth" : (S.role === "dosen" ? "page-dosen" : "page-mhs");
-  document.querySelectorAll(`#${page} .tab`).forEach(t => t.classList.remove("active"));
-  document.querySelectorAll(`#${page} .tab-content`).forEach(c => c.classList.remove("active"));
-  el.classList.add("active");
-  $(`${group}-tab-${tab}`).classList.add("active");
-}
-
-function showPage(id) {
-  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
-  $(id).classList.add("active");
-}
-
-function toggleNim() {
-  $("nim-field").style.display = $("reg-role").value === "mahasiswa" ? "block" : "none";
-}
-
-function fmtDate(ts) {
-  if (!ts) return "-";
-  try { return new Date(ts).toLocaleString("id-ID", { dateStyle:"medium", timeStyle:"short" }); }
-  catch { return ts; }
-}
-
-// ══════════════════════════════════════════
+// ─────────────────────────────────────────────
 //  AUTH
-// ══════════════════════════════════════════
-async function doRegister(btn) {
-  const name=_("reg-name"), email=_("reg-email"), password=_("reg-password");
-  const role=$("reg-role").value, nim=_("reg-nim");
-  if (!name||!email||!password||!role) return alert_("reg-alert","Semua field wajib diisi.");
-  spin(btn, true);
-  const r = await api("auth/register", { name, email, password, role, nim });
-  spin(btn, false);
-  if (!r.ok) return alert_("reg-alert", r.error);
-  alert_("reg-alert", `✅ Registrasi berhasil! Silakan login sebagai ${role}.`, "success");
+// ─────────────────────────────────────────────
+function authTab(t) {
+  $("auth-login").style.display = t==="login"?"block":"none";
+  $("auth-reg").style.display   = t==="reg"?"block":"none";
+  $("tab-login").style.background = t==="login"?'var(--card)':"transparent";
+  $("tab-login").style.color      = t==="login"?'var(--blue)':"var(--mut)";
+  $("tab-reg").style.background   = t==="reg"?'var(--card)':"transparent";
+  $("tab-reg").style.color        = t==="reg"?'var(--blue)':"var(--mut)";
+  $("tab-login").style.boxShadow  = t==="login"?'0 1px 4px rgba(0,0,0,.1)':"none";
+  $("tab-reg").style.boxShadow    = t==="reg"?'0 1px 4px rgba(0,0,0,.1)':"none";
+}
+function showNim() { $("nim-wrap").style.display = $("r-role").value==="mahasiswa"?"block":"none"; }
+function toggleAdminNim() { $("au-nim-wrap").style.display = $("au-role").value==="mahasiswa"?"block":"none"; }
+
+async function doRegister() {
+  const name=_v("r-name"),email=_v("r-email"),password=_v("r-pw"),role=$("r-role").value,nim=_v("r-nim");
+  if(!name||!email||!password||!role) return showAlert("r-alert","Semua field wajib diisi.");
+  setSpin("rs",true); const r = await api("auth/register",{name,email,password,role,nim}); setSpin("rs",false);
+  if(!r.ok) return showAlert("r-alert",r.error);
+  showAlert("r-alert",`✅ Berhasil! Login sebagai ${role}.`,"ok");
 }
 
-async function doLogin(btn) {
-  const email=_("login-email"), password=_("login-password");
-  if (!email||!password) return alert_("login-alert","Isi email dan password.");
-  spin(btn, true);
-  const r = await api("auth/login", { email, password });
-  spin(btn, false);
-  if (!r.ok) return alert_("login-alert", r.error);
-  const d = r.data;
-  S = { token:d.token, user_id:d.user_id, name:d.name, role:d.role, nim:d.nim };
-  sessionStorage.setItem("ps", JSON.stringify(S));
+async function doLogin() {
+  const email=_v("l-email"), password=_v("l-pw");
+  if(!email||!password) return showAlert("l-alert","Isi email dan password.");
+  setSpin("ls",true); const r = await api("auth/login",{email,password}); setSpin("ls",false);
+  if(!r.ok) return showAlert("l-alert",r.error);
+  const d=r.data;
+  S={token:d.token,user_id:d.user_id,name:d.name,role:d.role,nim:d.nim};
+  sessionStorage.setItem("ps",JSON.stringify(S));
   afterLogin();
 }
 
 function afterLogin() {
-  $("nav-user").style.display = "flex";
-  $("nav-name").textContent   = S.name;
-  $("nav-role-badge").textContent = S.role === "dosen" ? "👨‍🏫 Dosen" : "👨‍🎓 Mahasiswa";
-  $("nav-role-badge").className   = "badge-role " + S.role;
-  if (S.role === "dosen") { showPage("page-dosen"); loadDosenSetup(); }
-  else                    { showPage("page-mhs"); }
+  $("nav-user").style.display="flex";
+  $("nav-name").textContent=S.name;
+  const chip=$("nav-chip");
+  chip.textContent = S.role==="admin"?"🔐 Admin":S.role==="dosen"?"👨‍🏫 Dosen":"👨‍🎓 Mahasiswa";
+  chip.className   = "chip "+S.role;
+  buildSidebar();
+  showPage("page-app");
+  showPanel("dash");
+  buildDash();
 }
 
 function logout() {
-  S = {};
-  sessionStorage.removeItem("ps");
-  $("nav-user").style.display = "none";
-  if (scanner) { try { scanner.stop(); } catch(e){} scanner = null; }
+  S={}; sessionStorage.removeItem("ps");
+  $("nav-user").style.display="none";
+  stopScan(); stopAccel(); stopGPS();
+  // Clear maps
+  Object.values(MAPS).forEach(m => { try { m.remove(); } catch(e){} });
+  for (const k in MAPS) delete MAPS[k];
   showPage("page-auth");
 }
 
-// Restore session
-(function() {
-  try {
-    const saved = sessionStorage.getItem("ps");
-    if (saved) { S = JSON.parse(saved); if (S.token) afterLogin(); }
-  } catch(e) {}
-})();
+(function(){ try{ const s=sessionStorage.getItem("ps"); if(s){S=JSON.parse(s);if(S.token)afterLogin();} }catch(e){} })();
 
-// ══════════════════════════════════════════
-//  DOSEN: SETUP
-// ══════════════════════════════════════════
-async function loadDosenSetup() {
-  const r = await api("courses");
-  if (!r.ok) return;
-  const items = r.data.items || [];
+// ─────────────────────────────────────────────
+//  PAGE / PANEL ROUTING
+// ─────────────────────────────────────────────
+function showPage(id) { document.querySelectorAll(".page").forEach(p=>p.classList.remove("active")); $(id).classList.add("active"); }
+function showPanel(id, fn) {
+  document.querySelectorAll(".tab-panel").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".sidebar-btn").forEach(b=>b.classList.remove("active"));
+  const panel=$("panel-"+id); if(panel) panel.classList.add("active");
+  const btn=$("sb-"+id); if(btn) btn.classList.add("active");
+  if(fn) fn();
+  // Fix Leaflet size after show
+  setTimeout(()=>{ Object.values(MAPS).forEach(m=>{ try{m.invalidateSize();}catch(e){} }); }, 120);
+}
 
-  ["d-course-sel","h-course-sel","ses-csel"].forEach(id => {
-    const el = $(id);
-    el.innerHTML = '<option value="">-- Pilih Matkul --</option>';
-    items.forEach(c => el.innerHTML += `<option value="${c.course_id}">${c.course_name} (${c.course_id})</option>`);
+function buildSidebar() {
+  const menus = MENUS[S.role] || [];
+  const sb = $("sidebar"); sb.innerHTML="";
+  menus.forEach(m => {
+    if(m.sep) {
+      const l=document.createElement("div"); l.className="sidebar-label"; l.textContent=m.sep; sb.appendChild(l);
+    } else {
+      const b=document.createElement("button");
+      b.className="sidebar-btn"; b.id="sb-"+m.panel;
+      b.innerHTML=`${m.icon} ${m.lbl}`;
+      b.onclick=()=>showPanel(m.panel, m.fn||null);
+      sb.appendChild(b);
+    }
   });
-
-  $("courses-tbody").innerHTML = items.length === 0
-    ? '<tr><td colspan="3" class="empty">Belum ada mata kuliah</td></tr>'
-    : items.map(c => `<tr><td><code>${c.course_id}</code></td><td>${c.course_name}</td><td class="muted">${fmtDate(c.created_at)}</td></tr>`).join("");
 }
 
-async function doCreateCourse(btn) {
-  const course_id=_("new-cid"), course_name=_("new-cname");
-  if (!course_id||!course_name) return alert_("course-alert","Isi semua field.");
-  spin(btn, true);
-  const r = await api("courses/create", { course_id, course_name });
-  spin(btn, false);
-  if (!r.ok) return alert_("course-alert", r.error);
-  alert_("course-alert","✅ Mata kuliah berhasil dibuat!","success");
-  $("new-cid").value=""; $("new-cname").value="";
-  loadDosenSetup();
-}
-
-async function doCreateSession(btn) {
-  const course_id=$("ses-csel").value, date=_("ses-date"), label=_("ses-label");
-  if (!course_id||!date||!label) return alert_("session-alert","Isi semua field.");
-  spin(btn, true);
-  const r = await api("sessions/create", { course_id, date, label });
-  spin(btn, false);
-  if (!r.ok) return alert_("session-alert", r.error);
-  alert_("session-alert","✅ Sesi dibuat! ID: " + r.data.session_id,"success");
-  $("ses-date").value=""; $("ses-label").value="";
-}
-
-// ══════════════════════════════════════════
-//  DOSEN: QR
-// ══════════════════════════════════════════
-async function loadSessionsDosen() {
-  const cid = $("d-course-sel").value;
-  if (!cid) return;
-  const r = await api("sessions", { course_id: cid });
-  const el = $("d-session-sel");
-  el.innerHTML = '<option value="">-- Pilih Sesi --</option>';
-  if (r.ok) r.data.items.forEach(s =>
-    el.innerHTML += `<option value="${s.session_id}">${s.label} — ${s.date} (${s.session_id})</option>`
-  );
-}
-
-async function loadSessionsHistory() {
-  const cid = $("h-course-sel").value;
-  if (!cid) return;
-  const r = await api("sessions", { course_id: cid });
-  const el = $("h-session-sel");
-  el.innerHTML = '<option value="">-- Pilih Sesi --</option>';
-  if (r.ok) r.data.items.forEach(s =>
-    el.innerHTML += `<option value="${s.session_id}">${s.label} — ${s.date} (${s.session_id})</option>`
-  );
-}
-
-async function doGenerateQR(btn) {
-  const course_id=$("d-course-sel").value, session_id=$("d-session-sel").value;
-  if (!course_id||!session_id) return alert_("qr-alert","Pilih mata kuliah dan sesi.");
-  spin(btn, true);
-  const r = await api("presence/qr/generate", { course_id, session_id });
-  spin(btn, false);
-  if (!r.ok) return alert_("qr-alert", r.error);
-
-  const { qr_token, expires_at } = r.data;
-  $("qr-display-box").style.display = "block";
-  $("qr-token-text").textContent    = qr_token;
-  $("qrcode-container").innerHTML   = "";
-  new QRCode($("qrcode-container"), {
-    text: qr_token, width:220, height:220,
-    colorDark:"#1F4E79", colorLight:"#ffffff", correctLevel: QRCode.CorrectLevel.H
-  });
-
-  if (qrTimer) clearInterval(qrTimer);
-  const exp = new Date(expires_at).getTime();
-  function tick() {
-    const rem = Math.max(0, Math.floor((exp - Date.now()) / 1000));
-    const m = String(Math.floor(rem/60)).padStart(2,"0"), s2 = String(rem%60).padStart(2,"0");
-    $("qr-timer").textContent = rem > 0 ? `⏱ ${m}:${s2}` : "⛔ Token Expired — Generate lagi";
-    $("qr-timer").style.color = rem <= 30 ? "#C00000" : "#1E5631";
-    if (!rem) clearInterval(qrTimer);
+// ─────────────────────────────────────────────
+//  DASHBOARD
+// ─────────────────────────────────────────────
+function buildDash() {
+  const g=$("dash-greeting");
+  g.innerHTML=`Halo, <strong>${S.name}</strong>! Role: <span class="badge b-${S.role}">${S.role}</span>${S.nim?` · NIM: <strong>${S.nim}</strong>`:""}`;
+  const stats=$("dash-stats");
+  if(S.role==="mahasiswa") {
+    stats.innerHTML=`
+      <div class="stat g"><div class="stat-n">—</div><div class="stat-l">Total Hadir</div></div>
+      <div class="stat p"><div class="stat-n">—</div><div class="stat-l">Mata Kuliah</div></div>
+      <div class="stat o"><div class="stat-n">—</div><div class="stat-l">Device ID</div></div>`;
+  } else {
+    stats.innerHTML=`
+      <div class="stat g"><div class="stat-n">—</div><div class="stat-l">Matkul</div></div>
+      <div class="stat"><div class="stat-n">—</div><div class="stat-l">Sesi</div></div>
+      <div class="stat o"><div class="stat-n">—</div><div class="stat-l">Mahasiswa</div></div>`;
   }
-  tick();
-  qrTimer = setInterval(tick, 1000);
 }
 
-// ══════════════════════════════════════════
-//  DOSEN: HISTORY ALL
-// ══════════════════════════════════════════
+// ─────────────────────────────────────────────
+//  ADMIN: KELOLA USER
+// ─────────────────────────────────────────────
+async function doAddUser() {
+  const name=_v("au-name"),email=_v("au-email"),password=_v("au-pw"),role=$("au-role").value,nim=_v("au-nim");
+  if(!name||!email||!password||!role) return showAlert("au-alert","Semua field wajib.");
+  setSpin("aus",true); const r=await api("admin/add-user",{name,email,password,role,nim}); setSpin("aus",false);
+  if(!r.ok) return showAlert("au-alert",r.error);
+  showAlert("au-alert",`✅ User ${r.data.name} berhasil ditambah (${r.data.role}).`,"ok");
+  $("au-name").value=$("au-email").value=$("au-pw").value=$("au-nim").value=""; $("au-role").value="";
+  loadUserList();
+}
+
+async function doResetPw() {
+  const target_email=_v("rp-email"), new_password=_v("rp-pw");
+  if(!target_email||!new_password) return showAlert("rp-alert","Isi email dan password baru.");
+  setSpin("rps",true); const r=await api("admin/reset-password",{target_email,new_password}); setSpin("rps",false);
+  if(!r.ok) return showAlert("rp-alert",r.error);
+  showAlert("rp-alert","✅ Password berhasil direset.","ok");
+}
+
+async function loadUserList() {
+  const role=$("ul-filter").value;
+  const r=await api("admin/list-users",role?{role}:{});
+  if(!r.ok) return;
+  const items=r.data.items||[];
+  const roleChip={admin:"b-adm",dosen:"b-dos",mahasiswa:"b-mhs"};
+  $("user-list-tbody").innerHTML=items.length===0
+    ?'<tr><td colspan="6" class="empty">Tidak ada user</td></tr>'
+    :items.map((u,i)=>`<tr>
+      <td>${i+1}</td><td>${u.name}</td><td>${u.email}</td>
+      <td><span class="badge ${roleChip[u.role]||""}">${u.role}</span></td>
+      <td>${u.nim||"-"}</td><td class="mut">${fmtDt(u.created_at)}</td></tr>`).join("");
+}
+
+// ─────────────────────────────────────────────
+//  COURSES & SESSIONS
+// ─────────────────────────────────────────────
+async function loadSetup() {
+  const r=await api("courses");
+  if(!r.ok) return;
+  const items=r.data.items||[];
+  ["ses-csel","qr-csel","ha-csel"].forEach(id=>{
+    const el=$(id); if(!el) return;
+    el.innerHTML='<option value="">-- Pilih --</option>';
+    items.forEach(c=>el.innerHTML+=`<option value="${c.course_id}">${c.course_name} (${c.course_id})</option>`);
+  });
+  $("course-tbl").innerHTML=items.length===0
+    ?'<tr><td colspan="2" class="empty">Belum ada matkul</td></tr>'
+    :items.map(c=>`<tr><td><code>${c.course_id}</code></td><td>${c.course_name}</td></tr>`).join("");
+}
+
+async function doCreateCourse() {
+  const course_id=_v("ci-id"),course_name=_v("ci-name");
+  if(!course_id||!course_name) return showAlert("cc-alert","Isi semua field.");
+  setSpin("ccs",true); const r=await api("courses/create",{course_id,course_name}); setSpin("ccs",false);
+  if(!r.ok) return showAlert("cc-alert",r.error);
+  showAlert("cc-alert","✅ Mata kuliah dibuat!","ok");
+  $("ci-id").value=$("ci-name").value=""; loadSetup();
+}
+
+async function doCreateSession() {
+  const course_id=$("ses-csel").value,date=_v("ses-date"),label=_v("ses-label");
+  if(!course_id||!date||!label) return showAlert("cs-alert","Isi semua field.");
+  setSpin("css2",true); const r=await api("sessions/create",{course_id,date,label}); setSpin("css2",false);
+  if(!r.ok) return showAlert("cs-alert",r.error);
+  showAlert("cs-alert","✅ Sesi dibuat! ID: "+r.data.session_id,"ok");
+  $("ses-date").value=$("ses-label").value="";
+}
+
+// ─────────────────────────────────────────────
+//  QR GENERATE
+// ─────────────────────────────────────────────
+async function loadQrCourses() { await loadSetup(); }
+async function loadQrSessions() {
+  const cid=$("qr-csel").value; if(!cid) return;
+  const r=await api("sessions",{course_id:cid});
+  const el=$("qr-ssel"); el.innerHTML='<option value="">-- Pilih --</option>';
+  if(r.ok) r.data.items.forEach(s=>el.innerHTML+=`<option value="${s.session_id}">${s.label} — ${s.date} (${s.session_id})</option>`);
+}
+
+async function doGenQR() {
+  const course_id=$("qr-csel").value, session_id=$("qr-ssel").value;
+  if(!course_id||!session_id) return showAlert("gen-alert","Pilih matkul dan sesi.");
+  setSpin("gens",true); const r=await api("presence/qr/generate",{course_id,session_id}); setSpin("gens",false);
+  if(!r.ok) return showAlert("gen-alert",r.error);
+
+  const {qr_token,expires_at}=r.data;
+  $("qr-box").style.display="block";
+  $("qr-tok").textContent=qr_token;
+  $("qrcode").innerHTML="";
+  new QRCode($("qrcode"),{text:qr_token,width:220,height:220,colorDark:"#1F4E79",colorLight:"#fff",correctLevel:QRCode.CorrectLevel.H});
+
+  if(qrTimer) clearInterval(qrTimer);
+  const exp=new Date(expires_at).getTime();
+  function tick(){
+    const rem=Math.max(0,Math.floor((exp-Date.now())/1000));
+    const m=String(Math.floor(rem/60)).padStart(2,"0"),s2=String(rem%60).padStart(2,"0");
+    $("qr-timer").textContent=rem>0?`⏱ ${m}:${s2}`:"⛔ Expired — Generate lagi";
+    $("qr-timer").style.color=rem<=30?"#C00000":"#1E5631";
+    if(!rem) clearInterval(qrTimer);
+  }
+  tick(); qrTimer=setInterval(tick,1000);
+}
+
+// ─────────────────────────────────────────────
+//  HISTORY DOSEN/ADMIN (+ Leaflet peta marker)
+// ─────────────────────────────────────────────
+async function loadHaCourses() { await loadSetup(); }
+async function loadHaSessions() {
+  const cid=$("ha-csel").value; if(!cid) return;
+  const r=await api("sessions",{course_id:cid});
+  const el=$("ha-ssel"); el.innerHTML='<option value="">-- Pilih --</option>';
+  if(r.ok) r.data.items.forEach(s=>el.innerHTML+=`<option value="${s.session_id}">${s.label} — ${s.date} (${s.session_id})</option>`);
+}
+
+// Recap map layer groups
+let recapMarkersLayer = null;
+
 async function loadHistoryAll() {
-  const sid = $("h-session-sel").value;
-  if (!sid) return;
-  const r = await api("presence/history/all", { session_id: sid });
-  if (!r.ok) return;
+  const sid=$("ha-ssel").value; if(!sid) return;
+  const r=await api("presence/history/all",{session_id:sid});
+  if(!r.ok) return;
+  const d=r.data, items=d.items||[];
+  $("ha-n").textContent=d.total_hadir;
+  $("ha-sesi").textContent=d.pertemuan||sid;
+  $("ha-tgl").textContent=d.tanggal||"-";
+  $("ha-stats").style.display="grid";
 
-  const items = r.data.items || [];
-  $("st-hadir").textContent = items.length;
-  $("st-sesi").textContent  = sid;
-  $("history-stats").style.display = "grid";
-
-  $("history-tbody").innerHTML = items.length === 0
-    ? '<tr><td colspan="6" class="empty">Belum ada yang absen di sesi ini</td></tr>'
-    : items.map(p => `<tr>
-        <td>${p.no}</td><td><code>${p.nim||"-"}</code></td><td>${p.name}</td>
-        <td class="muted">${fmtDate(p.ts)}</td>
-        <td><span class="badge badge-ok">${p.status}</span></td>
-        <td class="muted">${p.device_id}</td>
+  $("ha-tbody").innerHTML=items.length===0
+    ?'<tr><td colspan="7" class="empty">Belum ada yang absen</td></tr>'
+    :items.map(p=>`<tr>
+        <td>${p.no}</td>
+        <td><code>${p.nim||"-"}</code></td>
+        <td><strong>${p.nama}</strong></td>
+        <td class="mut">${fmtTime(p.jam_checkin)}</td>
+        <td>${p.maps_url?`<a class="maps-link" href="${p.maps_url}" target="_blank">📍 Lihat</a>`:"<span class='mut'>-</span>"}</td>
+        <td><span class="badge b-ok">${p.status}</span></td>
+        <td class="mut">${p.device_id}</td>
       </tr>`).join("");
+
+  // ── Plot markers di Leaflet ──
+  const withLoc = items.filter(p=>p.lokasi&&p.lokasi.lat);
+  if (withLoc.length > 0) {
+    $("recap-map-wrap").style.display = "block";
+    const map = initMap("recap-map");
+
+    if (recapMarkersLayer) { map.removeLayer(recapMarkersLayer); }
+    recapMarkersLayer = L.layerGroup().addTo(map);
+
+    const bounds = [];
+    withLoc.forEach(p => {
+      const {lat, lng} = p.lokasi;
+      bounds.push([lat, lng]);
+      L.marker([lat, lng], { icon: ICON_BLUE })
+        .bindPopup(`<div class="pop-title">${p.nama}</div>NIM: ${p.nim||"-"}<br>Jam: ${fmtTime(p.jam_checkin)}<br>Akurasi: ±${p.lokasi.accuracy_m||"?"}m`)
+        .addTo(recapMarkersLayer);
+      // Accuracy circle
+      if (p.lokasi.accuracy_m) {
+        L.circle([lat, lng], { radius: p.lokasi.accuracy_m, color:"#2E75B6", weight:1, fillOpacity:0.07 }).addTo(recapMarkersLayer);
+      }
+    });
+
+    if (bounds.length > 0) {
+      try { map.fitBounds(bounds, { padding: [40, 40], maxZoom: 17 }); } catch(e){}
+    }
+    setTimeout(()=>map.invalidateSize(), 150);
+  } else {
+    $("recap-map-wrap").style.display = "none";
+  }
 }
 
-// ══════════════════════════════════════════
-//  MAHASISWA: SCANNER
-// ══════════════════════════════════════════
+// ─────────────────────────────────────────────
+//  MAHASISWA: SCAN + PETA CHECKIN
+// ─────────────────────────────────────────────
+let checkinMapVisible = false;
+let checkinPickMarker = null;
+
 function startScan() {
-  $("btn-start").style.display = "none";
-  $("btn-stop").style.display  = "inline-flex";
-  scanner = new Html5Qrcode("reader");
-  scanner.start(
-    { facingMode: "environment" },
-    { fps: 10, qrbox: { width:260, height:260 } },
-    (text) => {
-      stopScan();
-      $("scan-token-val").textContent = text;
-      $("scan-result-box").style.display = "block";
-    },
-    () => {}
-  ).catch(err => alert_("checkin-alert","Kamera gagal dibuka: " + err));
+  $("btn-cam").style.display="none"; $("btn-stop").style.display="inline-flex";
+  scanner=new Html5Qrcode("reader");
+  scanner.start({facingMode:"environment"},{fps:10,qrbox:{width:260,height:260}},
+    text=>{ stopScan(); $("scan-tok").textContent=text; $("scan-res").style.display="block"; },
+    ()=>{}
+  ).catch(e=>showAlert("cin-alert","Kamera error: "+e));
 }
-
 function stopScan() {
-  if (scanner) { try { scanner.stop().then(()=>scanner.clear()); } catch(e){} scanner = null; }
-  $("btn-start").style.display = "inline-flex";
-  $("btn-stop").style.display  = "none";
+  if(scanner){try{scanner.stop().then(()=>scanner.clear());}catch(e){} scanner=null;}
+  $("btn-cam").style.display="inline-flex"; $("btn-stop").style.display="none";
 }
 
-async function doCheckin(btn) {
-  const qr_token = $("scan-token-val").textContent.trim();
-  const course_id=_("mhs-cid"), session_id=_("mhs-sid");
-  if (!course_id||!session_id) return alert_("checkin-alert","Isi Course ID dan Session ID.");
-  spin(btn, true);
-  const r = await api("presence/checkin", { device_id:"web-scan-01", course_id, session_id, qr_token });
-  spin(btn, false);
-  if (!r.ok) return alert_("checkin-alert", r.error);
-  alert_("checkin-alert",`✅ Berhasil absen! ID: ${r.data.presence_id}`,"success");
-  $("scan-result-box").style.display = "none";
+function getMyLocationScan() {
+  $("loc-status-scan").textContent="Mendapatkan lokasi…";
+  if(!navigator.geolocation) { $("loc-status-scan").textContent="Geolocation tidak didukung."; return; }
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const {latitude:lat, longitude:lng, accuracy} = pos.coords;
+    $("sc-lat").value = lat.toFixed(6);
+    $("sc-lng").value = lng.toFixed(6);
+    $("loc-status-scan").textContent = `📍 ${lat.toFixed(5)}, ${lng.toFixed(5)} (±${accuracy.toFixed(0)}m)`;
+    // Auto-show map and center
+    if (checkinMapVisible) updateCheckinMapMarker(lat, lng, accuracy);
+  }, ()=>{ $("loc-status-scan").textContent = "Gagal mendapat lokasi."; });
 }
 
-// ══════════════════════════════════════════
-//  MAHASISWA: MANUAL
-// ══════════════════════════════════════════
-async function doCheckinManual(btn) {
-  const qr_token=_("m-token").toUpperCase(), course_id=_("m-cid"), session_id=_("m-sid");
-  if (!qr_token||!course_id||!session_id) return alert_("manual-alert","Isi semua field.");
-  spin(btn, true);
-  const r = await api("presence/checkin", { device_id:"web-manual-01", course_id, session_id, qr_token });
-  spin(btn, false);
-  if (!r.ok) return alert_("manual-alert", r.error);
-  alert_("manual-alert",`✅ Berhasil absen! ID: ${r.data.presence_id}`,"success");
-  $("m-token").value = "";
+function toggleCheckinMap() {
+  const wrap = $("checkin-map-wrap");
+  checkinMapVisible = !checkinMapVisible;
+  wrap.style.display = checkinMapVisible ? "block" : "none";
+
+  if (checkinMapVisible) {
+    setTimeout(()=>{
+      const map = initMap("checkin-map", DEFAULT_CENTER, 14);
+      map.on("click", e=>{
+        const {lat, lng} = e.latlng;
+        $("sc-lat").value = lat.toFixed(6);
+        $("sc-lng").value = lng.toFixed(6);
+        $("loc-status-scan").textContent = `📍 ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        updateCheckinMapMarker(lat, lng, null);
+        $("checkin-map-info").textContent = `Lokasi dipilih: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+      });
+      // If already have coords, show marker
+      const lat = parseFloat(_v("sc-lat")), lng = parseFloat(_v("sc-lng"));
+      if (!isNaN(lat) && !isNaN(lng)) { updateCheckinMapMarker(lat, lng, null); map.setView([lat,lng], 16); }
+    }, 80);
+  }
 }
 
-// ══════════════════════════════════════════
-//  MAHASISWA: HISTORY
-// ══════════════════════════════════════════
+function updateCheckinMapMarker(lat, lng, accuracy) {
+  const map = MAPS["checkin-map"]; if (!map) return;
+  if (checkinPickMarker) map.removeLayer(checkinPickMarker);
+  checkinPickMarker = L.marker([lat, lng], { icon: ICON_USER })
+    .bindPopup(`<div class="pop-title">Lokasi Absen Anda</div>${lat.toFixed(5)}, ${lng.toFixed(5)}`)
+    .addTo(map).openPopup();
+  if (accuracy) L.circle([lat, lng], { radius: accuracy, color:"#4A235A", weight:1, fillOpacity:0.08 }).addTo(map);
+  map.setView([lat, lng], 17);
+}
+
+async function doCheckin() {
+  const qr_token=$("scan-tok").textContent.trim(), course_id=_v("sc-cid"), session_id=_v("sc-sid");
+  const lat=_v("sc-lat"), lng=_v("sc-lng");
+  if(!course_id||!session_id) return showAlert("cin-alert","Isi Course ID dan Session ID.");
+  const payload={device_id:"web-scan-01",course_id,session_id,qr_token};
+  if(lat&&lng){payload.lat=parseFloat(lat);payload.lng=parseFloat(lng);}
+  setSpin("cins",true); const r=await api("presence/checkin",payload); setSpin("cins",false);
+  if(!r.ok) return showAlert("cin-alert",r.error);
+  showAlert("cin-alert",`✅ Absen berhasil! ID: ${r.data.presence_id}`,"ok");
+  $("scan-res").style.display="none";
+  $("checkin-map-wrap").style.display="none"; checkinMapVisible=false;
+}
+
+// ─────────────────────────────────────────────
+//  TOKEN MANUAL + PETA
+// ─────────────────────────────────────────────
+let manualMapVisible = false;
+let manualPickMarker = null;
+
+function getMyLocationManual() {
+  if(!navigator.geolocation) return;
+  $("loc-status-m").textContent="Mendapatkan lokasi…";
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const {latitude:lat, longitude:lng, accuracy} = pos.coords;
+    manLat=lat; manLng=lng;
+    $("loc-status-m").textContent=`📍 ${lat.toFixed(5)}, ${lng.toFixed(5)} (±${accuracy.toFixed(0)}m)`;
+    if (manualMapVisible) updateManualMapMarker(lat, lng);
+  },()=>$("loc-status-m").textContent="Gagal mendapat lokasi.");
+}
+
+function toggleManualMap() {
+  const wrap = $("manual-map-wrap");
+  manualMapVisible = !manualMapVisible;
+  wrap.style.display = manualMapVisible ? "block" : "none";
+
+  if (manualMapVisible) {
+    setTimeout(()=>{
+      const map = initMap("manual-map", DEFAULT_CENTER, 14);
+      map.on("click", e=>{
+        const {lat, lng} = e.latlng;
+        manLat=lat; manLng=lng;
+        $("loc-status-m").textContent = `📍 ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        updateManualMapMarker(lat, lng);
+        $("manual-map-info").textContent = `Lokasi dipilih: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+      });
+      if (manLat && manLng) { updateManualMapMarker(manLat, manLng); MAPS["manual-map"].setView([manLat, manLng], 16); }
+    }, 80);
+  }
+}
+
+function updateManualMapMarker(lat, lng) {
+  const map = MAPS["manual-map"]; if (!map) return;
+  if (manualPickMarker) map.removeLayer(manualPickMarker);
+  manualPickMarker = L.marker([lat, lng], { icon: ICON_USER })
+    .bindPopup(`<div class="pop-title">Lokasi Absen Anda</div>${lat.toFixed(5)}, ${lng.toFixed(5)}`)
+    .addTo(map).openPopup();
+  map.setView([lat, lng], 17);
+}
+
+async function doCheckinManual() {
+  const qr_token=_v("mt").toUpperCase(), course_id=_v("mc"), session_id=_v("ms");
+  if(!qr_token||!course_id||!session_id) return showAlert("man-alert","Isi semua field.");
+  const payload={device_id:"web-manual-01",course_id,session_id,qr_token};
+  if(manLat&&manLng){payload.lat=manLat;payload.lng=manLng;}
+  setSpin("mans",true); const r=await api("presence/checkin",payload); setSpin("mans",false);
+  if(!r.ok) return showAlert("man-alert",r.error);
+  showAlert("man-alert",`✅ Absen berhasil! ID: ${r.data.presence_id}`,"ok");
+  $("mt").value=""; manLat=null; manLng=null; $("loc-status-m").textContent="";
+  $("manual-map-wrap").style.display="none"; manualMapVisible=false;
+}
+
+// ─────────────────────────────────────────────
+//  HISTORY MAHASISWA + Leaflet markers
+// ─────────────────────────────────────────────
+let mhsMarkersLayer = null;
+
 async function loadHistoryMhs() {
-  const course_id = _("mhs-hist-cid");
-  if (!course_id) return;
-  const r = await api("presence/history", { course_id });
-  if (!r.ok) { $("mhs-hist-tbody").innerHTML = `<tr><td colspan="4" class="empty">${r.error}</td></tr>`; return; }
-
-  const items = r.data.items || [];
-  $("mhs-total").textContent = items.length;
-  $("mhs-hist-tbody").innerHTML = items.length === 0
-    ? '<tr><td colspan="4" class="empty">Belum ada data absen</td></tr>'
-    : items.map((p,i) => `<tr>
-        <td>${i+1}</td><td>${p.session_label||p.session_id}</td>
-        <td class="muted">${fmtDate(p.ts)}</td>
-        <td><span class="badge badge-ok">${p.status}</span></td>
+  const course_id=_v("mh-cid"); if(!course_id) return;
+  const r=await api("presence/history",{course_id});
+  if(!r.ok){$("mh-tbody").innerHTML=`<tr><td colspan="6" class="empty">${r.error}</td></tr>`;return;}
+  const items=r.data.items||[];
+  $("mh-total").textContent=items.length;
+  $("mh-tbody").innerHTML=items.length===0
+    ?'<tr><td colspan="6" class="empty">Belum ada data</td></tr>'
+    :items.map(p=>`<tr>
+        <td>${p.no}</td>
+        <td><strong>${p.pertemuan}</strong></td>
+        <td class="mut">${p.tanggal||"-"}</td>
+        <td class="mut">${fmtTime(p.jam_checkin)}</td>
+        <td>${p.maps_url?`<a class="maps-link" href="${p.maps_url}" target="_blank">📍 ${p.lokasi.lat.toFixed(4)},${p.lokasi.lng.toFixed(4)}</a>`:"<span class='mut'>-</span>"}</td>
+        <td><span class="badge b-ok">${p.status}</span></td>
       </tr>`).join("");
+
+  // Peta lokasi absen
+  const withLoc = items.filter(p=>p.lokasi&&p.lokasi.lat);
+  if (withLoc.length > 0) {
+    $("mhs-map-wrap").style.display = "block";
+    const map = initMap("mhs-map");
+    if (mhsMarkersLayer) map.removeLayer(mhsMarkersLayer);
+    mhsMarkersLayer = L.layerGroup().addTo(map);
+    const bounds = [];
+    withLoc.forEach((p,i) => {
+      const {lat, lng} = p.lokasi;
+      bounds.push([lat, lng]);
+      const icon = i===0 ? ICON_GREEN : (i===withLoc.length-1 ? ICON_RED : ICON_BLUE);
+      L.marker([lat, lng], {icon})
+        .bindPopup(`<div class="pop-title">${p.pertemuan}</div>${p.tanggal}<br>Jam: ${fmtTime(p.jam_checkin)}`)
+        .addTo(mhsMarkersLayer);
+    });
+    if (bounds.length > 1) {
+      // Draw a line connecting all attendance locations chronologically
+      L.polyline(bounds, { color:"#2E75B6", weight:2, dashArray:"4 6", opacity:.6 }).addTo(mhsMarkersLayer);
+    }
+    if (bounds.length > 0) try { map.fitBounds(bounds, {padding:[40,40],maxZoom:17}); } catch(e){}
+    setTimeout(()=>map.invalidateSize(), 150);
+  } else {
+    $("mhs-map-wrap").style.display = "none";
+  }
 }
 
-// ── Shorthand get value ─────────────────
-function _(id) { return $(id) ? $(id).value.trim() : ""; }
+// ─────────────────────────────────────────────
+//  ACCELEROMETER
+// ─────────────────────────────────────────────
+let accelActive=false;
+function startAccel() {
+  accelActive=true;
+  $("btn-ac-start").style.display="none";
+  $("btn-ac-stop").style.display="inline-flex";
+
+  function sendBatch(){
+    if(!accelActive||accelBatch.length===0) return;
+    const samples=[...accelBatch]; accelBatch=[];
+    api("telemetry/accel",{device_id:_v("ac-dev")||"web-01",ts:new Date().toISOString(),samples})
+      .then(r=>{ if(!r.ok) showAlert("ac-alert","Accel error: "+r.error); });
+  }
+
+  if(window.DeviceMotionEvent && typeof DeviceMotionEvent.requestPermission==="function") {
+    DeviceMotionEvent.requestPermission().then(state=>{
+      if(state==="granted") listenMotion();
+    });
+  } else if(window.DeviceMotionEvent) {
+    listenMotion();
+  } else {
+    showAlert("ac-alert","DeviceMotion tidak tersedia — menggunakan data simulasi.","info");
+    accelTimer=setInterval(()=>{
+      const x=(Math.random()-0.5)*2, y=(Math.random()-0.5)*2, z=9.5+Math.random();
+      updateAccelUI(x,y,z);
+      accelBatch.push({t:new Date().toISOString(),x:+x.toFixed(3),y:+y.toFixed(3),z:+z.toFixed(3)});
+      if(accelBatch.length>=5) sendBatch();
+    },300);
+  }
+  setInterval(sendBatch,3000);
+}
+
+function listenMotion() {
+  window.addEventListener("devicemotion", e=>{
+    if(!accelActive||!e.acceleration) return;
+    const {x,y,z}=e.acceleration;
+    updateAccelUI(x,y,z);
+    accelBatch.push({t:new Date().toISOString(),x:+x.toFixed(3),y:+y.toFixed(3),z:+(z||9.81).toFixed(3)});
+  });
+}
+
+function updateAccelUI(x,y,z) {
+  $("av-x").textContent=x.toFixed(3); $("av-y").textContent=y.toFixed(3); $("av-z").textContent=z.toFixed(3);
+  const norm=(v,max)=>Math.min(100,Math.abs(v)/max*100);
+  $("bar-x").style.height=norm(x,20)*0.8+"px";
+  $("bar-y").style.height=norm(y,20)*0.8+"px";
+  $("bar-z").style.height=norm(z,15)*0.8+"px";
+}
+
+function stopAccel() {
+  accelActive=false;
+  if(accelTimer){clearInterval(accelTimer);accelTimer=null;}
+  $("btn-ac-start").style.display="inline-flex";
+  $("btn-ac-stop").style.display="none";
+}
+
+async function fetchAccelLatest() {
+  const device_id=_v("ac-q-dev"); if(!device_id) return;
+  const r=await api("telemetry/accel/latest",{device_id});
+  if(!r.ok) return $("accel-latest").textContent=r.error;
+  const d=r.data;
+  $("accel-latest").innerHTML=`<strong>${d.device_id}</strong> — t: ${fmtDt(d.t)} | X: <strong>${d.x}</strong> | Y: <strong>${d.y}</strong> | Z: <strong>${d.z}</strong>`;
+}
+
+// ═══════════════════════════════════════════════
+//  GPS TRACKING — Leaflet Integration
+// ═══════════════════════════════════════════════
+
+// GPS state
+let gpsMarker       = null;   // current position marker
+let gpsAccCircle    = null;   // accuracy circle
+let gpsTrailLayer   = null;   // live polyline layer group
+let gpsTrailPoints  = [];     // [[lat,lng], ...]
+let gpsPolyline     = null;   // live trail polyline
+
+// History map
+let historyMapLayer = null;
+
+function initGpsPanel() {
+  // Delay so the DOM is visible
+  setTimeout(() => {
+    const map = initMap("gps-map", DEFAULT_CENTER, DEFAULT_ZOOM);
+    gpsTrailLayer = L.layerGroup().addTo(map);
+    map.invalidateSize();
+  }, 120);
+}
+
+function setTrackDot(active) {
+  $("track-dot").className = "track-dot" + (active ? " active" : "");
+  $("btn-gps-start").style.display = active ? "none" : "inline-flex";
+  $("btn-gps-stop").style.display  = active ? "inline-flex" : "none";
+}
+
+function startGPS() {
+  if(!navigator.geolocation) return showAlert("gps-alert","Geolocation tidak didukung browser ini.");
+  setTrackDot(true);
+  gpsTrailPoints = [];
+  $("gps-status-txt").textContent = "Aktif — menunggu GPS…";
+  $("gps-map-bar").style.display = "none";
+
+  const map = MAPS["gps-map"] || initMap("gps-map");
+  if (!gpsTrailLayer) gpsTrailLayer = L.layerGroup().addTo(map);
+
+  gpsWatcher = navigator.geolocation.watchPosition(pos=>{
+    const {latitude:lat, longitude:lng, accuracy} = pos.coords;
+    const now = new Date();
+
+    // Status bar
+    $("gps-status-txt").textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    const accBadge = $("gps-accuracy-badge");
+    accBadge.style.display = "inline";
+    accBadge.textContent = `±${accuracy.toFixed(0)}m`;
+    accBadge.style.background = accuracy < 20 ? "var(--green)" : accuracy < 60 ? "var(--org)" : "var(--red)";
+
+    // Map info bar
+    $("gps-map-bar").style.display = "flex";
+    $("gps-coords-display").textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    $("gps-time-display").textContent   = fmtDt(now);
+    $("gps-gmaps-link").href = `https://maps.google.com/?q=${lat},${lng}`;
+
+    // Marker
+    if (!gpsMarker) {
+      gpsMarker = L.marker([lat, lng], { icon: ICON_USER })
+        .bindPopup(`<div class="pop-title">Posisi Anda</div>`)
+        .addTo(map);
+    } else {
+      gpsMarker.setLatLng([lat, lng]);
+    }
+    gpsMarker.getPopup().setContent(
+      `<div class="pop-title">Posisi Saat Ini</div>${lat.toFixed(5)}, ${lng.toFixed(5)}<br>Akurasi: ±${accuracy.toFixed(0)}m<br><small style="color:#888">${fmtDt(now)}</small>`
+    );
+
+    // Accuracy circle
+    if (gpsAccCircle) map.removeLayer(gpsAccCircle);
+    gpsAccCircle = L.circle([lat, lng], {
+      radius: accuracy, color:"#4A235A", weight:1.5, fillOpacity:0.08
+    }).addTo(map);
+
+    // Trail polyline
+    gpsTrailPoints.push([lat, lng]);
+    if (gpsPolyline) map.removeLayer(gpsPolyline);
+    if (gpsTrailPoints.length > 1) {
+      gpsPolyline = L.polyline(gpsTrailPoints, {
+        color:"#2E75B6", weight:4, opacity:.75, lineCap:"round"
+      }).addTo(map);
+    }
+
+    // Pan map to keep user centered
+    map.panTo([lat, lng], { animate:true, duration:0.5 });
+
+    // Send to server
+    api("telemetry/gps",{
+      device_id: _v("gps-dev")||"web-01",
+      ts: now.toISOString(), lat, lng, accuracy_m: accuracy
+    }).catch(()=>{});
+
+  }, err=>{
+    showAlert("gps-alert","GPS error: "+err.message);
+    setTrackDot(false);
+  }, { enableHighAccuracy:true, timeout:15000, maximumAge:0 });
+}
+
+function stopGPS() {
+  if(gpsWatcher!==null){navigator.geolocation.clearWatch(gpsWatcher);gpsWatcher=null;}
+  setTrackDot(false);
+  $("gps-status-txt").textContent="Tidak aktif";
+  $("gps-accuracy-badge").style.display="none";
+}
+
+// ── Fetch GPS history from server & draw on dedicated map ──
+async function fetchGpsHistory() {
+  const device_id=_v("gps-q-dev"); if(!device_id) return;
+  const r=await api("telemetry/gps/history",{device_id,limit:200});
+  if(!r.ok) return showAlert("gps-alert",r.error);
+  const items=r.data.items||[];
+
+  // Table
+  $("gps-hist-tbody").innerHTML=items.length===0
+    ?'<tr><td colspan="6" class="empty">Tidak ada data</td></tr>'
+    :items.map((g,i)=>`<tr>
+        <td>${i+1}</td>
+        <td class="mut">${fmtDt(g.ts)}</td>
+        <td>${g.lat.toFixed(5)}</td>
+        <td>${g.lng.toFixed(5)}</td>
+        <td class="mut">${g.accuracy_m?`±${g.accuracy_m.toFixed(0)}m`:"-"}</td>
+        <td><a class="maps-link" href="https://maps.google.com/?q=${g.lat},${g.lng}" target="_blank">🗺️</a></td>
+      </tr>`).join("");
+
+  if (items.length === 0) { $("history-map-wrap").style.display="none"; return; }
+
+  // Show history map
+  $("history-map-wrap").style.display = "block";
+  setTimeout(()=>{
+    const map = initMap("gps-history-map");
+    if (historyMapLayer) map.removeLayer(historyMapLayer);
+    historyMapLayer = L.layerGroup().addTo(map);
+
+    const coords = items.map(g=>[g.lat, g.lng]);
+    const bounds = coords;
+
+    // Polyline
+    if (coords.length > 1) {
+      L.polyline(coords, {
+        color:"#2E75B6", weight:4, opacity:.8, lineCap:"round"
+      }).addTo(historyMapLayer);
+    }
+
+    // Start marker (first point — oldest)
+    L.marker(coords[0], { icon: ICON_GREEN })
+      .bindPopup(`<div class="pop-title">🟢 Titik Awal</div>${fmtDt(items[0].ts)}`)
+      .addTo(historyMapLayer);
+
+    // End marker (last point — newest)
+    if (coords.length > 1) {
+      L.marker(coords[coords.length-1], { icon: ICON_RED })
+        .bindPopup(`<div class="pop-title">🔴 Posisi Terbaru</div>${fmtDt(items[items.length-1].ts)}`)
+        .addTo(historyMapLayer);
+    }
+
+    // Small dot markers for intermediate points
+    coords.slice(1, -1).forEach((c, i) => {
+      L.marker(c, { icon: makeSmallDot("#2E75B6") })
+        .bindPopup(`<div class="pop-title">Titik ${i+2}</div>${fmtDt(items[i+1].ts)}<br>${c[0].toFixed(5)}, ${c[1].toFixed(5)}`)
+        .addTo(historyMapLayer);
+    });
+
+    try { map.fitBounds(bounds, {padding:[40,40],maxZoom:17}); } catch(e){}
+    map.invalidateSize();
+  }, 120);
+}
 </script>
 </body>
 </html>

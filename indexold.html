@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Presensi QR Dinamis</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<style>
+  :root{--blue:#1F4E79;--blue-light:#2E75B6;--green:#1E5631;--green-light:#2d7a47;--red:#C00000;--orange:#7B3F00;--bg:#f0f4f8;--card:#ffffff;--text:#1a1a2e;--muted:#6b7280;--border:#e2e8f0;--r:12px;--sh:0 4px 20px rgba(0,0,0,.08)}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+  nav{background:var(--blue);color:#fff;padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:60px;box-shadow:0 2px 10px rgba(0,0,0,.2);position:sticky;top:0;z-index:100}
+  nav h1{font-size:1.1rem;font-weight:700}
+  .nav-right{display:flex;align-items:center;gap:12px}
+  .badge-role{border-radius:20px;padding:3px 12px;font-size:.78rem;font-weight:600}
+  .badge-role.dosen{background:#FF9900;color:#000}
+  .badge-role.mahasiswa{background:#00B050;color:#fff}
+  #btn-logout{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:5px 14px;border-radius:6px;cursor:pointer;font-size:.82rem}
+  #btn-logout:hover{background:rgba(255,255,255,.3)}
+  .container{max-width:900px;margin:0 auto;padding:28px 16px}
+  .page{display:none}.page.active{display:block}
+  .card{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:28px;margin-bottom:20px}
+  .card h2{font-size:1.1rem;font-weight:700;color:var(--blue);margin-bottom:18px;display:flex;align-items:center;gap:8px}
+  .tabs{display:flex;gap:4px;background:var(--border);border-radius:8px;padding:4px;margin-bottom:24px}
+  .tab{flex:1;padding:9px;border:none;border-radius:6px;cursor:pointer;background:transparent;font-size:.88rem;font-weight:600;color:var(--muted);transition:all .2s}
+  .tab.active{background:var(--card);color:var(--blue);box-shadow:0 1px 6px rgba(0,0,0,.1)}
+  .tab-content{display:none}.tab-content.active{display:block}
+  .form-group{margin-bottom:16px}
+  label{display:block;font-size:.83rem;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px}
+  input,select{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:.92rem;background:#fff;transition:border .2s}
+  input:focus,select:focus{outline:none;border-color:var(--blue-light)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .btn{display:inline-flex;align-items:center;gap:7px;padding:11px 22px;border:none;border-radius:8px;font-size:.9rem;font-weight:600;cursor:pointer;transition:all .2s}
+  .btn-primary{background:var(--blue);color:#fff;width:100%;justify-content:center}
+  .btn-primary:hover{background:var(--blue-light)}
+  .btn-green{background:var(--green);color:#fff}
+  .btn-green:hover{background:var(--green-light)}
+  .btn-red{background:var(--red);color:#fff}
+  .btn-full{width:100%;justify-content:center}
+  .alert{padding:12px 16px;border-radius:8px;font-size:.88rem;margin-top:14px;display:none}
+  .alert.show{display:block}
+  .alert-success{background:#d1fae5;color:#065f46;border:1px solid #6ee7b7}
+  .alert-error{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5}
+  .alert-info{background:#dbeafe;color:#1e40af;border:1px solid #93c5fd}
+  #qr-display-box{text-align:center;padding:24px;background:linear-gradient(135deg,#f0f4ff,#e8f5e9);border-radius:12px;margin-top:16px}
+  #qr-display-box canvas,#qr-display-box img{margin:0 auto;display:block;border:4px solid #fff;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.15)}
+  .token-badge{display:inline-block;background:var(--blue);color:#fff;font-family:monospace;font-size:1.3rem;font-weight:700;padding:8px 22px;border-radius:8px;margin:12px 0;letter-spacing:2px}
+  .timer{font-size:1.2rem;font-weight:700;margin-top:8px}
+  #reader{width:100%;max-width:420px;margin:0 auto;border-radius:10px;overflow:hidden}
+  .table-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:.85rem}
+  thead th{background:var(--blue);color:#fff;padding:10px 12px;text-align:left;font-weight:600}
+  tbody td{padding:9px 12px;border-bottom:1px solid var(--border)}
+  tbody tr:hover{background:#f8fafc}
+  .badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:.75rem;font-weight:700}
+  .badge-ok{background:#d1fae5;color:#065f46}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
+  .stat-card{background:var(--card);border-radius:10px;padding:18px;text-align:center;box-shadow:var(--sh);border-top:4px solid var(--blue)}
+  .stat-card.green{border-color:var(--green)}
+  .stat-num{font-size:2rem;font-weight:800;color:var(--blue)}
+  .stat-card.green .stat-num{color:var(--green)}
+  .stat-lbl{font-size:.78rem;color:var(--muted);margin-top:4px;font-weight:600;text-transform:uppercase}
+  .spinner{display:inline-block;width:16px;height:16px;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .mt-2{margin-top:8px}.mt-3{margin-top:16px}
+  .muted{color:var(--muted);font-size:.85rem}
+  .empty{text-align:center;padding:32px;color:var(--muted)}
+  @media(max-width:600px){.row{grid-template-columns:1fr}.stats{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<nav>
+  <h1>🎓 Presensi QR Dinamis</h1>
+  <div class="nav-right" id="nav-user" style="display:none">
+    <span id="nav-name" style="font-size:.88rem;opacity:.85"></span>
+    <span class="badge-role" id="nav-role-badge"></span>
+    <button id="btn-logout" onclick="logout()">Keluar</button>
+  </div>
+</nav>
+
+<!-- ══ PAGE: AUTH ══ -->
+<div class="page active" id="page-auth">
+  <div class="container" style="max-width:440px">
+    <div class="card" style="margin-top:40px">
+      <div style="text-align:center;margin-bottom:22px">
+        <div style="font-size:3rem">🎓</div>
+        <h2 style="justify-content:center;margin-bottom:4px">Sistem Presensi</h2>
+        <p class="muted">Login atau daftar akun baru</p>
+      </div>
+      <div class="tabs" id="auth-tabs">
+        <button class="tab active" onclick="switchTab('auth','login',this)">Masuk</button>
+        <button class="tab" onclick="switchTab('auth','register',this)">Daftar</button>
+      </div>
+      <div class="tab-content active" id="auth-tab-login">
+        <div class="form-group"><label>Email</label><input id="login-email" type="email" placeholder="email@kampus.ac.id"></div>
+        <div class="form-group"><label>Password</label><input id="login-password" type="password" placeholder="••••••••"></div>
+        <button class="btn btn-primary" onclick="doLogin(this)"><span class="btn-spinner"></span>Masuk</button>
+        <div class="alert" id="login-alert"></div>
+      </div>
+      <div class="tab-content" id="auth-tab-register">
+        <div class="form-group"><label>Nama Lengkap</label><input id="reg-name" placeholder="Dr. Budi / Siti Rahayu"></div>
+        <div class="form-group"><label>Email</label><input id="reg-email" type="email" placeholder="email@kampus.ac.id"></div>
+        <div class="form-group"><label>Password</label><input id="reg-password" type="password" placeholder="Min. 6 karakter"></div>
+        <div class="form-group">
+          <label>Role</label>
+          <select id="reg-role" onchange="toggleNim()">
+            <option value="">-- Pilih Role --</option>
+            <option value="mahasiswa">Mahasiswa</option>
+            <option value="dosen">Dosen</option>
+          </select>
+        </div>
+        <div class="form-group" id="nim-field" style="display:none">
+          <label>NIM</label><input id="reg-nim" placeholder="Nomor Induk Mahasiswa">
+        </div>
+        <button class="btn btn-primary" onclick="doRegister(this)"><span class="btn-spinner"></span>Daftar Sekarang</button>
+        <div class="alert" id="reg-alert"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PAGE: DOSEN ══ -->
+<div class="page" id="page-dosen">
+  <div class="container">
+    <div class="tabs" id="dosen-tabs">
+      <button class="tab active" onclick="switchTab('dosen','qr',this)">🔲 QR Absen</button>
+      <button class="tab" onclick="switchTab('dosen','history',this);loadHistoryAll()">📋 History</button>
+      <button class="tab" onclick="switchTab('dosen','setup',this);loadDosenSetup()">⚙️ Setup</button>
+    </div>
+
+    <!-- QR -->
+    <div class="tab-content active" id="dosen-tab-qr">
+      <div class="card">
+        <h2>🔲 Generate QR Token</h2>
+        <div class="row">
+          <div class="form-group">
+            <label>Mata Kuliah</label>
+            <select id="d-course-sel" onchange="loadSessionsDosen()">
+              <option value="">-- Pilih Matkul --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Sesi</label>
+            <select id="d-session-sel"><option value="">-- Pilih Sesi --</option></select>
+          </div>
+        </div>
+        <button class="btn btn-green btn-full" onclick="doGenerateQR(this)"><span class="btn-spinner"></span>⚡ Generate QR</button>
+        <div class="alert" id="qr-alert"></div>
+        <div id="qr-display-box" style="display:none">
+          <p class="muted" style="margin-bottom:12px;font-size:.85rem">Tampilkan di proyektor — mahasiswa scan QR ini</p>
+          <div id="qrcode-container"></div>
+          <div class="token-badge" id="qr-token-text"></div>
+          <div class="timer" id="qr-timer">⏱ 02:00</div>
+          <p class="muted" style="margin-top:8px;font-size:.8rem">Token expired otomatis. Generate lagi untuk token baru.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="tab-content" id="dosen-tab-history">
+      <div class="card">
+        <h2>📋 Rekap Absen Mahasiswa</h2>
+        <div class="row">
+          <div class="form-group">
+            <label>Mata Kuliah</label>
+            <select id="h-course-sel" onchange="loadSessionsHistory()"><option value="">-- Pilih --</option></select>
+          </div>
+          <div class="form-group">
+            <label>Sesi</label>
+            <select id="h-session-sel"><option value="">-- Pilih --</option></select>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="loadHistoryAll()">🔍 Tampilkan</button>
+        <div class="stats mt-3" id="history-stats" style="display:none">
+          <div class="stat-card green"><div class="stat-num" id="st-hadir">0</div><div class="stat-lbl">Hadir</div></div>
+          <div class="stat-card"><div class="stat-num" id="st-sesi">-</div><div class="stat-lbl">Sesi</div></div>
+          <div class="stat-card"><div class="stat-num" id="st-date">-</div><div class="stat-lbl">Tanggal</div></div>
+        </div>
+        <div class="table-wrap mt-3">
+          <table>
+            <thead><tr><th>#</th><th>NIM</th><th>Nama</th><th>Waktu</th><th>Status</th><th>Device</th></tr></thead>
+            <tbody id="history-tbody"><tr><td colspan="6" class="empty">Pilih sesi terlebih dahulu</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETUP -->
+    <div class="tab-content" id="dosen-tab-setup">
+      <div class="row">
+        <div class="card">
+          <h2>📚 Buat Mata Kuliah</h2>
+          <div class="form-group"><label>Course ID</label><input id="new-cid" placeholder="cloud-101"></div>
+          <div class="form-group"><label>Nama</label><input id="new-cname" placeholder="Praktik Komputasi Awan"></div>
+          <button class="btn btn-primary btn-full" onclick="doCreateCourse(this)"><span class="btn-spinner"></span>Buat</button>
+          <div class="alert" id="course-alert"></div>
+        </div>
+        <div class="card">
+          <h2>📅 Buat Sesi</h2>
+          <div class="form-group"><label>Mata Kuliah</label><select id="ses-csel"><option value="">-- Pilih --</option></select></div>
+          <div class="form-group"><label>Tanggal</label><input id="ses-date" type="date"></div>
+          <div class="form-group"><label>Label</label><input id="ses-label" placeholder="Pertemuan 1, UTS ..."></div>
+          <button class="btn btn-green btn-full" onclick="doCreateSession(this)"><span class="btn-spinner"></span>Buat</button>
+          <div class="alert" id="session-alert"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>📋 Daftar Mata Kuliah</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Course ID</th><th>Nama Mata Kuliah</th><th>Dibuat</th></tr></thead>
+            <tbody id="courses-tbody"><tr><td colspan="3" class="empty">Memuat...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PAGE: MAHASISWA ══ -->
+<div class="page" id="page-mhs">
+  <div class="container">
+    <div class="tabs" id="mhs-tabs">
+      <button class="tab active" onclick="switchTab('mhs','scan',this)">📷 Scan QR</button>
+      <button class="tab" onclick="switchTab('mhs','history',this);loadHistoryMhs()">📋 History</button>
+      <button class="tab" onclick="switchTab('mhs','manual',this)">⌨️ Manual</button>
+    </div>
+
+    <!-- SCAN -->
+    <div class="tab-content active" id="mhs-tab-scan">
+      <div class="card">
+        <h2>📷 Scan QR Absen</h2>
+        <p class="muted" style="margin-bottom:16px">Arahkan kamera ke QR Code yang dosen tampilkan.</p>
+        <div style="text-align:center">
+          <button class="btn btn-green" id="btn-start" onclick="startScan()">📷 Buka Kamera</button>
+          <button class="btn btn-red" id="btn-stop" style="display:none" onclick="stopScan()">⏹ Stop</button>
+        </div>
+        <div id="reader" class="mt-3"></div>
+        <div id="scan-result-box" style="display:none;margin-top:16px">
+          <div class="alert alert-info show">Token terdeteksi: <strong id="scan-token-val"></strong></div>
+          <div class="row mt-2">
+            <div class="form-group"><label>Course ID</label><input id="mhs-cid" placeholder="cloud-101"></div>
+            <div class="form-group"><label>Session ID</label><input id="mhs-sid" placeholder="SES-XXXXXX"></div>
+          </div>
+          <button class="btn btn-green btn-full" onclick="doCheckin(this)"><span class="btn-spinner"></span>✅ Absen Sekarang</button>
+          <div class="alert" id="checkin-alert"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTORY MHS -->
+    <div class="tab-content" id="mhs-tab-history">
+      <div class="card">
+        <h2>📋 History Absen Saya</h2>
+        <div class="row">
+          <div class="form-group"><label>Course ID</label><input id="mhs-hist-cid" placeholder="cloud-101"></div>
+          <div style="display:flex;align-items:flex-end;padding-bottom:16px">
+            <button class="btn btn-primary btn-full" onclick="loadHistoryMhs()">🔍 Cari</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Pertemuan</th><th>Waktu</th><th>Status</th></tr></thead>
+            <tbody id="mhs-hist-tbody"><tr><td colspan="4" class="empty">Masukkan Course ID lalu klik Cari</td></tr></tbody>
+          </table>
+        </div>
+        <p class="muted mt-2">Total Hadir: <strong id="mhs-total">0</strong></p>
+      </div>
+    </div>
+
+    <!-- MANUAL -->
+    <div class="tab-content" id="mhs-tab-manual">
+      <div class="card">
+        <h2>⌨️ Input Token Manual</h2>
+        <p class="muted" style="margin-bottom:16px">Gunakan jika kamera tidak tersedia.</p>
+        <div class="form-group"><label>QR Token</label><input id="m-token" placeholder="TKN-XXXXXX" style="font-family:monospace;font-size:1.1rem;text-transform:uppercase"></div>
+        <div class="row">
+          <div class="form-group"><label>Course ID</label><input id="m-cid" placeholder="cloud-101"></div>
+          <div class="form-group"><label>Session ID</label><input id="m-sid" placeholder="SES-XXXXXX"></div>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="doCheckinManual(this)"><span class="btn-spinner"></span>✅ Absen</button>
+        <div class="alert" id="manual-alert"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════
+//  ⚠️ GANTI BASE_URL DENGAN URL DEPLOYMENT GAS ANDA
+// ════════════════════════════════════════════
+const BASE_URL = "https://script.google.com/macros/s/AKfycbxJiqheOnPrYe7Zrg7bvFCturLGGxqjXhdK5sNKGOXbUKxBguionuoTpMYZMCVgWM-mZA/exec";
+
+// ── STATE ─────────────────────────────────
+let S = { token:null, user_id:null, name:null, role:null, nim:null };
+let qrTimer = null, scanner = null;
+
+// ══════════════════════════════════════════
+//  CORE API CALL
+//  ✅ SOLUSI CORS: semua pakai POST + no-cors
+//  Data routing via field "path" di body JSON
+// ══════════════════════════════════════════
+async function api(path, data = {}) {
+  const body = { path, ...data };
+  if (S.token) body.auth_token = S.token;
+
+  try {
+    // no-cors: browser tidak bisa baca response langsung
+    // Kita pakai mode 'cors' dulu — jika gagal, pakai iframe trick
+    const res  = await fetch(BASE_URL, {
+      method : "POST",
+      body   : JSON.stringify(body),
+      // Jangan set Content-Type untuk avoid preflight OPTIONS
+      // GAS akan parse body sebagai text lalu JSON.parse
+    });
+    const text = await res.text();
+    return JSON.parse(text);
+  } catch (err) {
+    // Jika masih CORS error, gunakan metode no-cors via form submission
+    // (response tidak bisa dibaca, tapi data tersimpan di Sheets)
+    console.error("Fetch error:", err);
+    return { ok: false, error: "Network error: " + err.message + ". Pastikan BASE_URL sudah benar dan GAS sudah di-deploy ulang." };
+  }
+}
+
+// ══════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════
+const $ = id => document.getElementById(id);
+
+function alert_(id, msg, type="error") {
+  const el = $(id);
+  el.textContent = msg;
+  el.className = `alert show alert-${type}`;
+  if (type !== "info") setTimeout(() => el.className = "alert", 6000);
+}
+
+function spin(btn, loading) {
+  const s = btn.querySelector(".btn-spinner");
+  if (s) s.innerHTML = loading ? '<span class="spinner"></span>&nbsp;' : "";
+  btn.disabled = loading;
+}
+
+function switchTab(group, tab, el) {
+  const page = group === "auth" ? "page-auth" : (S.role === "dosen" ? "page-dosen" : "page-mhs");
+  document.querySelectorAll(`#${page} .tab`).forEach(t => t.classList.remove("active"));
+  document.querySelectorAll(`#${page} .tab-content`).forEach(c => c.classList.remove("active"));
+  el.classList.add("active");
+  $(`${group}-tab-${tab}`).classList.add("active");
+}
+
+function showPage(id) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  $(id).classList.add("active");
+}
+
+function toggleNim() {
+  $("nim-field").style.display = $("reg-role").value === "mahasiswa" ? "block" : "none";
+}
+
+function fmtDate(ts) {
+  if (!ts) return "-";
+  try { return new Date(ts).toLocaleString("id-ID", { dateStyle:"medium", timeStyle:"short" }); }
+  catch { return ts; }
+}
+
+// ══════════════════════════════════════════
+//  AUTH
+// ══════════════════════════════════════════
+async function doRegister(btn) {
+  const name=_("reg-name"), email=_("reg-email"), password=_("reg-password");
+  const role=$("reg-role").value, nim=_("reg-nim");
+  if (!name||!email||!password||!role) return alert_("reg-alert","Semua field wajib diisi.");
+  spin(btn, true);
+  const r = await api("auth/register", { name, email, password, role, nim });
+  spin(btn, false);
+  if (!r.ok) return alert_("reg-alert", r.error);
+  alert_("reg-alert", `✅ Registrasi berhasil! Silakan login sebagai ${role}.`, "success");
+}
+
+async function doLogin(btn) {
+  const email=_("login-email"), password=_("login-password");
+  if (!email||!password) return alert_("login-alert","Isi email dan password.");
+  spin(btn, true);
+  const r = await api("auth/login", { email, password });
+  spin(btn, false);
+  if (!r.ok) return alert_("login-alert", r.error);
+  const d = r.data;
+  S = { token:d.token, user_id:d.user_id, name:d.name, role:d.role, nim:d.nim };
+  sessionStorage.setItem("ps", JSON.stringify(S));
+  afterLogin();
+}
+
+function afterLogin() {
+  $("nav-user").style.display = "flex";
+  $("nav-name").textContent   = S.name;
+  $("nav-role-badge").textContent = S.role === "dosen" ? "👨‍🏫 Dosen" : "👨‍🎓 Mahasiswa";
+  $("nav-role-badge").className   = "badge-role " + S.role;
+  if (S.role === "dosen") { showPage("page-dosen"); loadDosenSetup(); }
+  else                    { showPage("page-mhs"); }
+}
+
+function logout() {
+  S = {};
+  sessionStorage.removeItem("ps");
+  $("nav-user").style.display = "none";
+  if (scanner) { try { scanner.stop(); } catch(e){} scanner = null; }
+  showPage("page-auth");
+}
+
+// Restore session
+(function() {
+  try {
+    const saved = sessionStorage.getItem("ps");
+    if (saved) { S = JSON.parse(saved); if (S.token) afterLogin(); }
+  } catch(e) {}
+})();
+
+// ══════════════════════════════════════════
+//  DOSEN: SETUP
+// ══════════════════════════════════════════
+async function loadDosenSetup() {
+  const r = await api("courses");
+  if (!r.ok) return;
+  const items = r.data.items || [];
+
+  ["d-course-sel","h-course-sel","ses-csel"].forEach(id => {
+    const el = $(id);
+    el.innerHTML = '<option value="">-- Pilih Matkul --</option>';
+    items.forEach(c => el.innerHTML += `<option value="${c.course_id}">${c.course_name} (${c.course_id})</option>`);
+  });
+
+  $("courses-tbody").innerHTML = items.length === 0
+    ? '<tr><td colspan="3" class="empty">Belum ada mata kuliah</td></tr>'
+    : items.map(c => `<tr><td><code>${c.course_id}</code></td><td>${c.course_name}</td><td class="muted">${fmtDate(c.created_at)}</td></tr>`).join("");
+}
+
+async function doCreateCourse(btn) {
+  const course_id=_("new-cid"), course_name=_("new-cname");
+  if (!course_id||!course_name) return alert_("course-alert","Isi semua field.");
+  spin(btn, true);
+  const r = await api("courses/create", { course_id, course_name });
+  spin(btn, false);
+  if (!r.ok) return alert_("course-alert", r.error);
+  alert_("course-alert","✅ Mata kuliah berhasil dibuat!","success");
+  $("new-cid").value=""; $("new-cname").value="";
+  loadDosenSetup();
+}
+
+async function doCreateSession(btn) {
+  const course_id=$("ses-csel").value, date=_("ses-date"), label=_("ses-label");
+  if (!course_id||!date||!label) return alert_("session-alert","Isi semua field.");
+  spin(btn, true);
+  const r = await api("sessions/create", { course_id, date, label });
+  spin(btn, false);
+  if (!r.ok) return alert_("session-alert", r.error);
+  alert_("session-alert","✅ Sesi dibuat! ID: " + r.data.session_id,"success");
+  $("ses-date").value=""; $("ses-label").value="";
+}
+
+// ══════════════════════════════════════════
+//  DOSEN: QR
+// ══════════════════════════════════════════
+async function loadSessionsDosen() {
+  const cid = $("d-course-sel").value;
+  if (!cid) return;
+  const r = await api("sessions", { course_id: cid });
+  const el = $("d-session-sel");
+  el.innerHTML = '<option value="">-- Pilih Sesi --</option>';
+  if (r.ok) r.data.items.forEach(s =>
+    el.innerHTML += `<option value="${s.session_id}">${s.label} — ${s.date} (${s.session_id})</option>`
+  );
+}
+
+async function loadSessionsHistory() {
+  const cid = $("h-course-sel").value;
+  if (!cid) return;
+  const r = await api("sessions", { course_id: cid });
+  const el = $("h-session-sel");
+  el.innerHTML = '<option value="">-- Pilih Sesi --</option>';
+  if (r.ok) r.data.items.forEach(s =>
+    el.innerHTML += `<option value="${s.session_id}">${s.label} — ${s.date} (${s.session_id})</option>`
+  );
+}
+
+async function doGenerateQR(btn) {
+  const course_id=$("d-course-sel").value, session_id=$("d-session-sel").value;
+  if (!course_id||!session_id) return alert_("qr-alert","Pilih mata kuliah dan sesi.");
+  spin(btn, true);
+  const r = await api("presence/qr/generate", { course_id, session_id });
+  spin(btn, false);
+  if (!r.ok) return alert_("qr-alert", r.error);
+
+  const { qr_token, expires_at } = r.data;
+  $("qr-display-box").style.display = "block";
+  $("qr-token-text").textContent    = qr_token;
+  $("qrcode-container").innerHTML   = "";
+  new QRCode($("qrcode-container"), {
+    text: qr_token, width:220, height:220,
+    colorDark:"#1F4E79", colorLight:"#ffffff", correctLevel: QRCode.CorrectLevel.H
+  });
+
+  if (qrTimer) clearInterval(qrTimer);
+  const exp = new Date(expires_at).getTime();
+  function tick() {
+    const rem = Math.max(0, Math.floor((exp - Date.now()) / 1000));
+    const m = String(Math.floor(rem/60)).padStart(2,"0"), s2 = String(rem%60).padStart(2,"0");
+    $("qr-timer").textContent = rem > 0 ? `⏱ ${m}:${s2}` : "⛔ Token Expired — Generate lagi";
+    $("qr-timer").style.color = rem <= 30 ? "#C00000" : "#1E5631";
+    if (!rem) clearInterval(qrTimer);
+  }
+  tick();
+  qrTimer = setInterval(tick, 1000);
+}
+
+// ══════════════════════════════════════════
+//  DOSEN: HISTORY ALL
+// ══════════════════════════════════════════
+async function loadHistoryAll() {
+  const sid = $("h-session-sel").value;
+  if (!sid) return;
+  const r = await api("presence/history/all", { session_id: sid });
+  if (!r.ok) return;
+
+  const items = r.data.items || [];
+  $("st-hadir").textContent = items.length;
+  $("st-sesi").textContent  = sid;
+  $("history-stats").style.display = "grid";
+
+  $("history-tbody").innerHTML = items.length === 0
+    ? '<tr><td colspan="6" class="empty">Belum ada yang absen di sesi ini</td></tr>'
+    : items.map(p => `<tr>
+        <td>${p.no}</td><td><code>${p.nim||"-"}</code></td><td>${p.name}</td>
+        <td class="muted">${fmtDate(p.ts)}</td>
+        <td><span class="badge badge-ok">${p.status}</span></td>
+        <td class="muted">${p.device_id}</td>
+      </tr>`).join("");
+}
+
+// ══════════════════════════════════════════
+//  MAHASISWA: SCANNER
+// ══════════════════════════════════════════
+function startScan() {
+  $("btn-start").style.display = "none";
+  $("btn-stop").style.display  = "inline-flex";
+  scanner = new Html5Qrcode("reader");
+  scanner.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: { width:260, height:260 } },
+    (text) => {
+      stopScan();
+      $("scan-token-val").textContent = text;
+      $("scan-result-box").style.display = "block";
+    },
+    () => {}
+  ).catch(err => alert_("checkin-alert","Kamera gagal dibuka: " + err));
+}
+
+function stopScan() {
+  if (scanner) { try { scanner.stop().then(()=>scanner.clear()); } catch(e){} scanner = null; }
+  $("btn-start").style.display = "inline-flex";
+  $("btn-stop").style.display  = "none";
+}
+
+async function doCheckin(btn) {
+  const qr_token = $("scan-token-val").textContent.trim();
+  const course_id=_("mhs-cid"), session_id=_("mhs-sid");
+  if (!course_id||!session_id) return alert_("checkin-alert","Isi Course ID dan Session ID.");
+  spin(btn, true);
+  const r = await api("presence/checkin", { device_id:"web-scan-01", course_id, session_id, qr_token });
+  spin(btn, false);
+  if (!r.ok) return alert_("checkin-alert", r.error);
+  alert_("checkin-alert",`✅ Berhasil absen! ID: ${r.data.presence_id}`,"success");
+  $("scan-result-box").style.display = "none";
+}
+
+// ══════════════════════════════════════════
+//  MAHASISWA: MANUAL
+// ══════════════════════════════════════════
+async function doCheckinManual(btn) {
+  const qr_token=_("m-token").toUpperCase(), course_id=_("m-cid"), session_id=_("m-sid");
+  if (!qr_token||!course_id||!session_id) return alert_("manual-alert","Isi semua field.");
+  spin(btn, true);
+  const r = await api("presence/checkin", { device_id:"web-manual-01", course_id, session_id, qr_token });
+  spin(btn, false);
+  if (!r.ok) return alert_("manual-alert", r.error);
+  alert_("manual-alert",`✅ Berhasil absen! ID: ${r.data.presence_id}`,"success");
+  $("m-token").value = "";
+}
+
+// ══════════════════════════════════════════
+//  MAHASISWA: HISTORY
+// ══════════════════════════════════════════
+async function loadHistoryMhs() {
+  const course_id = _("mhs-hist-cid");
+  if (!course_id) return;
+  const r = await api("presence/history", { course_id });
+  if (!r.ok) { $("mhs-hist-tbody").innerHTML = `<tr><td colspan="4" class="empty">${r.error}</td></tr>`; return; }
+
+  const items = r.data.items || [];
+  $("mhs-total").textContent = items.length;
+  $("mhs-hist-tbody").innerHTML = items.length === 0
+    ? '<tr><td colspan="4" class="empty">Belum ada data absen</td></tr>'
+    : items.map((p,i) => `<tr>
+        <td>${i+1}</td><td>${p.session_label||p.session_id}</td>
+        <td class="muted">${fmtDate(p.ts)}</td>
+        <td><span class="badge badge-ok">${p.status}</span></td>
+      </tr>`).join("");
+}
+
+// ── Shorthand get value ─────────────────
+function _(id) { return $(id) ? $(id).value.trim() : ""; }
+</script>
+</body>
+</html>
