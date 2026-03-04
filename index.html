@@ -424,7 +424,7 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:1rem 0;}
     <button class="btn-primary" id="btn-login" onclick="doLogin()">Masuk →</button>
     <div class="auth-err" id="login-err"></div>
     <div style="margin-top:1rem;font-size:.73rem;color:var(--muted);font-family:var(--mono);">
-      Demo: <strong style="color:var(--accent)">admin@cloud.id</strong> / admin123
+      Demo: <strong style="color:var(--accent)"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="6100050c080f21020d0e14054f0805">[email&#160;protected]</a></strong> / admin123
     </div>
   </div>
 
@@ -739,7 +739,7 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:1rem 0;}
           <div class="card-header"><span class="icon">🔗</span> Base URL</div>
           <div class="form-group">
             <label>GAS Deployment URL (berakhiran /exec)</label>
-            <input type="url" id="cfg-url" placeholder="https://script.google.com/macros/s/AKfycbzXkhQ_YenMQ1UZR6dTqerFjTXeG70UaCR69jDclvdHYdEUc3c2daDyLj97f5viF38V/exec">
+            <input type="url" id="cfg-url" placeholder="https://script.google.com/macros/s/.../exec">
           </div>
           <button class="btn btn-accent" onclick="saveConfig()">Simpan</button>
           <div class="alert" id="cfg-alert"></div>
@@ -780,11 +780,11 @@ POST admin/users          — [admin] Tambah user</pre>
 <!-- ══════════════════════════════════════════
      JAVASCRIPT
 ══════════════════════════════════════════ -->
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ─────────────────────────────────────────
 // STATE
 // ─────────────────────────────────────────
-let BASE_URL       = localStorage.getItem("cloudabsen_url") || "https://script.google.com/macros/s/AKfycbzXkhQ_YenMQ1UZR6dTqerFjTXeG70UaCR69jDclvdHYdEUc3c2daDyLj97f5viF38V/exec";
+let BASE_URL       = localStorage.getItem("cloudabsen_url") || "https://script.google.com/macros/s/AKfycbxSw0gtQwhmo7RKAeAY7WiOYGHY_ACaWxo4MwQadOc/dev";
 let SESSION_TOKEN  = localStorage.getItem("cloudabsen_token") || "";
 let CURRENT_USER   = JSON.parse(localStorage.getItem("cloudabsen_user") || "null");
 
@@ -813,6 +813,10 @@ let scannerActive = false;
 // ─────────────────────────────────────────
 window.onload = () => {
   document.getElementById("cfg-url").value = BASE_URL;
+  // Auto-save default URL on first load
+  if (!localStorage.getItem("cloudabsen_url")) {
+    localStorage.setItem("cloudabsen_url", BASE_URL);
+  }
   if (SESSION_TOKEN && CURRENT_USER) {
     showApp();
   }
@@ -1548,29 +1552,80 @@ function saveConfig() {
 }
 
 // ─────────────────────────────────────────
-// API HELPERS
+// API HELPERS — GAS compatible
+// GAS quirks:
+//   • Tidak support preflight CORS → jangan kirim custom headers
+//   • Selalu redirect → pakai redirect:'follow'
+//   • pathInfo dibaca dari URL path setelah /exec/
+//   • POST body harus application/x-www-form-urlencoded ATAU
+//     kirim sebagai query param "payload" berisi JSON string
+//   • GET: semua param di query string
 // ─────────────────────────────────────────
+
+function gasUrl(path, queryParams) {
+  // GAS paling reliable: routing via query param ?path=xxx
+  // pathInfo kadang tidak terbaca tergantung deployment settings
+  const params = { path, ...(queryParams||{}) };
+  const qs = Object.entries(params)
+    .filter(([,v]) => v !== null && v !== undefined && v !== "")
+    .map(([k,v]) => encodeURIComponent(k) + "=" + encodeURIComponent(v))
+    .join("&");
+  return BASE_URL + "?" + qs;
+}
+
 async function api(method, path, body) {
   if (!BASE_URL) throw new Error("Base URL belum diisi. Buka tab Konfigurasi.");
-  const url  = BASE_URL + "/" + path + (SESSION_TOKEN && method === "GET" ? (path.includes("?")?"&":"?") + "_auth_token=" + SESSION_TOKEN : "");
-  const opts = {
-    method,
-    headers: {
-      "Content-Type":  "application/json",
-      "Authorization": "Bearer " + SESSION_TOKEN,
-    }
-  };
-  if (body) opts.body = JSON.stringify({ ...body, _auth_token: SESSION_TOKEN });
-  const res = await fetch(url, opts);
-  return res.json();
+
+  // Selalu inject auth token ke body / query
+  if (method === "GET") {
+    // GET: semua di query string, termasuk auth
+    const params = { ...(body||{}) };
+    if (SESSION_TOKEN) params._auth_token = SESSION_TOKEN;
+    // Parse existing query dari path
+    const [cleanPath, existingQs] = path.split("?");
+    const existingParams = {};
+    if (existingQs) existingQs.split("&").forEach(p => {
+      const [k,v] = p.split("=");
+      existingParams[decodeURIComponent(k)] = decodeURIComponent(v||"");
+    });
+    const allParams = { ...existingParams, ...params };
+    const url = gasUrl(cleanPath, allParams);
+    const res = await fetch(url, { method:"GET", redirect:"follow" });
+    return res.json();
+  } else {
+    // POST: kirim sebagai form-urlencoded dengan field "payload" berisi JSON
+    // GAS akan baca via: JSON.parse(e.postData.contents)
+    // Tapi karena kita pakai application/x-www-form-urlencoded, 
+    // GAS baca via e.parameter.payload
+    // → Lebih mudah: kirim sebagai text/plain sehingga GAS baca e.postData.contents
+    const payload = { ...(body||{}), _auth_token: SESSION_TOKEN };
+    const url = gasUrl(path, {});
+    const res = await fetch(url, {
+      method:   "POST",
+      redirect: "follow",
+      headers:  { "Content-Type": "text/plain;charset=utf-8" },
+      body:     JSON.stringify(payload),
+    });
+    return res.json();
+  }
 }
 
 async function apiAnon(method, path, body) {
   if (!BASE_URL) throw new Error("Base URL belum diisi.");
-  const opts = { method, headers: { "Content-Type":"application/json" } };
-  if (body) opts.body = JSON.stringify(body);
-  const res = await fetch(BASE_URL + "/" + path, opts);
-  return res.json();
+  if (method === "GET") {
+    const url = gasUrl(path, body||{});
+    const res = await fetch(url, { method:"GET", redirect:"follow" });
+    return res.json();
+  } else {
+    const url = gasUrl(path, {});
+    const res = await fetch(url, {
+      method:   "POST",
+      redirect: "follow",
+      headers:  { "Content-Type": "text/plain;charset=utf-8" },
+      body:     JSON.stringify(body||{}),
+    });
+    return res.json();
+  }
 }
 
 // ─────────────────────────────────────────
@@ -1593,6 +1648,7 @@ function toast(msg) {
   el.classList.add("show");
   setTimeout(() => el.classList.remove("show"), 3000);
 }
+
 
 function friendlyErr(e) {
   const map = {
