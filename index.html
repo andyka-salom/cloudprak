@@ -784,7 +784,16 @@ POST admin/users          — [admin] Tambah user</pre>
 // ─────────────────────────────────────────
 // STATE
 // ─────────────────────────────────────────
-let BASE_URL       = localStorage.getItem("cloudabsen_url") || "https://script.google.com/macros/s/AKfycbxSw0gtQwhmo7RKAeAY7WiOYGHY_ACaWxo4MwQadOc/dev";
+let BASE_URL = (() => {
+  const NEW_URL = "https://script.google.com/macros/s/AKfycbzB9brXAXA6gNnJ9ofQ-_3OXdimiDvpmEBwQqbDY21pbeUNgqD8jVDvHdrNu4SDWPW0/exec";
+  // Selalu pakai URL terbaru, reset localStorage jika masih pakai URL lama
+  const saved = localStorage.getItem("cloudabsen_url") || "";
+  if (!saved || !saved.includes("AKfycbzB9brX")) {
+    localStorage.setItem("cloudabsen_url", NEW_URL);
+    return NEW_URL;
+  }
+  return saved;
+})();
 let SESSION_TOKEN  = localStorage.getItem("cloudabsen_token") || "";
 let CURRENT_USER   = JSON.parse(localStorage.getItem("cloudabsen_user") || "null");
 
@@ -848,7 +857,7 @@ async function doLogin() {
   btn.disabled = true; btn.textContent = "Memproses...";
   err.style.display = "none";
   try {
-    const res = await apiAnon("POST","auth/login",{ email, password: pass });
+    const res = await apiAnon(null,"auth/login",{ email, password: pass });
     if (!res.ok) { showAuthErr("login-err", friendlyErr(res.error)); return; }
     SESSION_TOKEN = res.data.session_token;
     CURRENT_USER  = res.data.user;
@@ -880,7 +889,7 @@ async function doRegister() {
     const body = { name, email, password: pass, role };
     if (role === "mahasiswa") body.nim = nim;
     if (role === "dosen")     body.nip = nip;
-    const res = await apiAnon("POST","auth/register", body);
+    const res = await apiAnon(null,"auth/register", body);
     if (!res.ok) { showAuthErr("reg-err", friendlyErr(res.error)); return; }
     toast("✓ Akun berhasil dibuat! Silakan login.");
     switchAuthTab("login");
@@ -897,7 +906,7 @@ function showAuthErr(id, msg) {
 }
 
 async function doLogout() {
-  try { await api("POST","auth/logout"); } catch(_){}
+  try { await api(null,"auth/logout"); } catch(_){}
   SESSION_TOKEN = ""; CURRENT_USER = null;
   localStorage.removeItem("cloudabsen_token");
   localStorage.removeItem("cloudabsen_user");
@@ -1038,7 +1047,7 @@ async function loadMhsDashboard() {
 async function loadDosenDashboard() {
   let count = 0;
   try {
-    const r = await api("GET","presence/list");
+    const r = await api(null,"presence/list");
     if (r.ok) count = r.data.count;
   } catch(_){}
 
@@ -1057,8 +1066,8 @@ async function loadDosenDashboard() {
 async function loadAdminDashboard() {
   let userCount = 0, presCount = 0;
   try {
-    const r1 = await api("GET","admin/users");
-    const r2 = await api("GET","presence/list");
+    const r1 = await api(null,"admin/users");
+    const r2 = await api(null,"presence/list");
     if (r1.ok) userCount = r1.data.length;
     if (r2.ok) presCount = r2.data.count;
   } catch(_){}
@@ -1149,7 +1158,7 @@ async function doCheckin() {
   }
 
   try {
-    const res = await api("POST","presence/checkin", body);
+    const res = await api(null,"presence/checkin", body);
     if (!res.ok) {
       showAlert("scan-result","err",`✗ ${friendlyErr(res.error)}`);
       return;
@@ -1173,7 +1182,7 @@ async function checkMyStatus() {
   const sessId = document.getElementById("my-sess-id").value.trim();
   const url    = sessId ? `presence/status?session_id=${encodeURIComponent(sessId)}` : "presence/status";
   try {
-    const res = await api("GET", url);
+    const res = await api(null, url);
     if (!res.ok) { showAlert("my-status-result","err","✗ " + res.error); return; }
     const d = res.data;
     const ok = d.status === "checked_in";
@@ -1191,7 +1200,7 @@ async function generateQR() {
   clearQRTimer();
   const label = document.getElementById("qr-label").value.trim();
   try {
-    const res = await api("POST","presence/qr/generate",{ label, ts: nowISO() });
+    const res = await api(null,"presence/qr/generate",{ label, ts: nowISO() });
     if (!res.ok) { showAlert("qr-gen-alert","err","✗ " + res.error); return; }
     const d = res.data;
     tokenExpiry = new Date(d.expires_at);
@@ -1248,7 +1257,7 @@ async function loadRecap() {
   const sessId = document.getElementById("recap-sess").value.trim();
   const url    = sessId ? `presence/list?session_id=${encodeURIComponent(sessId)}` : "presence/list";
   try {
-    const res = await api("GET", url);
+    const res = await api(null, url);
     if (!res.ok) { toast("Error: " + res.error); return; }
     const items = res.data.items;
     if (!items.length) {
@@ -1280,7 +1289,7 @@ async function loadRecap() {
 // ─────────────────────────────────────────
 async function loadSessions() {
   try {
-    const res = await api("GET","presence/sessions");
+    const res = await api(null,"presence/sessions");
     if (!res.ok) { toast("Error: " + res.error); return; }
     const items = res.data;
     if (!items.length) {
@@ -1328,7 +1337,7 @@ async function adminAddUser() {
   };
   if (!body.name||!body.email||!body.password) { showAlert("admin-user-alert","err","Nama, email, password wajib."); return; }
   try {
-    const res = await api("POST","admin/users", body);
+    const res = await api(null,"admin/users", body);
     if (!res.ok) { showAlert("admin-user-alert","err","✗ " + friendlyErr(res.error)); return; }
     showAlert("admin-user-alert","ok","✓ User berhasil ditambahkan!");
     loadUsers();
@@ -1338,7 +1347,7 @@ async function adminAddUser() {
 
 async function loadUsers() {
   try {
-    const res = await api("GET","admin/users");
+    const res = await api(null,"admin/users");
     if (!res.ok) { toast("Error: " + res.error); return; }
     const users = res.data;
     const wrap  = document.getElementById("users-table-wrap");
@@ -1369,7 +1378,7 @@ async function loadAllPresence() {
   const sessId = document.getElementById("admin-sess-filter").value.trim();
   const url    = sessId ? `presence/list?session_id=${encodeURIComponent(sessId)}` : "presence/list";
   try {
-    const res = await api("GET", url);
+    const res = await api(null, url);
     if (!res.ok) { toast("Error: " + res.error); return; }
     const items = res.data.items;
     if (!items.length) {
@@ -1436,7 +1445,7 @@ async function sendAccelBatch() {
   const batch = [...accelBatch]; accelBatch = [];
   const dev   = document.getElementById("a-dev").value.trim() || "dev-001";
   try {
-    const res = await api("POST","telemetry/accel",{ device_id: dev, ts: nowISO(), samples: batch });
+    const res = await api(null,"telemetry/accel",{ device_id: dev, ts: nowISO(), samples: batch });
     showAlert("accel-alert", res.ok ? "ok" : "err",
       res.ok ? `✓ ${res.data.accepted} sample dikirim` : "✗ " + res.error);
   } catch(e){ showAlert("accel-alert","err","Gagal: "+e.message); }
@@ -1453,7 +1462,7 @@ function stopAccel() {
 async function fetchAccelLatest() {
   const dev = document.getElementById("a-dev").value.trim() || "dev-001";
   try {
-    const res = await api("GET",`telemetry/accel/latest?device_id=${encodeURIComponent(dev)}`);
+    const res = await api(null,`telemetry/accel/latest?device_id=${encodeURIComponent(dev)}`);
     if (!res.ok) { showAlert("accel-latest-alert","err","✗ "+res.error); return; }
     const d = res.data;
     showAlert("accel-latest-alert","ok",`t: ${d.t}\nX: ${d.x}  Y: ${d.y}  Z: ${d.z}`);
@@ -1478,7 +1487,7 @@ function startGPS() {
         `✓ ${mainGPS.lat.toFixed(6)}, ${mainGPS.lng.toFixed(6)} · Akurasi ≈${Math.round(mainGPS.acc)}m`;
       const dev = document.getElementById("g-dev").value.trim() || "dev-001";
       try {
-        const res = await api("POST","telemetry/gps",{
+        const res = await api(null,"telemetry/gps",{
           device_id: dev, ts: nowISO(),
           lat: mainGPS.lat, lng: mainGPS.lng, accuracy_m: mainGPS.acc
         });
@@ -1508,7 +1517,7 @@ function stopGPS() {
 async function fetchGPSLatest() {
   const dev = document.getElementById("g-dev").value.trim() || "dev-001";
   try {
-    const res = await api("GET",`telemetry/gps/latest?device_id=${encodeURIComponent(dev)}`);
+    const res = await api(null,`telemetry/gps/latest?device_id=${encodeURIComponent(dev)}`);
     if (!res.ok) { showAlert("gps-alert","err","✗ "+res.error); return; }
     const d = res.data;
     showAlert("gps-alert","ok",`Latest: ${d.lat}, ${d.lng}`);
@@ -1524,7 +1533,7 @@ async function fetchGPSLatest() {
 async function fetchGPSHistory() {
   const dev = document.getElementById("g-dev").value.trim() || "dev-001";
   try {
-    const res = await api("GET",`telemetry/gps/history?device_id=${encodeURIComponent(dev)}&limit=200`);
+    const res = await api(null,`telemetry/gps/history?device_id=${encodeURIComponent(dev)}&limit=200`);
     if (!res.ok) { showAlert("gps-alert","err","✗ "+res.error); return; }
     const items = res.data.items;
     showAlert("gps-alert","ok",`History: ${items.length} titik`);
@@ -1545,10 +1554,15 @@ async function fetchGPSHistory() {
 // CONFIG
 // ─────────────────────────────────────────
 function saveConfig() {
-  BASE_URL = document.getElementById("cfg-url").value.trim().replace(/\/$/,"");
+  let url = document.getElementById("cfg-url").value.trim().replace(/\/+$/, "");
+  if (url.endsWith("/dev")) {
+    url = url.replace("/dev", "/exec");
+    document.getElementById("cfg-url").value = url;
+    toast("⚠ URL /dev diubah ke /exec otomatis");
+  }
+  BASE_URL = url;
   localStorage.setItem("cloudabsen_url", BASE_URL);
   showAlert("cfg-alert","ok","✓ Tersimpan: " + BASE_URL);
-  toast("✓ Base URL disimpan");
 }
 
 // ─────────────────────────────────────────
@@ -1561,71 +1575,56 @@ function saveConfig() {
 //     kirim sebagai query param "payload" berisi JSON string
 //   • GET: semua param di query string
 // ─────────────────────────────────────────
+// API HELPERS — GAS CORS Fix
+// ─────────────────────────────────────────
+// Kenapa semua GET?
+//   • GAS redirect /exec → script.googleusercontent.com
+//   • Browser kirim preflight OPTIONS untuk POST/custom headers
+//   • GAS tidak handle OPTIONS → CORS error
+//   • GET biasa TIDAK trigger preflight → aman
+//   • Semua data dikirim via query string
+// ─────────────────────────────────────────
 
-function gasUrl(path, queryParams) {
-  // GAS paling reliable: routing via query param ?path=xxx
-  // pathInfo kadang tidak terbaca tergantung deployment settings
-  const params = { path, ...(queryParams||{}) };
-  const qs = Object.entries(params)
-    .filter(([,v]) => v !== null && v !== undefined && v !== "")
+function buildUrl(path, params) {
+  // Flatten nested objects (misal samples array → JSON string)
+  const flat = {};
+  for (const [k,v] of Object.entries(params||{})) {
+    if (v === null || v === undefined || v === "") continue;
+    flat[k] = typeof v === "object" ? JSON.stringify(v) : v;
+  }
+  flat.path = path;
+  const qs = Object.entries(flat)
     .map(([k,v]) => encodeURIComponent(k) + "=" + encodeURIComponent(v))
     .join("&");
   return BASE_URL + "?" + qs;
 }
 
-async function api(method, path, body) {
-  if (!BASE_URL) throw new Error("Base URL belum diisi. Buka tab Konfigurasi.");
+// Authenticated request — semua GET, data di query string
+async function api(_method, path, body) {
+  if (!BASE_URL) throw new Error("Base URL belum diisi. Buka Konfigurasi.");
 
-  // Selalu inject auth token ke body / query
-  if (method === "GET") {
-    // GET: semua di query string, termasuk auth
-    const params = { ...(body||{}) };
-    if (SESSION_TOKEN) params._auth_token = SESSION_TOKEN;
-    // Parse existing query dari path
-    const [cleanPath, existingQs] = path.split("?");
-    const existingParams = {};
-    if (existingQs) existingQs.split("&").forEach(p => {
-      const [k,v] = p.split("=");
-      existingParams[decodeURIComponent(k)] = decodeURIComponent(v||"");
-    });
-    const allParams = { ...existingParams, ...params };
-    const url = gasUrl(cleanPath, allParams);
-    const res = await fetch(url, { method:"GET", redirect:"follow" });
-    return res.json();
-  } else {
-    // POST: kirim sebagai form-urlencoded dengan field "payload" berisi JSON
-    // GAS akan baca via: JSON.parse(e.postData.contents)
-    // Tapi karena kita pakai application/x-www-form-urlencoded, 
-    // GAS baca via e.parameter.payload
-    // → Lebih mudah: kirim sebagai text/plain sehingga GAS baca e.postData.contents
-    const payload = { ...(body||{}), _auth_token: SESSION_TOKEN };
-    const url = gasUrl(path, {});
-    const res = await fetch(url, {
-      method:   "POST",
-      redirect: "follow",
-      headers:  { "Content-Type": "text/plain;charset=utf-8" },
-      body:     JSON.stringify(payload),
-    });
-    return res.json();
-  }
+  // Pisahkan query string yang sudah ada di path (misal: "presence/list?session_id=x")
+  const [cleanPath, existingQs] = path.split("?");
+  const existing = {};
+  if (existingQs) existingQs.split("&").forEach(p => {
+    const [k,...vs] = p.split("=");
+    existing[decodeURIComponent(k)] = decodeURIComponent(vs.join("="));
+  });
+
+  const params = { ...existing, ...(body||{}), _t: SESSION_TOKEN };
+  const url = buildUrl(cleanPath, params);
+  const res = await fetch(url, { redirect: "follow" });
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  return res.json();
 }
 
-async function apiAnon(method, path, body) {
+// Anonymous request (login, register)
+async function apiAnon(_method, path, body) {
   if (!BASE_URL) throw new Error("Base URL belum diisi.");
-  if (method === "GET") {
-    const url = gasUrl(path, body||{});
-    const res = await fetch(url, { method:"GET", redirect:"follow" });
-    return res.json();
-  } else {
-    const url = gasUrl(path, {});
-    const res = await fetch(url, {
-      method:   "POST",
-      redirect: "follow",
-      headers:  { "Content-Type": "text/plain;charset=utf-8" },
-      body:     JSON.stringify(body||{}),
-    });
-    return res.json();
-  }
+  const url = buildUrl(path, body||{});
+  const res = await fetch(url, { redirect: "follow" });
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  return res.json();
 }
 
 // ─────────────────────────────────────────
