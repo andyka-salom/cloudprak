@@ -1586,20 +1586,20 @@ function saveConfig() {
 // ─────────────────────────────────────────
 
 function buildUrl(path, params) {
-  // Flatten nested objects (misal samples array → JSON string)
-  const flat = {};
+  // Kirim path sebagai query param terpisah, semua data sebagai JSON di ?data=
+  // Ini menghindari masalah encoding slash di path
+  const data = {};
   for (const [k,v] of Object.entries(params||{})) {
     if (v === null || v === undefined || v === "") continue;
-    flat[k] = typeof v === "object" ? JSON.stringify(v) : v;
+    data[k] = v;
   }
-  flat.path = path;
-  const qs = Object.entries(flat)
-    .map(([k,v]) => encodeURIComponent(k) + "=" + encodeURIComponent(v))
-    .join("&");
+  // path sebagai param tersendiri, data sebagai JSON blob
+  const qs = "path=" + encodeURIComponent(path) +
+    (Object.keys(data).length ? "&data=" + encodeURIComponent(JSON.stringify(data)) : "");
   return BASE_URL + "?" + qs;
 }
 
-// Authenticated request — semua GET, data di query string
+// Authenticated request — semua GET, path dan data di query string
 async function api(_method, path, body) {
   if (!BASE_URL) throw new Error("Base URL belum diisi. Buka Konfigurasi.");
 
@@ -1647,7 +1647,6 @@ function toast(msg) {
   el.classList.add("show");
   setTimeout(() => el.classList.remove("show"), 3000);
 }
-
 
 function friendlyErr(e) {
   const map = {
