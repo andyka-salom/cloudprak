@@ -1,0 +1,1667 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>CloudAbsen — Praktik Komputasi Awan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+/* ═══════════════════════════════════════════
+   DESIGN SYSTEM — Industrial Dark
+═══════════════════════════════════════════ */
+:root{
+  --bg:      #0a0a0a;
+  --surface: #111111;
+  --card:    #161616;
+  --border:  #252525;
+  --border2: #2e2e2e;
+  --text:    #e8e4dc;
+  --muted:   #6b6560;
+  --accent:  #f0c040;
+  --green:   #2ecc71;
+  --red:     #e74c3c;
+  --blue:    #4a9eff;
+  --mono:    'JetBrains Mono',monospace;
+  --sans:    'Syne',sans-serif;
+  --r:       6px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);overflow-x:hidden}
+input,button,select,textarea{font-family:var(--sans)}
+::-webkit-scrollbar{width:4px;background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2)}
+
+/* ── SCREENS ── */
+.screen{display:none;min-height:100vh}
+.screen.active{display:flex}
+
+/* ══════════════════════════════════════════
+   AUTH SCREEN
+══════════════════════════════════════════ */
+#s-auth{
+  align-items:center;justify-content:center;
+  background: radial-gradient(ellipse at 30% 20%, #1a1500 0%, #0a0a0a 60%);
+  padding:1.5rem;
+}
+.auth-box{
+  width:100%;max-width:400px;
+  background:var(--card);
+  border:1px solid var(--border2);
+  border-radius:12px;
+  overflow:hidden;
+}
+.auth-logo{
+  padding:2rem 2rem 1.5rem;
+  border-bottom:1px solid var(--border);
+}
+.auth-logo .brand{
+  font-family:var(--mono);font-size:1rem;font-weight:700;
+  letter-spacing:.12em;color:var(--accent);
+  display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem;
+}
+.auth-logo .brand::before{
+  content:"◈";font-size:1.2rem;
+}
+.auth-logo p{font-size:.8rem;color:var(--muted);}
+.auth-tabs{
+  display:flex;border-bottom:1px solid var(--border);
+}
+.auth-tab{
+  flex:1;padding:.9rem;border:none;background:transparent;
+  font-family:var(--mono);font-size:.75rem;font-weight:700;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
+  cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;
+  transition:color .2s,border-color .2s;
+}
+.auth-tab.active{color:var(--accent);border-color:var(--accent);}
+.auth-body{padding:1.5rem;}
+.field{margin-bottom:1rem;}
+.field label{
+  display:block;font-size:.72rem;font-weight:600;
+  letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:.4rem;
+}
+.field input,.field select{
+  width:100%;padding:.75rem 1rem;
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:var(--r);color:var(--text);font-size:.9rem;
+  outline:none;transition:border-color .2s;
+}
+.field input:focus,.field select:focus{border-color:var(--accent);}
+.field select option{background:var(--surface);}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;}
+.btn-primary{
+  width:100%;padding:.85rem;
+  background:var(--accent);color:#0a0a0a;
+  border:none;border-radius:var(--r);
+  font-family:var(--mono);font-size:.8rem;font-weight:700;
+  letter-spacing:.08em;text-transform:uppercase;
+  cursor:pointer;transition:opacity .2s,transform .1s;
+}
+.btn-primary:hover{opacity:.9;}
+.btn-primary:active{transform:scale(.98);}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed;}
+.auth-err{
+  font-family:var(--mono);font-size:.75rem;color:var(--red);
+  background:#1a0808;border:1px solid #3a1515;
+  border-radius:var(--r);padding:.6rem .8rem;margin-top:.75rem;display:none;
+}
+.nim-field{display:none;}
+
+/* ══════════════════════════════════════════
+   MAIN APP SHELL
+══════════════════════════════════════════ */
+#s-app{flex-direction:column}
+
+/* ── TOPBAR ── */
+.topbar{
+  height:52px;background:var(--surface);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;
+  padding:0 1rem;gap:.75rem;
+  position:sticky;top:0;z-index:200;flex-shrink:0;
+}
+.topbar-brand{
+  font-family:var(--mono);font-size:.8rem;font-weight:700;
+  letter-spacing:.1em;color:var(--accent);flex:1;
+}
+.topbar-user{
+  font-size:.75rem;color:var(--muted);
+  font-family:var(--mono);
+}
+.topbar-name{color:var(--text);font-weight:700;}
+.role-badge{
+  font-family:var(--mono);font-size:.65rem;font-weight:700;
+  letter-spacing:.08em;text-transform:uppercase;
+  padding:.2rem .5rem;border-radius:3px;
+}
+.role-badge.mahasiswa{background:#0a2a1a;color:var(--green);}
+.role-badge.dosen{background:#1a1500;color:var(--accent);}
+.role-badge.admin{background:#1a0808;color:var(--red);}
+.btn-logout{
+  background:transparent;border:1px solid var(--border2);
+  color:var(--muted);border-radius:4px;
+  font-family:var(--mono);font-size:.65rem;font-weight:700;
+  letter-spacing:.06em;text-transform:uppercase;
+  padding:.3rem .6rem;cursor:pointer;transition:color .2s,border-color .2s;
+}
+.btn-logout:hover{color:var(--red);border-color:var(--red);}
+
+/* ── APP BODY ── */
+.app-body{display:flex;flex:1;overflow:hidden;}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:210px;flex-shrink:0;
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  padding:1rem 0;overflow-y:auto;
+}
+.sidebar-section{
+  font-family:var(--mono);font-size:.6rem;font-weight:700;
+  letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);padding:.75rem 1.25rem .3rem;
+}
+.nav-item{
+  display:flex;align-items:center;gap:.6rem;
+  padding:.65rem 1.25rem;
+  font-size:.82rem;font-weight:600;color:var(--muted);
+  cursor:pointer;border-left:2px solid transparent;
+  transition:color .15s,background .15s,border-color .15s;
+  text-decoration:none;
+}
+.nav-item .icon{font-size:1rem;width:1.2rem;text-align:center;}
+.nav-item:hover{color:var(--text);background:#1a1a1a;}
+.nav-item.active{color:var(--accent);border-color:var(--accent);background:#1a1500;}
+
+/* ── MAIN CONTENT ── */
+.main{flex:1;overflow-y:auto;padding:1.5rem;}
+.page{display:none;}
+.page.active{display:block;}
+
+/* ── PAGE HEADER ── */
+.page-header{margin-bottom:1.5rem;}
+.page-header h1{font-size:1.4rem;font-weight:800;letter-spacing:-.02em;}
+.page-header p{font-size:.8rem;color:var(--muted);margin-top:.2rem;}
+
+/* ── CARDS ── */
+.card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r);padding:1.25rem;margin-bottom:1rem;
+}
+.card-header{
+  font-family:var(--mono);font-size:.7rem;font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+  padding-bottom:.75rem;margin-bottom:1rem;
+  border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.5rem;
+}
+.card-header .icon{font-size:.9rem;}
+
+/* ── STATS GRID ── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.75rem;margin-bottom:1rem;}
+.stat-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r);padding:1rem;
+}
+.stat-label{font-family:var(--mono);font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem;}
+.stat-val{font-size:1.8rem;font-weight:800;letter-spacing:-.03em;line-height:1;}
+.stat-sub{font-size:.72rem;color:var(--muted);margin-top:.3rem;}
+.stat-card.green .stat-val{color:var(--green);}
+.stat-card.yellow .stat-val{color:var(--accent);}
+.stat-card.red .stat-val{color:var(--red);}
+.stat-card.blue .stat-val{color:var(--blue);}
+
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:.8rem;}
+thead tr{border-bottom:2px solid var(--border2);}
+th{
+  font-family:var(--mono);font-size:.65rem;font-weight:700;
+  letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);padding:.6rem .75rem;text-align:left;
+  white-space:nowrap;
+}
+td{padding:.6rem .75rem;border-bottom:1px solid var(--border);vertical-align:middle;}
+tr:hover td{background:#1a1a1a;}
+.tag{
+  font-family:var(--mono);font-size:.65rem;font-weight:700;
+  letter-spacing:.05em;padding:.2rem .45rem;border-radius:3px;
+  text-transform:uppercase;
+}
+.tag.green{background:#0a2a1a;color:var(--green);}
+.tag.yellow{background:#1a1500;color:var(--accent);}
+.tag.red{background:#1a0808;color:var(--red);}
+.tag.blue{background:#0a1a2a;color:var(--blue);}
+.tag.gray{background:#1a1a1a;color:var(--muted);}
+
+/* ── FORMS inside cards ── */
+.form-group{margin-bottom:.9rem;}
+.form-group label{
+  display:block;font-family:var(--mono);font-size:.65rem;font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem;
+}
+.form-group input,.form-group select,.form-group textarea{
+  width:100%;padding:.65rem .9rem;
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:var(--r);color:var(--text);font-size:.85rem;
+  outline:none;transition:border-color .2s;
+}
+.form-group input:focus,.form-group select:focus{border-color:var(--accent);}
+.form-group select option{background:var(--surface);}
+
+.btn{
+  font-family:var(--mono);font-size:.72rem;font-weight:700;
+  letter-spacing:.08em;text-transform:uppercase;
+  padding:.6rem 1.1rem;border-radius:var(--r);
+  cursor:pointer;border:1px solid transparent;
+  transition:opacity .2s,transform .1s;
+  display:inline-flex;align-items:center;gap:.4rem;
+}
+.btn:active{transform:scale(.97);}
+.btn-accent{background:var(--accent);color:#0a0a0a;border-color:var(--accent);}
+.btn-accent:hover{opacity:.85;}
+.btn-outline{background:transparent;color:var(--text);border-color:var(--border2);}
+.btn-outline:hover{border-color:var(--text);}
+.btn-danger{background:transparent;color:var(--red);border-color:var(--red);}
+.btn-success{background:#0a2a1a;color:var(--green);border-color:var(--green);}
+.btn-sm{padding:.4rem .7rem;font-size:.65rem;}
+.btn:disabled{opacity:.35;cursor:not-allowed;}
+.btn-row{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem;}
+
+/* ── ALERT / RESULT ── */
+.alert{
+  font-family:var(--mono);font-size:.78rem;
+  padding:.75rem 1rem;border-radius:var(--r);margin-top:.75rem;
+  border-left:3px solid;display:none;line-height:1.6;
+}
+.alert.ok{background:#0a2a1a;color:#7effc0;border-color:var(--green);}
+.alert.err{background:#1a0808;color:#ff9090;border-color:var(--red);}
+.alert.info{background:#0a1a2a;color:#90c8ff;border-color:var(--blue);}
+
+/* ── QR DISPLAY ── */
+.qr-wrap{
+  text-align:center;padding:1.5rem;
+  border:2px dashed var(--border2);border-radius:var(--r);
+  background:var(--surface);
+}
+#qr-canvas{margin:0 auto 1rem;}
+.qr-token{
+  font-family:var(--mono);font-size:1.3rem;font-weight:700;
+  letter-spacing:.2em;color:var(--accent);
+}
+.qr-meta{font-family:var(--mono);font-size:.72rem;color:var(--muted);margin-top:.4rem;}
+.timer-wrap{margin-top:1rem;}
+.timer-bar-bg{height:5px;background:var(--border);border-radius:3px;overflow:hidden;}
+.timer-bar{height:100%;background:var(--green);border-radius:3px;transition:width 1s linear,background .5s;}
+.timer-txt{font-family:var(--mono);font-size:.72rem;color:var(--muted);text-align:center;margin-top:.3rem;}
+
+/* ── SCANNER ── */
+#reader{border-radius:var(--r);overflow:hidden;border:1px solid var(--border);}
+.scan-status{
+  font-family:var(--mono);font-size:.78rem;
+  padding:.6rem .8rem;border-radius:var(--r);
+  background:var(--surface);border:1px solid var(--border);
+  margin-bottom:.75rem;color:var(--muted);
+}
+
+/* ── GPS STATUS ── */
+.gps-info{
+  font-family:var(--mono);font-size:.73rem;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);padding:.5rem .8rem;
+  color:var(--muted);margin-bottom:.75rem;
+}
+
+/* ── MAP ── */
+#map,.map-el{
+  height:280px;border-radius:var(--r);
+  border:1px solid var(--border);margin-top:.75rem;
+}
+
+/* ── ACCEL ── */
+.axis-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-top:.75rem;}
+.axis-box{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);padding:.75rem;text-align:center;
+}
+.axis-lbl{font-family:var(--mono);font-size:.6rem;font-weight:700;letter-spacing:.1em;color:var(--muted);margin-bottom:.2rem;}
+.axis-val{font-family:var(--mono);font-size:1.4rem;font-weight:700;color:var(--accent);}
+
+/* ── TOAST ── */
+#toast{
+  position:fixed;bottom:1.5rem;left:50%;
+  transform:translateX(-50%) translateY(5rem);
+  background:var(--text);color:#0a0a0a;
+  font-family:var(--mono);font-size:.75rem;font-weight:700;
+  padding:.65rem 1.2rem;border-radius:var(--r);
+  z-index:9999;transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+  white-space:nowrap;max-width:90vw;text-align:center;
+  pointer-events:none;
+}
+#toast.show{transform:translateX(-50%) translateY(0);}
+
+/* ── MOBILE BOTTOM NAV ── */
+.bottom-nav{
+  display:none;
+  border-top:1px solid var(--border);
+  background:var(--surface);
+  position:sticky;bottom:0;
+}
+.bottom-nav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  padding:.6rem .25rem;cursor:pointer;
+  font-size:.55rem;font-family:var(--mono);font-weight:700;
+  letter-spacing:.05em;text-transform:uppercase;
+  color:var(--muted);border:none;background:transparent;
+  transition:color .15s;gap:.2rem;
+}
+.bottom-nav-item .icon{font-size:1.2rem;}
+.bottom-nav-item.active{color:var(--accent);}
+
+/* ── GRID LAYOUT ── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;}
+
+/* ── SECTION SPACER ── */
+.spacer{height:.75rem;}
+
+/* ── EMPTY STATE ── */
+.empty{
+  text-align:center;padding:2.5rem 1rem;
+  font-family:var(--mono);font-size:.8rem;color:var(--muted);
+}
+.empty .emoji{font-size:2rem;display:block;margin-bottom:.5rem;}
+
+/* ── DIVIDER ── */
+hr.divider{border:none;border-top:1px solid var(--border);margin:1rem 0;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:600px){
+  .sidebar{display:none;}
+  .bottom-nav{display:flex;}
+  .main{padding:1rem;}
+  .two-col,.three-col{grid-template-columns:1fr;}
+  .stats-grid{grid-template-columns:1fr 1fr;}
+}
+@media(max-width:360px){
+  .stats-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 1: AUTH
+══════════════════════════════════════════ -->
+<div class="screen active" id="s-auth">
+<div class="auth-box">
+  <div class="auth-logo">
+    <div class="brand">CLOUD ABSEN</div>
+    <p>Praktik Komputasi Awan · API Contract v1</p>
+  </div>
+
+  <div class="auth-tabs">
+    <button class="auth-tab active" onclick="switchAuthTab('login')">Masuk</button>
+    <button class="auth-tab" onclick="switchAuthTab('register')">Daftar</button>
+  </div>
+
+  <!-- LOGIN -->
+  <div class="auth-body" id="auth-login">
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="l-email" placeholder="nama@email.com" autocomplete="email">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="l-pass" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn-primary" id="btn-login" onclick="doLogin()">Masuk →</button>
+    <div class="auth-err" id="login-err"></div>
+    <div style="margin-top:1rem;font-size:.73rem;color:var(--muted);font-family:var(--mono);">
+      Demo: <strong style="color:var(--accent)"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="6100050c080f21020d0e14054f0805">[email&#160;protected]</a></strong> / admin123
+    </div>
+  </div>
+
+  <!-- REGISTER -->
+  <div class="auth-body" id="auth-register" style="display:none">
+    <div class="field">
+      <label>Nama Lengkap</label>
+      <input type="text" id="r-name" placeholder="Nama sesuai KTM">
+    </div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="r-email" placeholder="nama@email.com">
+    </div>
+    <div class="field">
+      <label>Role</label>
+      <select id="r-role" onchange="onRoleChange()">
+        <option value="mahasiswa">Mahasiswa</option>
+        <option value="dosen">Dosen</option>
+      </select>
+    </div>
+    <div class="field nim-field" id="nim-field">
+      <label>NIM</label>
+      <input type="text" id="r-nim" placeholder="202300001">
+    </div>
+    <div class="field nim-field" id="nip-field" style="display:none">
+      <label>NIP</label>
+      <input type="text" id="r-nip" placeholder="198001012010012001">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="r-pass" placeholder="min. 6 karakter">
+      </div>
+      <div class="field">
+        <label>Konfirmasi</label>
+        <input type="password" id="r-pass2" placeholder="ulangi password">
+      </div>
+    </div>
+    <button class="btn-primary" id="btn-reg" onclick="doRegister()">Daftar Sekarang →</button>
+    <div class="auth-err" id="reg-err"></div>
+  </div>
+</div>
+</div><!-- /s-auth -->
+
+
+<!-- ══════════════════════════════════════════
+     SCREEN 2: MAIN APP
+══════════════════════════════════════════ -->
+<div class="screen" id="s-app">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-brand">◈ CLOUD<span style="color:var(--muted)">ABSEN</span></div>
+    <div class="topbar-user">
+      <span class="topbar-name" id="tb-name">—</span>
+      <span style="margin:0 .35rem;color:var(--border2)">·</span>
+      <span class="role-badge" id="tb-role">—</span>
+    </div>
+    <button class="btn-logout" onclick="doLogout()">Keluar</button>
+  </div>
+
+  <div class="app-body">
+
+    <!-- SIDEBAR -->
+    <nav class="sidebar" id="sidebar">
+      <!-- populated by JS based on role -->
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="main" id="main-content">
+
+      <!-- ── PAGE: Dashboard ── -->
+      <div class="page" id="page-dashboard">
+        <div class="page-header">
+          <h1>Dashboard</h1>
+          <p id="dash-subtitle">Selamat datang di CloudAbsen</p>
+        </div>
+        <div class="stats-grid" id="dash-stats"></div>
+        <div id="dash-extra"></div>
+      </div>
+
+      <!-- ── PAGE: Scan QR (Mahasiswa) ── -->
+      <div class="page" id="page-scan">
+        <div class="page-header">
+          <h1>📱 Scan Presensi</h1>
+          <p>Arahkan kamera ke QR Code yang ditampilkan dosen</p>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="icon">📍</span> Lokasi GPS</div>
+          <div class="gps-info" id="scan-gps-info">⏳ Mendeteksi lokasi...</div>
+          <div id="map-scan" class="map-el" style="height:160px;"></div>
+          <div class="btn-row">
+            <button class="btn btn-outline btn-sm" onclick="refreshScanGPS()">↻ Perbarui GPS</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="icon">📷</span> Kamera Scanner</div>
+          <div class="scan-status" id="scan-status">Klik tombol untuk mulai scan</div>
+          <div id="reader"></div>
+          <div class="btn-row">
+            <button class="btn btn-accent" id="btn-scan-toggle" onclick="toggleScanner()">▶ Mulai Scan</button>
+          </div>
+          <div class="alert" id="scan-result"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="icon">⌨️</span> Input Token Manual</div>
+          <div class="form-group">
+            <label>QR Token</label>
+            <input type="text" id="manual-token" placeholder="TKN-XXXXXX" style="text-transform:uppercase">
+          </div>
+          <button class="btn btn-accent" onclick="doCheckin()">✓ Check-in</button>
+        </div>
+      </div>
+
+      <!-- ── PAGE: Status Presensi (Mahasiswa) ── -->
+      <div class="page" id="page-my-status">
+        <div class="page-header">
+          <h1>📋 Status Saya</h1>
+          <p>Riwayat kehadiran Anda</p>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="icon">🔍</span> Cek Status</div>
+          <div class="form-group">
+            <label>Session ID (kosongkan = sesi aktif)</label>
+            <input type="text" id="my-sess-id" placeholder="SESI-YYYYMMDD-HHmm (opsional)">
+          </div>
+          <button class="btn btn-accent" onclick="checkMyStatus()">Cek</button>
+          <div class="alert" id="my-status-result"></div>
+        </div>
+        <div class="card" id="my-history-card">
+          <div class="card-header"><span class="icon">📜</span> Riwayat</div>
+          <div id="my-history-body"><div class="empty"><span class="emoji">📭</span>Belum ada data</div></div>
+        </div>
+      </div>
+
+      <!-- ── PAGE: Sensor (Mahasiswa) ── -->
+      <div class="page" id="page-sensor">
+        <div class="page-header">
+          <h1>📡 Sensor</h1>
+          <p>Accelerometer & GPS telemetry</p>
+        </div>
+        <div class="two-col">
+          <div class="card">
+            <div class="card-header"><span class="icon">📐</span> Accelerometer</div>
+            <div class="form-group">
+              <label>Device ID</label>
+              <input type="text" id="a-dev" value="dev-001">
+            </div>
+            <button class="btn btn-accent" id="btn-accel" onclick="toggleAccel()">▶ Mulai</button>
+            <div class="axis-grid" id="axis-grid" style="display:none">
+              <div class="axis-box"><div class="axis-lbl">X</div><div class="axis-val" id="ax">0.00</div></div>
+              <div class="axis-box"><div class="axis-lbl">Y</div><div class="axis-val" id="ay">0.00</div></div>
+              <div class="axis-box"><div class="axis-lbl">Z</div><div class="axis-val" id="az">0.00</div></div>
+            </div>
+            <div class="alert" id="accel-alert"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="icon">📊</span> Latest Data</div>
+            <button class="btn btn-outline" onclick="fetchAccelLatest()">Ambil Latest</button>
+            <div class="alert" id="accel-latest-alert"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="icon">🗺️</span> GPS Telemetry</div>
+          <div class="form-group">
+            <label>Device ID</label>
+            <input type="text" id="g-dev" value="dev-001">
+          </div>
+          <div class="gps-info" id="gps-main-info">Mendeteksi lokasi...</div>
+          <div class="btn-row">
+            <button class="btn btn-accent" id="btn-gps" onclick="toggleGPS()">▶ Mulai GPS</button>
+            <button class="btn btn-outline" onclick="fetchGPSLatest()">📍 Latest</button>
+            <button class="btn btn-outline" onclick="fetchGPSHistory()">🗺 History</button>
+          </div>
+          <div id="map-main" class="map-el"></div>
+          <div class="alert" id="gps-alert"></div>
+        </div>
+      </div>
+
+      <!-- ── PAGE: Kelola QR (Dosen) ── -->
+      <div class="page" id="page-qr">
+        <div class="page-header">
+          <h1>🔲 Kelola QR</h1>
+          <p>Generate dan pantau token presensi</p>
+        </div>
+        <div class="two-col">
+          <div class="card">
+            <div class="card-header"><span class="icon">➕</span> Generate QR Baru</div>
+            <div class="form-group">
+              <label>Label Sesi (opsional)</label>
+              <input type="text" id="qr-label" placeholder="Pertemuan 5 — Komputasi Awan">
+            </div>
+            <button class="btn btn-accent" onclick="generateQR()">Generate QR</button>
+            <div class="alert" id="qr-gen-alert"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="icon">📡</span> QR Aktif</div>
+            <div id="qr-display-wrap">
+              <div class="empty"><span class="emoji">🔲</span>Belum ada QR aktif</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="icon">📋</span> Rekap Absensi</div>
+          <div class="form-group">
+            <label>Session ID</label>
+            <input type="text" id="recap-sess" placeholder="SESI-YYYYMMDD-HHmm">
+          </div>
+          <button class="btn btn-outline" onclick="loadRecap()">Tampilkan</button>
+          <div class="spacer"></div>
+          <div id="recap-body"><div class="empty"><span class="emoji">📭</span>Pilih sesi</div></div>
+        </div>
+      </div>
+
+      <!-- ── PAGE: Riwayat Sesi (Dosen) ── -->
+      <div class="page" id="page-sessions">
+        <div class="page-header">
+          <h1>📜 Riwayat Sesi</h1>
+          <p>Semua sesi yang pernah dibuat</p>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="icon">📋</span> Daftar Sesi</div>
+          <button class="btn btn-outline" onclick="loadSessions()" style="margin-bottom:1rem">↻ Refresh</button>
+          <div id="sessions-body"><div class="empty"><span class="emoji">📭</span>Belum ada sesi</div></div>
+        </div>
+      </div>
+
+      <!-- ── PAGE: Users (Admin) ── -->
+      <div class="page" id="page-users">
+        <div class="page-header">
+          <h1>👥 Manajemen User</h1>
+          <p>Kelola akun mahasiswa, dosen, dan admin</p>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="icon">➕</span> Tambah User</div>
+          <div class="three-col">
+            <div class="form-group">
+              <label>Nama</label>
+              <input type="text" id="au-name" placeholder="Nama lengkap">
+            </div>
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" id="au-email" placeholder="email@domain.com">
+            </div>
+            <div class="form-group">
+              <label>Password</label>
+              <input type="password" id="au-pass" placeholder="password">
+            </div>
+          </div>
+          <div class="three-col">
+            <div class="form-group">
+              <label>Role</label>
+              <select id="au-role" onchange="onAdminRoleChange()">
+                <option value="mahasiswa">Mahasiswa</option>
+                <option value="dosen">Dosen</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div class="form-group" id="au-nim-wrap">
+              <label>NIM</label>
+              <input type="text" id="au-nim" placeholder="NIM mahasiswa">
+            </div>
+            <div class="form-group" id="au-nip-wrap" style="display:none">
+              <label>NIP</label>
+              <input type="text" id="au-nip" placeholder="NIP dosen">
+            </div>
+          </div>
+          <button class="btn btn-accent" onclick="adminAddUser()">+ Tambah User</button>
+          <div class="alert" id="admin-user-alert"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="icon">📋</span> Daftar User</div>
+          <button class="btn btn-outline btn-sm" onclick="loadUsers()" style="margin-bottom:1rem">↻ Refresh</button>
+          <div class="tbl-wrap" id="users-table-wrap">
+            <div class="empty"><span class="emoji">👥</span>Klik Refresh</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PAGE: Semua Absensi (Admin) ── -->
+      <div class="page" id="page-all-presence">
+        <div class="page-header">
+          <h1>✅ Semua Absensi</h1>
+          <p>Rekap kehadiran seluruh mahasiswa</p>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="icon">🔍</span> Filter</div>
+          <div class="form-group">
+            <label>Session ID (kosong = semua)</label>
+            <input type="text" id="admin-sess-filter" placeholder="SESI-...">
+          </div>
+          <button class="btn btn-outline" onclick="loadAllPresence()">Tampilkan</button>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="icon">📋</span> Data</div>
+          <div id="all-presence-body"><div class="empty"><span class="emoji">📭</span>Klik Tampilkan</div></div>
+        </div>
+      </div>
+
+      <!-- ── PAGE: Config ── -->
+      <div class="page" id="page-config">
+        <div class="page-header">
+          <h1>⚙️ Konfigurasi</h1>
+          <p>Pengaturan koneksi API</p>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="icon">🔗</span> Base URL</div>
+          <div class="form-group">
+            <label>GAS Deployment URL (berakhiran /exec)</label>
+            <input type="url" id="cfg-url" placeholder="https://script.google.com/macros/s/.../exec">
+          </div>
+          <button class="btn btn-accent" onclick="saveConfig()">Simpan</button>
+          <div class="alert" id="cfg-alert"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="icon">📋</span> Endpoint Reference</div>
+          <pre style="font-family:var(--mono);font-size:.7rem;color:var(--muted);line-height:1.8;overflow-x:auto">POST auth/register        — Daftar akun baru
+POST auth/login           — Login & dapat session_token
+POST auth/logout          — Logout
+
+POST presence/qr/generate — [dosen/admin] Generate QR token
+POST presence/checkin     — [semua] Check-in pakai token
+GET  presence/status      — Cek status absensi
+GET  presence/list        — [dosen/admin] List absensi sesi
+GET  presence/sessions    — [dosen/admin] Daftar sesi
+
+POST telemetry/accel      — Kirim batch accelerometer
+GET  telemetry/accel/latest
+POST telemetry/gps        — Kirim GPS point
+GET  telemetry/gps/latest
+GET  telemetry/gps/history
+
+GET  admin/users          — [admin] List semua user
+POST admin/users          — [admin] Tambah user</pre>
+        </div>
+      </div>
+
+    </main><!-- /main-content -->
+  </div><!-- /app-body -->
+
+  <!-- BOTTOM NAV (mobile) -->
+  <div class="bottom-nav" id="bottom-nav"></div>
+
+</div><!-- /s-app -->
+
+<div id="toast"></div>
+
+<!-- ══════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════ -->
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+// ─────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────
+let BASE_URL = (() => {
+  const NEW_URL = "https://script.google.com/macros/s/AKfycbzB9brXAXA6gNnJ9ofQ-_3OXdimiDvpmEBwQqbDY21pbeUNgqD8jVDvHdrNu4SDWPW0/exec";
+  // Selalu pakai URL terbaru, reset localStorage jika masih pakai URL lama
+  const saved = localStorage.getItem("cloudabsen_url") || "";
+  if (!saved || !saved.includes("AKfycbzB9brX")) {
+    localStorage.setItem("cloudabsen_url", NEW_URL);
+    return NEW_URL;
+  }
+  return saved;
+})();
+let SESSION_TOKEN  = localStorage.getItem("cloudabsen_token") || "";
+let CURRENT_USER   = JSON.parse(localStorage.getItem("cloudabsen_user") || "null");
+
+// GPS / sensor state
+let scanGPS        = { lat: null, lng: null, acc: null };
+let mainGPS        = { lat: null, lng: null, acc: null };
+let accelRunning   = false;
+let gpsRunning     = false;
+let accelListener  = null;
+let accelInterval  = null;
+let gpsInterval    = null;
+let accelBatch     = [];
+let qrTimerInterval = null;
+let tokenExpiry    = null;
+
+// Maps
+let mapScan = null, mapMain = null;
+let markerScan = null, markerMain = null, polylineMain = null;
+
+// Scanner
+let html5Qr       = null;
+let scannerActive = false;
+
+// ─────────────────────────────────────────
+// BOOT
+// ─────────────────────────────────────────
+window.onload = () => {
+  document.getElementById("cfg-url").value = BASE_URL;
+  // Auto-save default URL on first load
+  if (!localStorage.getItem("cloudabsen_url")) {
+    localStorage.setItem("cloudabsen_url", BASE_URL);
+  }
+  if (SESSION_TOKEN && CURRENT_USER) {
+    showApp();
+  }
+};
+
+// ─────────────────────────────────────────
+// AUTH
+// ─────────────────────────────────────────
+function switchAuthTab(tab) {
+  document.querySelectorAll(".auth-tab").forEach(b => b.classList.remove("active"));
+  event.target.classList.add("active");
+  document.getElementById("auth-login").style.display    = tab === "login"    ? "block" : "none";
+  document.getElementById("auth-register").style.display = tab === "register" ? "block" : "none";
+}
+
+function onRoleChange() {
+  const role = document.getElementById("r-role").value;
+  document.getElementById("nim-field").style.display = role === "mahasiswa" ? "block" : "none";
+  document.getElementById("nip-field").style.display = role === "dosen"     ? "block" : "none";
+}
+onRoleChange();
+
+async function doLogin() {
+  const btn = document.getElementById("btn-login");
+  const err = document.getElementById("login-err");
+  const email = document.getElementById("l-email").value.trim();
+  const pass  = document.getElementById("l-pass").value;
+  if (!email || !pass) { showAuthErr("login-err","Email dan password wajib diisi."); return; }
+  btn.disabled = true; btn.textContent = "Memproses...";
+  err.style.display = "none";
+  try {
+    const res = await apiAnon(null,"auth/login",{ email, password: pass });
+    if (!res.ok) { showAuthErr("login-err", friendlyErr(res.error)); return; }
+    SESSION_TOKEN = res.data.session_token;
+    CURRENT_USER  = res.data.user;
+    localStorage.setItem("cloudabsen_token", SESSION_TOKEN);
+    localStorage.setItem("cloudabsen_user",  JSON.stringify(CURRENT_USER));
+    showApp();
+  } catch(e){ showAuthErr("login-err","Koneksi gagal. Cek Base URL di Konfigurasi."); }
+  finally{ btn.disabled = false; btn.textContent = "Masuk →"; }
+}
+
+async function doRegister() {
+  const btn  = document.getElementById("btn-reg");
+  const name = document.getElementById("r-name").value.trim();
+  const email= document.getElementById("r-email").value.trim();
+  const role = document.getElementById("r-role").value;
+  const pass = document.getElementById("r-pass").value;
+  const pass2= document.getElementById("r-pass2").value;
+  const nim  = document.getElementById("r-nim").value.trim();
+  const nip  = document.getElementById("r-nip").value.trim();
+
+  if (!name||!email||!pass) { showAuthErr("reg-err","Nama, email, dan password wajib."); return; }
+  if (pass.length < 6)      { showAuthErr("reg-err","Password minimal 6 karakter."); return; }
+  if (pass !== pass2)       { showAuthErr("reg-err","Konfirmasi password tidak cocok."); return; }
+  if (role === "mahasiswa" && !nim) { showAuthErr("reg-err","NIM wajib untuk mahasiswa."); return; }
+  if (role === "dosen" && !nip)     { showAuthErr("reg-err","NIP wajib untuk dosen."); return; }
+
+  btn.disabled = true; btn.textContent = "Mendaftar...";
+  try {
+    const body = { name, email, password: pass, role };
+    if (role === "mahasiswa") body.nim = nim;
+    if (role === "dosen")     body.nip = nip;
+    const res = await apiAnon(null,"auth/register", body);
+    if (!res.ok) { showAuthErr("reg-err", friendlyErr(res.error)); return; }
+    toast("✓ Akun berhasil dibuat! Silakan login.");
+    switchAuthTab("login");
+    document.querySelector(".auth-tab").click();
+    document.getElementById("l-email").value = email;
+  } catch(e){ showAuthErr("reg-err","Koneksi gagal. Cek Base URL."); }
+  finally{ btn.disabled = false; btn.textContent = "Daftar Sekarang →"; }
+}
+
+function showAuthErr(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = "✗ " + msg;
+  el.style.display = "block";
+}
+
+async function doLogout() {
+  try { await api(null,"auth/logout"); } catch(_){}
+  SESSION_TOKEN = ""; CURRENT_USER = null;
+  localStorage.removeItem("cloudabsen_token");
+  localStorage.removeItem("cloudabsen_user");
+  stopAccel(); stopGPS(); stopScanner();
+  document.getElementById("s-auth").classList.add("active");
+  document.getElementById("s-app").classList.remove("active");
+  document.getElementById("l-email").value = "";
+  document.getElementById("l-pass").value  = "";
+}
+
+// ─────────────────────────────────────────
+// APP SHELL
+// ─────────────────────────────────────────
+function showApp() {
+  document.getElementById("s-auth").classList.remove("active");
+  document.getElementById("s-app").classList.add("active");
+  buildNav();
+  initMaps();
+  refreshScanGPS();
+  navigateTo("page-dashboard");
+  loadDashboard();
+}
+
+const NAV_CONFIG = {
+  mahasiswa: [
+    { id:"page-dashboard", icon:"🏠", label:"Home" },
+    { id:"page-scan",      icon:"📱", label:"Scan QR" },
+    { id:"page-my-status", icon:"📋", label:"Status" },
+    { id:"page-sensor",    icon:"📡", label:"Sensor" },
+    { id:"page-config",    icon:"⚙️",  label:"Config" },
+  ],
+  dosen: [
+    { id:"page-dashboard", icon:"🏠", label:"Home" },
+    { id:"page-qr",        icon:"🔲", label:"QR" },
+    { id:"page-sessions",  icon:"📜", label:"Sesi" },
+    { id:"page-sensor",    icon:"📡", label:"Sensor" },
+    { id:"page-config",    icon:"⚙️",  label:"Config" },
+  ],
+  admin: [
+    { id:"page-dashboard",    icon:"🏠", label:"Home" },
+    { id:"page-users",        icon:"👥", label:"Users" },
+    { id:"page-qr",           icon:"🔲", label:"QR" },
+    { id:"page-sessions",     icon:"📜", label:"Sesi" },
+    { id:"page-all-presence", icon:"✅", label:"Absensi" },
+    { id:"page-config",       icon:"⚙️",  label:"Config" },
+  ],
+};
+
+function buildNav() {
+  const role  = CURRENT_USER.role;
+  const items = NAV_CONFIG[role] || NAV_CONFIG.mahasiswa;
+
+  document.getElementById("tb-name").textContent = CURRENT_USER.name;
+  const roleEl = document.getElementById("tb-role");
+  roleEl.textContent  = role;
+  roleEl.className    = "role-badge " + role;
+
+  // Sidebar
+  const sidebar = document.getElementById("sidebar");
+  const nim = CURRENT_USER.nim_nip ? `<div style="font-family:var(--mono);font-size:.65rem;color:var(--muted);padding:.3rem 1.25rem .75rem;">${CURRENT_USER.nim_nip}</div>` : "";
+  sidebar.innerHTML = `<div class="sidebar-section">Menu</div>${nim}` +
+    items.map(it => `<div class="nav-item" data-page="${it.id}" onclick="navigateTo('${it.id}')"><span class="icon">${it.icon}</span>${it.label}</div>`).join("");
+
+  // Bottom nav
+  const bn = document.getElementById("bottom-nav");
+  bn.innerHTML = items.slice(0,5).map(it =>
+    `<button class="bottom-nav-item" data-page="${it.id}" onclick="navigateTo('${it.id}')"><span class="icon">${it.icon}</span>${it.label}</button>`
+  ).join("");
+}
+
+function navigateTo(pageId) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".nav-item,.bottom-nav-item").forEach(el => {
+    el.classList.toggle("active", el.dataset.page === pageId);
+  });
+  const pg = document.getElementById(pageId);
+  if (pg) pg.classList.add("active");
+
+  // Scroll to top
+  document.getElementById("main-content").scrollTop = 0;
+
+  // Lazy loads
+  if (pageId === "page-sessions")     loadSessions();
+  if (pageId === "page-all-presence") loadAllPresence();
+}
+
+// ─────────────────────────────────────────
+// MAPS INIT
+// ─────────────────────────────────────────
+function initMaps() {
+  const tile = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+  const opt  = { attribution:"© OSM" };
+
+  mapScan = L.map("map-scan").setView([-7.2575,112.7521],16);
+  L.tileLayer(tile,opt).addTo(mapScan);
+
+  mapMain = L.map("map-main").setView([-7.2575,112.7521],15);
+  L.tileLayer(tile,opt).addTo(mapMain);
+}
+
+// ─────────────────────────────────────────
+// DASHBOARD
+// ─────────────────────────────────────────
+async function loadDashboard() {
+  const role = CURRENT_USER.role;
+  document.getElementById("dash-subtitle").textContent =
+    `Halo, ${CURRENT_USER.name} · ${CURRENT_USER.nim_nip || ""}`;
+
+  if (role === "mahasiswa") {
+    await loadMhsDashboard();
+  } else if (role === "dosen") {
+    await loadDosenDashboard();
+  } else {
+    await loadAdminDashboard();
+  }
+}
+
+async function loadMhsDashboard() {
+  const stats = document.getElementById("dash-stats");
+  stats.innerHTML = `
+    <div class="stat-card green">
+      <div class="stat-label">NIM</div>
+      <div class="stat-val" style="font-size:1.1rem">${CURRENT_USER.nim_nip}</div>
+    </div>
+    <div class="stat-card yellow">
+      <div class="stat-label">Role</div>
+      <div class="stat-val" style="font-size:1.1rem">Mahasiswa</div>
+    </div>`;
+
+  document.getElementById("dash-extra").innerHTML = `
+    <div class="card">
+      <div class="card-header"><span class="icon">🚀</span>Quick Action</div>
+      <p style="font-size:.85rem;color:var(--muted);margin-bottom:1rem;">Tinggal scan QR yang ditampilkan dosen — presensi langsung tercatat otomatis.</p>
+      <button class="btn btn-accent" onclick="navigateTo('page-scan')">📱 Scan QR Sekarang</button>
+    </div>`;
+}
+
+async function loadDosenDashboard() {
+  let count = 0;
+  try {
+    const r = await api(null,"presence/list");
+    if (r.ok) count = r.data.count;
+  } catch(_){}
+
+  document.getElementById("dash-stats").innerHTML = `
+    <div class="stat-card green"><div class="stat-label">Total Check-in</div><div class="stat-val">${count}</div></div>
+    <div class="stat-card yellow"><div class="stat-label">Role</div><div class="stat-val" style="font-size:1.1rem">Dosen</div></div>`;
+
+  document.getElementById("dash-extra").innerHTML = `
+    <div class="card">
+      <div class="card-header"><span class="icon">🔲</span>Generate QR</div>
+      <p style="font-size:.85rem;color:var(--muted);margin-bottom:1rem;">Buat QR token untuk sesi kuliah sekarang.</p>
+      <button class="btn btn-accent" onclick="navigateTo('page-qr')">Generate QR</button>
+    </div>`;
+}
+
+async function loadAdminDashboard() {
+  let userCount = 0, presCount = 0;
+  try {
+    const r1 = await api(null,"admin/users");
+    const r2 = await api(null,"presence/list");
+    if (r1.ok) userCount = r1.data.length;
+    if (r2.ok) presCount = r2.data.count;
+  } catch(_){}
+
+  document.getElementById("dash-stats").innerHTML = `
+    <div class="stat-card green"><div class="stat-label">Total Users</div><div class="stat-val">${userCount}</div></div>
+    <div class="stat-card yellow"><div class="stat-label">Total Check-in</div><div class="stat-val">${presCount}</div></div>
+    <div class="stat-card blue"><div class="stat-label">Role</div><div class="stat-val" style="font-size:1rem">Admin</div></div>`;
+}
+
+// ─────────────────────────────────────────
+// SCAN GPS
+// ─────────────────────────────────────────
+function refreshScanGPS() {
+  const el = document.getElementById("scan-gps-info");
+  if (!el) return;
+  el.textContent = "⏳ Mendeteksi lokasi...";
+  if (!navigator.geolocation) { el.textContent = "❌ GPS tidak tersedia di browser ini"; return; }
+  navigator.geolocation.getCurrentPosition(pos => {
+    scanGPS = { lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy };
+    el.textContent = `✓ ${scanGPS.lat.toFixed(6)}, ${scanGPS.lng.toFixed(6)} · Akurasi ≈${Math.round(scanGPS.acc)}m`;
+    if (mapScan) {
+      mapScan.setView([scanGPS.lat, scanGPS.lng], 17);
+      if (markerScan) markerScan.setLatLng([scanGPS.lat, scanGPS.lng]);
+      else markerScan = L.marker([scanGPS.lat, scanGPS.lng]).addTo(mapScan)
+        .bindPopup("Lokasi Anda").openPopup();
+    }
+    setTimeout(() => mapScan && mapScan.invalidateSize(), 100);
+  }, err => {
+    el.textContent = "⚠ GPS error: " + err.message;
+  }, { enableHighAccuracy: true, timeout: 12000 });
+}
+
+// ─────────────────────────────────────────
+// SCANNER
+// ─────────────────────────────────────────
+function toggleScanner() {
+  if (scannerActive) stopScanner();
+  else startScanner();
+}
+
+function startScanner() {
+  html5Qr = new Html5Qrcode("reader");
+  html5Qr.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: { width: 250, height: 250 } },
+    (decoded) => {
+      let token = decoded;
+      try { const o = JSON.parse(decoded); token = o.qr_token || decoded; } catch(_){}
+      token = token.toUpperCase().trim();
+      document.getElementById("manual-token").value = token;
+      document.getElementById("scan-status").textContent = "✓ QR terbaca: " + token;
+      stopScanner();
+      doCheckin();
+    },
+    () => {}
+  ).then(() => {
+    scannerActive = true;
+    document.getElementById("btn-scan-toggle").textContent = "⏹ Stop";
+    document.getElementById("scan-status").textContent = "📷 Scanning... arahkan ke QR";
+  }).catch(e => { toast("Kamera error: " + e); });
+}
+
+function stopScanner() {
+  if (html5Qr && scannerActive) {
+    html5Qr.stop().catch(() => {});
+    scannerActive = false;
+    document.getElementById("btn-scan-toggle").textContent = "▶ Mulai Scan";
+  }
+}
+
+// ─────────────────────────────────────────
+// CHECK-IN
+// ─────────────────────────────────────────
+async function doCheckin() {
+  const token = document.getElementById("manual-token").value.trim().toUpperCase();
+  if (!token) { toast("⚠ Scan QR atau input token dahulu"); return; }
+
+  const body = {
+    qr_token:  token,
+    ts:        nowISO(),
+    device_id: CURRENT_USER.user_id,
+  };
+  if (scanGPS.lat !== null) {
+    body.lat        = scanGPS.lat;
+    body.lng        = scanGPS.lng;
+    body.accuracy_m = scanGPS.acc;
+  }
+
+  try {
+    const res = await api(null,"presence/checkin", body);
+    if (!res.ok) {
+      showAlert("scan-result","err",`✗ ${friendlyErr(res.error)}`);
+      return;
+    }
+    const d = res.data;
+    showAlert("scan-result","ok",
+      `✓ CHECK-IN BERHASIL\n` +
+      `Nama    : ${d.name}\n` +
+      `NIM/NIP : ${d.nim_nip}\n` +
+      `Sesi    : ${d.session_id}\n` +
+      `GPS     : ${d.has_gps ? "✓ Tercatat" : "—"}`);
+    toast("✓ Presensi tercatat!");
+    document.getElementById("manual-token").value = "";
+  } catch(e){ showAlert("scan-result","err","Gagal: " + e.message); }
+}
+
+// ─────────────────────────────────────────
+// STATUS (Mahasiswa)
+// ─────────────────────────────────────────
+async function checkMyStatus() {
+  const sessId = document.getElementById("my-sess-id").value.trim();
+  const url    = sessId ? `presence/status?session_id=${encodeURIComponent(sessId)}` : "presence/status";
+  try {
+    const res = await api(null, url);
+    if (!res.ok) { showAlert("my-status-result","err","✗ " + res.error); return; }
+    const d = res.data;
+    const ok = d.status === "checked_in";
+    showAlert("my-status-result", ok ? "ok" : "info",
+      `Status  : ${ok ? "✓ HADIR" : "✗ Belum Absen"}\n` +
+      `Sesi    : ${d.session_id}\n` +
+      `Waktu   : ${d.last_ts || "—"}`);
+  } catch(e){ showAlert("my-status-result","err","Gagal: " + e.message); }
+}
+
+// ─────────────────────────────────────────
+// GENERATE QR (Dosen/Admin)
+// ─────────────────────────────────────────
+async function generateQR() {
+  clearQRTimer();
+  const label = document.getElementById("qr-label").value.trim();
+  try {
+    const res = await api(null,"presence/qr/generate",{ label, ts: nowISO() });
+    if (!res.ok) { showAlert("qr-gen-alert","err","✗ " + res.error); return; }
+    const d = res.data;
+    tokenExpiry = new Date(d.expires_at);
+    renderQR(d);
+    showAlert("qr-gen-alert","ok","✓ QR berhasil dibuat!");
+    // Also fill recap field
+    document.getElementById("recap-sess").value = d.session_id;
+  } catch(e){ showAlert("qr-gen-alert","err","Gagal: " + e.message); }
+}
+
+function renderQR(d) {
+  const wrap = document.getElementById("qr-display-wrap");
+  wrap.innerHTML = `
+    <div class="qr-wrap">
+      <div id="qr-canvas-el"></div>
+      <div class="qr-token">${d.qr_token}</div>
+      <div class="qr-meta">${d.session_id} · berlaku s/d ${new Date(d.expires_at).toLocaleTimeString("id-ID")}</div>
+      <div class="timer-wrap">
+        <div class="timer-bar-bg"><div class="timer-bar" id="qr-timer-bar"></div></div>
+        <div class="timer-txt" id="qr-timer-txt">—</div>
+      </div>
+    </div>`;
+
+  const payload = JSON.stringify({ qr_token: d.qr_token });
+  new QRCode(document.getElementById("qr-canvas-el"), {
+    text: payload, width: 220, height: 220,
+    colorDark: "#0a0a0a", colorLight: "#f5f0e8",
+    correctLevel: QRCode.CorrectLevel.H
+  });
+
+  startQRTimer(tokenExpiry, 5 * 60 * 1000);
+}
+
+function startQRTimer(expiry, total) {
+  clearQRTimer();
+  qrTimerInterval = setInterval(() => {
+    const rem = Math.max(0, expiry - Date.now());
+    const pct = (rem / total) * 100;
+    const bar = document.getElementById("qr-timer-bar");
+    const lbl = document.getElementById("qr-timer-txt");
+    if (!bar) { clearQRTimer(); return; }
+    bar.style.width      = pct + "%";
+    bar.style.background = pct < 20 ? "#e74c3c" : pct < 50 ? "#f0c040" : "#2ecc71";
+    lbl.textContent      = `Sisa ${Math.ceil(rem/1000)} detik`;
+    if (rem === 0) { lbl.textContent = "⛔ Expired — generate baru"; clearQRTimer(); }
+  }, 500);
+}
+function clearQRTimer() { if (qrTimerInterval) { clearInterval(qrTimerInterval); qrTimerInterval=null; } }
+
+// ─────────────────────────────────────────
+// RECAP (Dosen/Admin)
+// ─────────────────────────────────────────
+async function loadRecap() {
+  const sessId = document.getElementById("recap-sess").value.trim();
+  const url    = sessId ? `presence/list?session_id=${encodeURIComponent(sessId)}` : "presence/list";
+  try {
+    const res = await api(null, url);
+    if (!res.ok) { toast("Error: " + res.error); return; }
+    const items = res.data.items;
+    if (!items.length) {
+      document.getElementById("recap-body").innerHTML = `<div class="empty"><span class="emoji">📭</span>Belum ada absensi sesi ini</div>`;
+      return;
+    }
+    document.getElementById("recap-body").innerHTML = `
+      <div style="font-family:var(--mono);font-size:.72rem;color:var(--muted);margin-bottom:.5rem;">
+        Total: <strong style="color:var(--text)">${items.length} mahasiswa</strong>
+      </div>
+      <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>#</th><th>NIM/NIP</th><th>Nama</th><th>Waktu</th><th>GPS</th></tr></thead>
+        <tbody>${items.map((r,i) => `
+          <tr>
+            <td>${i+1}</td>
+            <td><span class="tag yellow">${r.nim_nip||"—"}</span></td>
+            <td>${r.name||"—"}</td>
+            <td style="font-family:var(--mono);font-size:.72rem;">${r.ts||"—"}</td>
+            <td>${r.lat ? `<span class="tag green">✓ GPS</span>` : `<span class="tag gray">—</span>`}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table></div>`;
+  } catch(e){ toast("Gagal: " + e.message); }
+}
+
+// ─────────────────────────────────────────
+// SESSIONS
+// ─────────────────────────────────────────
+async function loadSessions() {
+  try {
+    const res = await api(null,"presence/sessions");
+    if (!res.ok) { toast("Error: " + res.error); return; }
+    const items = res.data;
+    if (!items.length) {
+      document.getElementById("sessions-body").innerHTML = `<div class="empty"><span class="emoji">📭</span>Belum ada sesi</div>`;
+      return;
+    }
+    document.getElementById("sessions-body").innerHTML = `
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Token</th><th>Session ID</th><th>Expired</th><th>Action</th></tr></thead>
+        <tbody>${items.map(r => `
+          <tr>
+            <td><span class="tag yellow" style="font-size:.7rem">${r.qr_token}</span></td>
+            <td style="font-family:var(--mono);font-size:.72rem;">${r.session_id}</td>
+            <td style="font-family:var(--mono);font-size:.68rem;color:var(--muted)">${r.expires_at}</td>
+            <td><button class="btn btn-outline btn-sm" onclick="loadRecapFor('${r.session_id}')">Lihat</button></td>
+          </tr>`).join("")}
+        </tbody>
+      </table></div>`;
+  } catch(e){ toast("Gagal: " + e.message); }
+}
+
+function loadRecapFor(sessId) {
+  navigateTo("page-qr");
+  document.getElementById("recap-sess").value = sessId;
+  loadRecap();
+}
+
+// ─────────────────────────────────────────
+// ADMIN: USERS
+// ─────────────────────────────────────────
+function onAdminRoleChange() {
+  const role = document.getElementById("au-role").value;
+  document.getElementById("au-nim-wrap").style.display = role === "mahasiswa" ? "block" : "none";
+  document.getElementById("au-nip-wrap").style.display = role === "dosen"     ? "block" : "none";
+}
+
+async function adminAddUser() {
+  const body = {
+    name:     document.getElementById("au-name").value.trim(),
+    email:    document.getElementById("au-email").value.trim(),
+    password: document.getElementById("au-pass").value,
+    role:     document.getElementById("au-role").value,
+    nim:      document.getElementById("au-nim").value.trim(),
+    nip:      document.getElementById("au-nip").value.trim(),
+  };
+  if (!body.name||!body.email||!body.password) { showAlert("admin-user-alert","err","Nama, email, password wajib."); return; }
+  try {
+    const res = await api(null,"admin/users", body);
+    if (!res.ok) { showAlert("admin-user-alert","err","✗ " + friendlyErr(res.error)); return; }
+    showAlert("admin-user-alert","ok","✓ User berhasil ditambahkan!");
+    loadUsers();
+    ["au-name","au-email","au-pass","au-nim","au-nip"].forEach(id => { document.getElementById(id).value = ""; });
+  } catch(e){ showAlert("admin-user-alert","err","Gagal: " + e.message); }
+}
+
+async function loadUsers() {
+  try {
+    const res = await api(null,"admin/users");
+    if (!res.ok) { toast("Error: " + res.error); return; }
+    const users = res.data;
+    const wrap  = document.getElementById("users-table-wrap");
+    if (!users.length) { wrap.innerHTML = `<div class="empty"><span class="emoji">👥</span>Belum ada user</div>`; return; }
+    wrap.innerHTML = `
+      <table>
+        <thead><tr><th>User ID</th><th>Nama</th><th>Role</th><th>NIM/NIP</th><th>Email</th><th>Status</th></tr></thead>
+        <tbody>${users.map(u => `
+          <tr>
+            <td style="font-family:var(--mono);font-size:.65rem;color:var(--muted)">${u.user_id}</td>
+            <td>${u.name}</td>
+            <td><span class="tag ${u.role==='admin'?'red':u.role==='dosen'?'yellow':'green'}">${u.role}</span></td>
+            <td style="font-family:var(--mono);font-size:.75rem">${u.nim_nip||"—"}</td>
+            <td style="font-size:.8rem;color:var(--muted)">${u.email}</td>
+            <td>${u.active===true||String(u.active).toUpperCase()==='TRUE'
+              ? `<span class="tag green">Aktif</span>`
+              : `<span class="tag red">Nonaktif</span>`}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table>`;
+  } catch(e){ toast("Gagal: " + e.message); }
+}
+
+// ─────────────────────────────────────────
+// ADMIN: ALL PRESENCE
+// ─────────────────────────────────────────
+async function loadAllPresence() {
+  const sessId = document.getElementById("admin-sess-filter").value.trim();
+  const url    = sessId ? `presence/list?session_id=${encodeURIComponent(sessId)}` : "presence/list";
+  try {
+    const res = await api(null, url);
+    if (!res.ok) { toast("Error: " + res.error); return; }
+    const items = res.data.items;
+    if (!items.length) {
+      document.getElementById("all-presence-body").innerHTML = `<div class="empty"><span class="emoji">📭</span>Tidak ada data</div>`;
+      return;
+    }
+    document.getElementById("all-presence-body").innerHTML = `
+      <div style="font-family:var(--mono);font-size:.72rem;color:var(--muted);margin-bottom:.5rem">
+        <strong style="color:var(--text)">${items.length}</strong> record
+      </div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>ID</th><th>NIM/NIP</th><th>Nama</th><th>Sesi</th><th>Waktu</th><th>GPS</th></tr></thead>
+        <tbody>${items.map(r => `
+          <tr>
+            <td style="font-family:var(--mono);font-size:.65rem;color:var(--muted)">${r.presence_id}</td>
+            <td><span class="tag yellow" style="font-size:.65rem">${r.nim_nip||"—"}</span></td>
+            <td>${r.name||"—"}</td>
+            <td style="font-family:var(--mono);font-size:.65rem">${r.session_id}</td>
+            <td style="font-family:var(--mono);font-size:.68rem;color:var(--muted)">${r.ts||"—"}</td>
+            <td>${r.lat ? `<span class="tag green">✓</span>` : `<span class="tag gray">—</span>`}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table></div>`;
+  } catch(e){ toast("Gagal: " + e.message); }
+}
+
+// ─────────────────────────────────────────
+// ACCELEROMETER
+// ─────────────────────────────────────────
+function toggleAccel() {
+  accelRunning ? stopAccel() : startAccel();
+}
+
+function startAccel() {
+  if (typeof DeviceMotionEvent === "undefined") { toast("Accelerometer tidak tersedia"); return; }
+  const req = typeof DeviceMotionEvent.requestPermission;
+  if (req === "function") {
+    DeviceMotionEvent.requestPermission().then(s => {
+      if (s === "granted") listenAccel();
+      else toast("Izin ditolak");
+    });
+  } else { listenAccel(); }
+}
+
+function listenAccel() {
+  accelRunning = true;
+  accelBatch   = [];
+  document.getElementById("btn-accel").textContent = "⏹ Stop";
+  document.getElementById("axis-grid").style.display = "grid";
+  accelListener = e => {
+    const x = e.acceleration?.x||0, y = e.acceleration?.y||0;
+    const z = e.accelerationIncludingGravity?.z||9.8;
+    accelBatch.push({ t: nowISO(), x: r2(x), y: r2(y), z: r2(z) });
+    document.getElementById("ax").textContent = r2(x).toFixed(2);
+    document.getElementById("ay").textContent = r2(y).toFixed(2);
+    document.getElementById("az").textContent = r2(z).toFixed(2);
+  };
+  window.addEventListener("devicemotion", accelListener);
+  accelInterval = setInterval(sendAccelBatch, 3000);
+}
+
+async function sendAccelBatch() {
+  if (!accelBatch.length) return;
+  const batch = [...accelBatch]; accelBatch = [];
+  const dev   = document.getElementById("a-dev").value.trim() || "dev-001";
+  try {
+    const res = await api(null,"telemetry/accel",{ device_id: dev, ts: nowISO(), samples: batch });
+    showAlert("accel-alert", res.ok ? "ok" : "err",
+      res.ok ? `✓ ${res.data.accepted} sample dikirim` : "✗ " + res.error);
+  } catch(e){ showAlert("accel-alert","err","Gagal: "+e.message); }
+}
+
+function stopAccel() {
+  accelRunning = false;
+  if (accelListener)  window.removeEventListener("devicemotion", accelListener);
+  if (accelInterval)  clearInterval(accelInterval);
+  document.getElementById("btn-accel").textContent = "▶ Mulai";
+  document.getElementById("axis-grid").style.display = "none";
+}
+
+async function fetchAccelLatest() {
+  const dev = document.getElementById("a-dev").value.trim() || "dev-001";
+  try {
+    const res = await api(null,`telemetry/accel/latest?device_id=${encodeURIComponent(dev)}`);
+    if (!res.ok) { showAlert("accel-latest-alert","err","✗ "+res.error); return; }
+    const d = res.data;
+    showAlert("accel-latest-alert","ok",`t: ${d.t}\nX: ${d.x}  Y: ${d.y}  Z: ${d.z}`);
+  } catch(e){ showAlert("accel-latest-alert","err","Gagal: "+e.message); }
+}
+
+// ─────────────────────────────────────────
+// GPS TELEMETRY
+// ─────────────────────────────────────────
+function toggleGPS() {
+  gpsRunning ? stopGPS() : startGPS();
+}
+
+function startGPS() {
+  if (!navigator.geolocation) { toast("GPS tidak tersedia"); return; }
+  gpsRunning = true;
+  document.getElementById("btn-gps").textContent = "⏹ Stop GPS";
+  const sendGPS = () => {
+    navigator.geolocation.getCurrentPosition(async pos => {
+      mainGPS = { lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy };
+      document.getElementById("gps-main-info").textContent =
+        `✓ ${mainGPS.lat.toFixed(6)}, ${mainGPS.lng.toFixed(6)} · Akurasi ≈${Math.round(mainGPS.acc)}m`;
+      const dev = document.getElementById("g-dev").value.trim() || "dev-001";
+      try {
+        const res = await api(null,"telemetry/gps",{
+          device_id: dev, ts: nowISO(),
+          lat: mainGPS.lat, lng: mainGPS.lng, accuracy_m: mainGPS.acc
+        });
+        showAlert("gps-alert", res.ok ? "ok" : "err",
+          res.ok ? `✓ GPS: ${mainGPS.lat.toFixed(5)}, ${mainGPS.lng.toFixed(5)}` : "✗ "+res.error);
+        if (mapMain) {
+          mapMain.setView([mainGPS.lat, mainGPS.lng], 17);
+          if (markerMain) markerMain.setLatLng([mainGPS.lat, mainGPS.lng]);
+          else markerMain = L.marker([mainGPS.lat, mainGPS.lng]).addTo(mapMain);
+          setTimeout(() => mapMain.invalidateSize(), 100);
+        }
+      } catch(_){}
+    }, err => {
+      document.getElementById("gps-main-info").textContent = "⚠ GPS error: "+err.message;
+    }, { enableHighAccuracy: true });
+  };
+  sendGPS();
+  gpsInterval = setInterval(sendGPS, 5000);
+}
+
+function stopGPS() {
+  gpsRunning = false;
+  if (gpsInterval) { clearInterval(gpsInterval); gpsInterval = null; }
+  document.getElementById("btn-gps").textContent = "▶ Mulai GPS";
+}
+
+async function fetchGPSLatest() {
+  const dev = document.getElementById("g-dev").value.trim() || "dev-001";
+  try {
+    const res = await api(null,`telemetry/gps/latest?device_id=${encodeURIComponent(dev)}`);
+    if (!res.ok) { showAlert("gps-alert","err","✗ "+res.error); return; }
+    const d = res.data;
+    showAlert("gps-alert","ok",`Latest: ${d.lat}, ${d.lng}`);
+    if (mapMain) {
+      mapMain.setView([d.lat, d.lng], 17);
+      if (markerMain) markerMain.setLatLng([d.lat, d.lng]);
+      else markerMain = L.marker([d.lat, d.lng]).addTo(mapMain).bindPopup("Latest").openPopup();
+      setTimeout(() => mapMain.invalidateSize(), 100);
+    }
+  } catch(e){ showAlert("gps-alert","err","Gagal: "+e.message); }
+}
+
+async function fetchGPSHistory() {
+  const dev = document.getElementById("g-dev").value.trim() || "dev-001";
+  try {
+    const res = await api(null,`telemetry/gps/history?device_id=${encodeURIComponent(dev)}&limit=200`);
+    if (!res.ok) { showAlert("gps-alert","err","✗ "+res.error); return; }
+    const items = res.data.items;
+    showAlert("gps-alert","ok",`History: ${items.length} titik`);
+    if (items.length && mapMain) {
+      const lls = items.map(i => [i.lat, i.lng]);
+      if (polylineMain) mapMain.removeLayer(polylineMain);
+      polylineMain = L.polyline(lls,{ color:"#f0c040", weight:3 }).addTo(mapMain);
+      mapMain.fitBounds(polylineMain.getBounds(),{ padding:[20,20] });
+      const last = items[items.length-1];
+      if (markerMain) markerMain.setLatLng([last.lat,last.lng]);
+      else markerMain = L.marker([last.lat,last.lng]).addTo(mapMain);
+      setTimeout(() => mapMain.invalidateSize(), 100);
+    }
+  } catch(e){ showAlert("gps-alert","err","Gagal: "+e.message); }
+}
+
+// ─────────────────────────────────────────
+// CONFIG
+// ─────────────────────────────────────────
+function saveConfig() {
+  let url = document.getElementById("cfg-url").value.trim().replace(/\/+$/, "");
+  if (url.endsWith("/dev")) {
+    url = url.replace("/dev", "/exec");
+    document.getElementById("cfg-url").value = url;
+    toast("⚠ URL /dev diubah ke /exec otomatis");
+  }
+  BASE_URL = url;
+  localStorage.setItem("cloudabsen_url", BASE_URL);
+  showAlert("cfg-alert","ok","✓ Tersimpan: " + BASE_URL);
+}
+
+// ─────────────────────────────────────────
+// API HELPERS — GAS compatible
+// GAS quirks:
+//   • Tidak support preflight CORS → jangan kirim custom headers
+//   • Selalu redirect → pakai redirect:'follow'
+//   • pathInfo dibaca dari URL path setelah /exec/
+//   • POST body harus application/x-www-form-urlencoded ATAU
+//     kirim sebagai query param "payload" berisi JSON string
+//   • GET: semua param di query string
+// ─────────────────────────────────────────
+// API HELPERS — GAS CORS Fix
+// ─────────────────────────────────────────
+// Kenapa semua GET?
+//   • GAS redirect /exec → script.googleusercontent.com
+//   • Browser kirim preflight OPTIONS untuk POST/custom headers
+//   • GAS tidak handle OPTIONS → CORS error
+//   • GET biasa TIDAK trigger preflight → aman
+//   • Semua data dikirim via query string
+// ─────────────────────────────────────────
+
+function buildUrl(path, params) {
+  // Kirim path sebagai query param terpisah, semua data sebagai JSON di ?data=
+  // Ini menghindari masalah encoding slash di path
+  const data = {};
+  for (const [k,v] of Object.entries(params||{})) {
+    if (v === null || v === undefined || v === "") continue;
+    data[k] = v;
+  }
+  // path sebagai param tersendiri, data sebagai JSON blob
+  const qs = "path=" + encodeURIComponent(path) +
+    (Object.keys(data).length ? "&data=" + encodeURIComponent(JSON.stringify(data)) : "");
+  return BASE_URL + "?" + qs;
+}
+
+// Authenticated request — semua GET, path dan data di query string
+async function api(_method, path, body) {
+  if (!BASE_URL) throw new Error("Base URL belum diisi. Buka Konfigurasi.");
+
+  // Pisahkan query string yang sudah ada di path (misal: "presence/list?session_id=x")
+  const [cleanPath, existingQs] = path.split("?");
+  const existing = {};
+  if (existingQs) existingQs.split("&").forEach(p => {
+    const [k,...vs] = p.split("=");
+    existing[decodeURIComponent(k)] = decodeURIComponent(vs.join("="));
+  });
+
+  const params = { ...existing, ...(body||{}), _t: SESSION_TOKEN };
+  const url = buildUrl(cleanPath, params);
+  const res = await fetch(url, { redirect: "follow" });
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  return res.json();
+}
+
+// Anonymous request (login, register)
+async function apiAnon(_method, path, body) {
+  if (!BASE_URL) throw new Error("Base URL belum diisi.");
+  const url = buildUrl(path, body||{});
+  const res = await fetch(url, { redirect: "follow" });
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  return res.json();
+}
+
+// ─────────────────────────────────────────
+// UTILS
+// ─────────────────────────────────────────
+function nowISO() { return new Date().toISOString(); }
+function r2(v)    { return Math.round(v * 100) / 100; }
+
+function showAlert(id, type, msg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className  = "alert " + type;
+  el.style.display = "block";
+  el.textContent = msg;
+}
+
+function toast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  setTimeout(() => el.classList.remove("show"), 3000);
+}
+
+function friendlyErr(e) {
+  const map = {
+    "unauthorized: sesi tidak valid atau sudah expired": "Sesi habis, silakan login ulang.",
+    "wrong_password":    "Password salah.",
+    "user_not_found":    "Akun tidak ditemukan.",
+    "email_taken":       "Email sudah terdaftar.",
+    "nim_taken":         "NIM sudah terdaftar.",
+    "token_expired":     "Token QR sudah expired, minta generate ulang.",
+    "token_invalid":     "Token QR tidak valid.",
+    "already_checked_in":"Anda sudah absen pada sesi ini.",
+    "device_not_found":  "Device belum pernah kirim data.",
+  };
+  return map[e] || e;
+}
+</script>
+</body>
+</html>
