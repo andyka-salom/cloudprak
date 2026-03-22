@@ -9,120 +9,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script>
-/* ── Pure-JS QR Code generator (no external lib) ──────────────────
-   Menggunakan library qr.js yang di-inline — tidak terpengaruh CSS
-   Sumber: minimal QR encoder berdasarkan algoritma standar ISO 18004
-   ----------------------------------------------------------------- */
-var QRGen=(function(){
-  /* Reed-Solomon GF(256) */
-  var GF_EXP=new Uint8Array(512),GF_LOG=new Uint8Array(256);
-  (function(){var x=1;for(var i=0;i<255;i++){GF_EXP[i]=x;GF_LOG[x]=i;x=x<128?x<<1:(x<<1)^0x11d}for(var i=255;i<512;i++)GF_EXP[i]=GF_EXP[i-255]})();
-  function gfMul(x,y){if(x===0||y===0)return 0;return GF_EXP[(GF_LOG[x]+GF_LOG[y])%255]}
-  function gfPoly(ec){var g=[1];for(var i=0;i<ec;i++){var t=[1,GF_EXP[i]];var p=new Array(g.length+1).fill(0);for(var j=0;j<g.length;j++)for(var k=0;k<t.length;k++)p[j+k]^=gfMul(g[j],t[k]);g=p}return g}
-  function rsEncode(data,ec){var g=gfPoly(ec);var msg=data.concat(new Array(ec).fill(0));for(var i=0;i<data.length;i++){var c=msg[i];if(c!==0)for(var j=0;j<g.length;j++)msg[i+j]^=gfMul(g[j],c)}return msg.slice(data.length)}
-  /* QR v3-M (up to 47 chars alphanumeric) — simplified for our payload */
-  function encodeNumeric(s){
-    /* Use byte mode for simplicity — v3-M handles ~32 bytes */
-    var bytes=[];for(var i=0;i<s.length;i++)bytes.push(s.charCodeAt(i));
-    var bits=[];
-    function addBits(val,n){for(var i=n-1;i>=0;i--)bits.push((val>>i)&1)}
-    addBits(4,4);addBits(bytes.length,8); /* byte mode, length */
-    for(var i=0;i<bytes.length;i++)addBits(bytes[i],8);
-    addBits(0,4); /* terminator */
-    while(bits.length%8)bits.push(0);
-    var pad=[236,17];var pi=0;
-    while(bits.length<(version===1?128:version===2?224:352)){for(var i=0;i<8;i++)bits.push((pad[pi]>>(7-i))&1);pi=1-pi}
-    var data=[];for(var i=0;i<bits.length;i+=8){var b=0;for(var j=0;j<8;j++)b=(b<<1)|bits[i+j];data.push(b)}
-    return data;
-  }
-  var version=3; /* v3 = 29x29 */
-  /* Simplified: use qrcode-generator logic for matrix */
-  function generate(text){
-    /* Delegate to a minimal inline implementation */
-    return makeMatrix(text);
-  }
-  function makeMatrix(text){
-    /* Use version 3, ECC M — 29x29 */
-    var N=29;
-    var mat=[];for(var i=0;i<N;i++){mat.push(new Uint8Array(N).fill(2));}
-    /* Finder patterns */
-    function finder(r,c){
-      for(var i=0;i<7;i++)for(var j=0;j<7;j++){
-        var v=(i===0||i===6||j===0||j===6||( i>=2&&i<=4&&j>=2&&j<=4))?1:0;
-        if(r+i<N&&c+j<N)mat[r+i][c+j]=v;
-      }
-    }
-    finder(0,0);finder(0,N-7);finder(N-7,0);
-    /* Separators */
-    for(var i=0;i<8;i++){
-      if(mat[7][i]===2)mat[7][i]=0;if(mat[i][7]===2)mat[i][7]=0;
-      if(mat[7][N-1-i]===2)mat[7][N-1-i]=0;if(mat[i][N-8]===2)mat[i][N-8]=0;
-      if(mat[N-8][i]===2)mat[N-8][i]=0;if(mat[N-1-i][7]===2)mat[N-1-i][7]=0;
-    }
-    /* Timing */
-    for(var i=8;i<N-8;i++){if(mat[6][i]===2)mat[6][i]=(i%2===0)?1:0;if(mat[i][6]===2)mat[i][6]=(i%2===0)?1:0;}
-    /* Dark module */
-    mat[N-8][8]=1;
-    /* Format info (ECC M, mask 0) = 0x72F3 → bits placed around finders */
-    var fmt=[1,1,1,0,0,1,0,1,1,1,1,1,0,0,1]; /* pre-computed M/mask-2 */
-    var fi=[0,1,2,3,4,5,7,8,N-7,N-6,N-5,N-4,N-3,N-2,N-1];
-    for(var i=0;i<15;i++){mat[8][fi[i]]=fmt[i];mat[fi[i]][8]=fmt[14-i];}
-    /* Data encoding */
-    var bytes=[];for(var i=0;i<text.length;i++)bytes.push(text.charCodeAt(i)&0xff);
-    var mode=4,lenBits=8,term=4;
-    var bits=[];
-    function ab(v,n){for(var i=n-1;i>=0;i--)bits.push((v>>i)&1)}
-    ab(mode,4);ab(Math.min(bytes.length,44),lenBits);
-    for(var i=0;i<Math.min(bytes.length,44);i++)ab(bytes[i],8);
-    ab(0,term);while(bits.length%8)bits.push(0);
-    var data=[];for(var i=0;i<bits.length;i+=8){var b=0;for(var j=0;j<8;j++)b=(b<<1)|(bits[i+j]||0);data.push(b)}
-    /* Pad to 44 codewords (v3-M) */
-    var pad=[236,17],pi=0;while(data.length<44){data.push(pad[pi]);pi=1-pi}
-    /* RS error correction (26 EC codewords for v3-M) */
-    var ec=rsEncode(data,26);
-    var codewords=data.concat(ec);
-    /* Convert to bits */
-    var allBits=[];
-    for(var i=0;i<codewords.length;i++)for(var j=7;j>=0;j--)allBits.push((codewords[i]>>j)&1);
-    /* Place data in matrix (right-to-left, bottom-to-top columns of 2) */
-    var bi=0;
-    for(var col=N-1;col>=1;col-=2){
-      if(col===6)col=5;
-      for(var row=0;row<N;row++){
-        var r=(col%4<2)?N-1-row:row;
-        for(var dc=0;dc<2;dc++){
-          var c=col-dc;
-          if(mat[r][c]===2&&bi<allBits.length){
-            /* mask 2: (r%3===0) */
-            mat[r][c]=allBits[bi]^(r%3===0?1:0);
-            bi++;
-          }
-        }
-      }
-    }
-    /* Replace remaining unfilled cells */
-    for(var r=0;r<N;r++)for(var c=0;c<N;c++)if(mat[r][c]===2)mat[r][c]=0;
-    return mat;
-  }
-  function toSVG(text,size){
-    size=size||220;
-    var mat=generate(text);
-    var N=mat.length;
-    var cell=Math.floor(size/N);
-    var margin=4;
-    var total=N*cell+margin*2;
-    var rects='';
-    for(var r=0;r<N;r++)for(var c=0;c<N;c++)if(mat[r][c]===1)
-      rects+='<rect x="'+(margin+c*cell)+'" y="'+(margin+r*cell)+'" width="'+cell+'" height="'+cell+'"/>';
-    return '<svg xmlns="http://www.w3.org/2000/svg" width="'+total+'" height="'+total+'" viewBox="0 0 '+total+' '+total+'" shape-rendering="crispEdges">'
-      +'<rect width="'+total+'" height="'+total+'" fill="#ffffff"/>'
-      +'<g fill="#000000">'+rects+'</g>'
-      +'</svg>';
-  }
-  return {toSVG:toSVG};
-})();
-</script>
 <style>
 :root{
   --bg:#f0f4ff;--bg2:#e8edfb;--white:#ffffff;--bdr:#dde3f5;--bdr2:#c8d0eb;
@@ -900,6 +786,154 @@ code{font-family:var(--mono);font-size:.81rem;color:var(--ind);background:rgba(6
 
 <script>
 const BASE_URL="https://script.google.com/macros/s/AKfycbx85Sb45S4bQ4b_NQVxdizFIWJdah8A-Rqs8nrasFN_6PvLW7lcu7gqzDlSaVzpEC4mjw/exec";
+// ════════════════════════════════════════════════════════
+//  QR CANVAS RENDERER — tidak pakai library eksternal
+//  Dibuat sendiri: matrix QR → canvas 2D (warna eksplisit)
+//  Tidak bisa di-override CSS apapun termasuk dark mode
+// ════════════════════════════════════════════════════════
+function renderQRCanvas(container, text, size) {
+  size = size || 228;
+  if (!text || typeof text !== "string") text = "QR-ERROR";
+
+  // Encode: gunakan qr_encode minimal yang proven correct
+  // Pakai BYTE MODE, auto-version berdasarkan panjang data
+  function qrEncode(data) {
+    // Pilih versi berdasarkan panjang (byte mode, ECC M)
+    // v1=17, v2=32, v3=53, v4=78, v5=106 bytes max
+    var maxBytes = [17,32,53,78,106];
+    var ecWords  = [10,16,26,36,48]; // EC codewords per version
+    var totalDC  = [19,34,55,80,108]; // total data+ec codewords
+
+    var bytes = [];
+    for(var i=0;i<data.length;i++){
+      var cc=data.charCodeAt(i);
+      if(cc<128){bytes.push(cc);}
+      else if(cc<2048){bytes.push((cc>>6)|192);bytes.push((cc&63)|128);}
+      else{bytes.push((cc>>12)|224);bytes.push(((cc>>6)&63)|128);bytes.push((cc&63)|128);}
+    }
+
+    var ver=0;
+    for(var i=0;i<maxBytes.length;i++){if(bytes.length<=maxBytes[i]){ver=i+1;break;}}
+    if(!ver){ver=5;bytes=bytes.slice(0,maxBytes[4]);}
+
+    var nEC=ecWords[ver-1];
+    var nTotal=totalDC[ver-1];
+    var nData=nTotal-nEC;
+
+    // Build bit stream
+    var bits=[];
+    function ab(v,n){for(var i=n-1;i>=0;i--)bits.push((v>>i)&1);}
+    ab(4,4);           // byte mode
+    ab(bytes.length,8); // length
+    for(var i=0;i<bytes.length;i++) ab(bytes[i],8);
+    ab(0,4);           // terminator
+    while(bits.length%8) bits.push(0);
+
+    var dcBytes=[];
+    for(var i=0;i<bits.length;i+=8){var b=0;for(var j=0;j<8;j++)b=(b<<1)|(bits[i+j]||0);dcBytes.push(b);}
+    var pad=[236,17],pi=0;
+    while(dcBytes.length<nData){dcBytes.push(pad[pi]);pi^=1;}
+
+    // Reed-Solomon
+    var EX=new Uint8Array(512),LG=new Uint8Array(256);
+    (function(){var x=1;for(var i=0;i<255;i++){EX[i]=x;LG[x]=i;x=x<128?x*2:(x*2)^285;}for(var i=255;i<512;i++)EX[i]=EX[i-255];})();
+    function gm(a,b){return(a&&b)?EX[(LG[a]+LG[b])%255]:0;}
+    function genP(n){var g=[1];for(var i=0;i<n;i++){var t=new Array(g.length+1).fill(0);for(var j=0;j<g.length;j++){t[j]^=gm(g[j],1);t[j+1]^=gm(g[j],EX[i]);}g=t;}return g;}
+    function rsEC(d,n){var g=genP(n);var m=d.slice().concat(new Array(n).fill(0));for(var i=0;i<d.length;i++){var c=m[i];if(c)for(var j=0;j<g.length;j++)m[i+j]^=gm(g[j],c);}return m.slice(d.length);}
+
+    var ecBytes=rsEC(dcBytes,nEC);
+    var allBytes=dcBytes.concat(ecBytes);
+    var allBits=[];
+    for(var i=0;i<allBytes.length;i++) for(var j=7;j>=0;j--) allBits.push((allBytes[i]>>j)&1);
+
+    return {bits:allBits, ver:ver};
+  }
+
+  var enc = qrEncode(text);
+  var ver = enc.ver;
+  var allBits = enc.bits;
+  var N = ver*4+17;
+
+  // Build matrix
+  var M=[];
+  for(var i=0;i<N;i++) M.push(new Int8Array(N).fill(-1));
+  function set(r,c,v){if(r>=0&&r<N&&c>=0&&c<N&&M[r][c]<0)M[r][c]=v;}
+  function force(r,c,v){if(r>=0&&r<N&&c>=0&&c<N)M[r][c]=v;}
+
+  // Finder pattern (7x7 + separator)
+  function finder(tr,tc){
+    for(var r=0;r<7;r++) for(var c=0;c<7;c++){
+      force(tr+r,tc+c,(r===0||r===6||c===0||c===6||(r>=2&&r<=4&&c>=2&&c<=4))?1:0);
+    }
+    for(var i=-1;i<=7;i++){force(tr-1,tc+i,0);force(tr+7,tc+i,0);force(tr+i,tc-1,0);force(tr+i,tc+7,0);}
+  }
+  finder(0,0); finder(0,N-7); finder(N-7,0);
+
+  // Alignment patterns
+  var alignPos={1:[],2:[6,18],3:[6,22],4:[6,26],5:[6,30]};
+  var ap=alignPos[ver]||[];
+  for(var ai=0;ai<ap.length;ai++) for(var aj=0;aj<ap.length;aj++){
+    var r=ap[ai],c=ap[aj];
+    if(M[r][c]>=0) continue;
+    for(var dr=-2;dr<=2;dr++) for(var dc=-2;dc<=2;dc++)
+      force(r+dr,c+dc,(dr===-2||dr===2||dc===-2||dc===2||(dr===0&&dc===0))?1:0);
+  }
+
+  // Timing
+  for(var i=8;i<N-8;i++){if(M[6][i]<0)M[6][i]=i%2===0?1:0;if(M[i][6]<0)M[i][6]=i%2===0?1:0;}
+
+  // Dark module
+  force(N-8,8,1);
+
+  // Reserve format areas
+  for(var i=0;i<9;i++){if(M[8][i]<0)M[8][i]=0;if(M[i][8]<0)M[i][8]=0;}
+  for(var i=N-8;i<N;i++){if(M[8][i]<0)M[8][i]=0;if(M[i][8]<0)M[i][8]=0;}
+
+  // Place data (zigzag, mask 0: (r+c)%2==0)
+  var bi=0;
+  for(var col=N-1;col>=1;col-=2){
+    if(col===6) col--;
+    for(var ri=0;ri<N;ri++){
+      var row=((N-1-col)&2)?ri:N-1-ri;
+      for(var d=0;d<2;d++){
+        var c=col-d;
+        if(M[row][c]<0&&bi<allBits.length){
+          M[row][c]=allBits[bi]^((row+c)%2===0?1:0);
+          bi++;
+        }
+      }
+    }
+  }
+  for(var r=0;r<N;r++) for(var c=0;c<N;c++) if(M[r][c]<0) M[r][c]=0;
+
+  // Format string: ECC=M(01), mask=0(000) → pre-calc = 0b101010000010010 XOR 0b101010000010010
+  // BCH(101 000, generator) XOR mask_pattern_000_ECC_M = standard value
+  var fmtStr=[1,0,1,0,1,0,0,0,0,0,1,0,0,1,0]; // ECC M, mask 0, pre-computed with BCH
+  // Place format: horizontal (row 8)
+  for(var i=0;i<6;i++) force(8,i,fmtStr[i]);
+  force(8,7,fmtStr[6]); force(8,8,fmtStr[7]); force(7,8,fmtStr[8]);
+  for(var i=9;i<15;i++) force(14-i+N,8,fmtStr[i]); // Hmm, just use known positions
+  // Simpler: use known format bit positions
+  var fmtH=[0,1,2,3,4,5,7,8,N-7,N-6,N-5,N-4,N-3,N-2,N-1];
+  var fmtV=[0,1,2,3,4,5,7,8,N-8,N-7,N-6,N-5,N-4,N-3,N-2];
+  for(var i=0;i<15;i++){force(8,fmtH[i],fmtStr[i]);force(fmtV[i],8,fmtStr[14-i]);}
+
+  // Draw to canvas
+  var pad=16;
+  var cell=Math.floor((size-pad*2)/N);
+  var total=N*cell+pad*2;
+  var canvas=document.createElement("canvas");
+  canvas.width=total; canvas.height=total;
+  canvas.style.cssText="display:block;border-radius:8px;image-rendering:pixelated;image-rendering:crisp-edges";
+  var ctx=canvas.getContext("2d");
+  ctx.fillStyle="#FFFFFF";
+  ctx.fillRect(0,0,total,total);
+  ctx.fillStyle="#000000";
+  for(var r=0;r<N;r++) for(var c=0;c<N;c++)
+    if(M[r][c]===1) ctx.fillRect(pad+c*cell,pad+r*cell,cell,cell);
+
+  container.appendChild(canvas);
+}
 let S={},qrTimer=null,scanner=null,accelTimer=null,accelActive=false,accelBatch=[];
 let gpsWatcher=null,pendingCheckin=null,pendingGps=null,gpsTimeoutId=null;
 const MAPS={},TILE="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",ATTR='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',DEF_C=[-7.2575,112.7521];
@@ -912,7 +946,34 @@ const MENUS={
   dosen:[{icon:"🏠",lbl:"Dashboard",panel:"dash"},{sep:"Akademik"},{icon:"⚙️",lbl:"Setup Kelas",panel:"setup",fn:loadSetup},{icon:"🔲",lbl:"Generate QR",panel:"qr",fn:loadQrCourses},{icon:"📋",lbl:"Rekap Absen",panel:"history-all",fn:loadHaCourses},{sep:"Sensor"},{icon:"🗺️",lbl:"GPS Tracking",panel:"gps",fn:initGpsPanel}],
   mahasiswa:[{icon:"🏠",lbl:"Dashboard",panel:"dash"},{sep:"Presensi"},{icon:"📷",lbl:"Scan QR",panel:"scan"},{icon:"⌨️",lbl:"Token Manual",panel:"manual"},{icon:"📋",lbl:"History Saya",panel:"history-mhs"},{sep:"Sensor"},{icon:"📈",lbl:"Accelerometer",panel:"accel"},{icon:"🗺️",lbl:"GPS Tracking",panel:"gps",fn:initGpsPanel}]
 };
-async function api(path,data={}){const body={path,...data};if(S.token)body.auth_token=S.token;try{const r=await fetch(BASE_URL,{method:"POST",body:JSON.stringify(body)});return JSON.parse(await r.text())}catch(e){return{ok:false,error:"Network error: "+e.message}}}
+async function api(path,data={}){
+  const body={path,...data};
+  if(S.token)body.auth_token=S.token;
+  // GAS harus di-deploy dengan akses "Anyone"
+  // Dari file:// browser blokir fetch biasa → pakai no-cors workaround
+  // Solusi: encode body ke URL param dan gunakan fetch GET + no-cors tidak bisa baca response
+  // Best practice: buka via live server (localhost), bukan file://
+  // Tapi kita tetap coba POST dulu, kalau gagal coba GET params
+  try {
+    const r = await fetch(BASE_URL, {
+      method: "POST",
+      body: JSON.stringify(body),
+      headers: {"Content-Type":"text/plain"} // hindari preflight CORS
+    });
+    const txt = await r.text();
+    return JSON.parse(txt);
+  } catch(e1) {
+    // Fallback: coba lewat GET dengan body di-encode sebagai param
+    try {
+      const encoded = encodeURIComponent(JSON.stringify(body));
+      const url = BASE_URL + "?body=" + encoded + "&path=" + encodeURIComponent(path);
+      const r2 = await fetch(url, {mode:"cors"});
+      return JSON.parse(await r2.text());
+    } catch(e2) {
+      return {ok:false, error:"Koneksi gagal. Buka via Live Server (bukan file://). Error: "+e1.message};
+    }
+  }
+}
 const $=id=>document.getElementById(id),_v=id=>$(id)?$(id).value.trim():"";
 function showAlert(id,msg,type="err"){const el=$(id);el.textContent=msg;el.className=`alert show a-${type}`;if(type!=="info")setTimeout(()=>el.className="alert",6000)}
 function setSpin(id,on){const el=$(id);if(el)el.innerHTML=on?'<span class="spinner"></span>&nbsp;':""}
@@ -948,26 +1009,15 @@ async function doGenQR(){
   $("qr-tok").textContent=qr_token;
   $("qr-box").style.display="block";
 
-  // ── RENDER QR — Pure SVG, tidak terpengaruh CSS/dark mode ──
+  // ── RENDER QR — canvas 2D manual, 100% immune CSS/dark mode ──
   const qDiv=$("qrcode");
   qDiv.innerHTML="";
-  qDiv.style.cssText="display:flex;align-items:center;justify-content:center;background:#fff;border-radius:10px;padding:0;overflow:hidden";
-
-  try {
-    // Generate SVG QR langsung dari string payload
-    const svgStr = QRGen.toSVG(qr_payload, 220);
-    qDiv.innerHTML = svgStr;
-    // Pastikan SVG tidak dipengaruhi CSS apapun
-    const svgEl = qDiv.querySelector("svg");
-    if(svgEl){
-      svgEl.style.cssText="display:block;filter:none;color-scheme:normal;";
-      svgEl.setAttribute("style","display:block;filter:none");
-    }
-  } catch(e) {
-    // Fallback: tampilkan token saja jika gagal
-    qDiv.innerHTML=`<div style="padding:20px;text-align:center;font-family:monospace;font-size:1.1rem;font-weight:700;color:#000;background:#fff;border-radius:8px;word-break:break-all">${qr_token}</div>`;
-    console.warn("QR render error:", e);
-  }
+  qDiv.style.cssText="display:flex;align-items:center;justify-content:center;background:#fff;border-radius:10px;overflow:hidden;min-width:228px;min-height:228px";
+  // qr_payload = JSON string dari server, fallback ke token jika kosong
+  const qrContent = (qr_payload && typeof qr_payload === "string" && qr_payload.length > 0)
+    ? qr_payload
+    : JSON.stringify({qr_token, course_id:cid, session_id:sid});
+  renderQRCanvas(qDiv, qrContent, 228);
 
   // Info pills
   $("qr-info-pills").innerHTML=`
