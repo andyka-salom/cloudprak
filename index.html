@@ -2,1361 +2,1918 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Presensi QR — Sistem Lengkap</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0f1e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>CloudAttend — Sistem Presensi Cerdas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
-
-<!-- ── LEAFLET ── -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 
 <style>
-:root{
-  --blue:#1F4E79;--blue2:#2E75B6;--green:#1E5631;--green2:#2d7a47;
-  --red:#C00000;--org:#7B3F00;--pur:#4A235A;--bg:#f0f4f8;
-  --card:#fff;--txt:#1a1a2e;--mut:#6b7280;--bdr:#e2e8f0;--r:12px;
-  --sh:0 4px 20px rgba(0,0,0,.08);
+/* ── RESET & BASE ──────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:         #080d1a;
+  --bg2:        #0d1528;
+  --bg3:        #111d35;
+  --surface:    #162040;
+  --surface2:   #1e2d55;
+  --border:     rgba(99,179,237,0.12);
+  --border2:    rgba(99,179,237,0.25);
+  --accent:     #3b82f6;
+  --accent2:    #60a5fa;
+  --accent3:    #93c5fd;
+  --green:      #10b981;
+  --green2:     #34d399;
+  --red:        #ef4444;
+  --amber:      #f59e0b;
+  --purple:     #8b5cf6;
+  --text:       #e8f0fe;
+  --text2:      #94afc8;
+  --text3:      #5a7599;
+  --mono:       'JetBrains Mono', monospace;
+  --sans:       'Space Grotesk', sans-serif;
+  --radius:     12px;
+  --radius2:    20px;
+  --shadow:     0 8px 32px rgba(0,0,0,0.5);
+  --shadow2:    0 2px 8px rgba(0,0,0,0.3);
+  --glow:       0 0 24px rgba(59,130,246,0.25);
+  --glow-green: 0 0 24px rgba(16,185,129,0.25);
 }
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh}
-/* NAV */
-nav{background:var(--blue);color:#fff;padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:58px;box-shadow:0 2px 10px rgba(0,0,0,.25);position:sticky;top:0;z-index:200}
-nav h1{font-size:1rem;font-weight:700}
-.nav-r{display:flex;align-items:center;gap:10px}
-.chip{border-radius:20px;padding:3px 11px;font-size:.75rem;font-weight:700}
-.chip.admin{background:#FF5722;color:#fff}.chip.dosen{background:#FF9900;color:#000}.chip.mahasiswa{background:#00B050;color:#fff}
-.btn-nav{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:5px 13px;border-radius:6px;cursor:pointer;font-size:.8rem}
-.btn-nav:hover{background:rgba(255,255,255,.3)}
-/* LAYOUT */
-.wrap{max-width:960px;margin:0 auto;padding:24px 14px}
-.page{display:none}.page.active{display:block}
-/* SIDEBAR TABS */
-.layout{display:grid;grid-template-columns:200px 1fr;gap:16px}
-.sidebar{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:12px;height:fit-content;position:sticky;top:74px}
-.sidebar-btn{display:flex;align-items:center;gap:9px;width:100%;padding:10px 12px;border:none;border-radius:8px;cursor:pointer;background:transparent;font-size:.88rem;font-weight:600;color:var(--mut);text-align:left;transition:all .15s;margin-bottom:3px}
-.sidebar-btn:hover{background:var(--bg);color:var(--blue)}
-.sidebar-btn.active{background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff}
-.sidebar-label{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--mut);padding:10px 12px 4px;margin-top:6px}
-.tab-panel{display:none}.tab-panel.active{display:block}
-/* CARD */
-.card{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:24px;margin-bottom:16px}
-.card h2{font-size:1rem;font-weight:700;color:var(--blue);margin-bottom:16px;display:flex;align-items:center;gap:8px}
-.card-title-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
-/* FORM */
-.fg{margin-bottom:14px}
-label{display:block;font-size:.78rem;font-weight:700;color:var(--mut);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
-input,select,textarea{width:100%;padding:9px 13px;border:1.5px solid var(--bdr);border-radius:8px;font-size:.9rem;background:#fff;transition:border .2s}
-input:focus,select:focus{outline:none;border-color:var(--blue2)}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
-/* BTN */
-.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border:none;border-radius:8px;font-size:.88rem;font-weight:700;cursor:pointer;transition:all .18s}
-.btn:disabled{opacity:.6;cursor:not-allowed}
-.btn-blue{background:var(--blue);color:#fff}.btn-blue:not(:disabled):hover{background:var(--blue2)}
-.btn-green{background:var(--green);color:#fff}.btn-green:not(:disabled):hover{background:var(--green2)}
-.btn-red{background:var(--red);color:#fff}
-.btn-pur{background:var(--pur);color:#fff}
-.btn-org{background:var(--org);color:#fff}
-.btn-sm{padding:6px 13px;font-size:.8rem}
-.btn-full{width:100%;justify-content:center}
-/* ALERT */
-.alert{padding:11px 15px;border-radius:8px;font-size:.86rem;margin-top:12px;display:none}
-.alert.show{display:block}
-.a-ok{background:#d1fae5;color:#065f46;border:1px solid #6ee7b7}
-.a-err{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5}
-.a-info{background:#dbeafe;color:#1e40af;border:1px solid #93c5fd}
-/* QR */
-#qr-box{text-align:center;padding:22px;background:linear-gradient(135deg,#eef2ff,#e8f5e9);border-radius:12px;margin-top:14px}
-#qr-box canvas,#qr-box img{margin:0 auto;display:block;border:4px solid #fff;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.15)}
-.token-badge{display:inline-block;background:var(--blue);color:#fff;font-family:monospace;font-size:1.2rem;font-weight:700;padding:7px 20px;border-radius:8px;margin:10px 0;letter-spacing:2px}
-.qr-timer{font-size:1.1rem;font-weight:700;margin-top:6px;transition:color .3s}
-/* TABLE */
-.tbl-wrap{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:.83rem}
-thead th{background:var(--blue);color:#fff;padding:9px 11px;text-align:left;font-weight:600;white-space:nowrap}
-tbody td{padding:8px 11px;border-bottom:1px solid var(--bdr);vertical-align:middle}
-tbody tr:hover{background:#f8fafc}
-tbody tr:last-child td{border:none}
-.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.72rem;font-weight:700;white-space:nowrap}
-.b-ok{background:#d1fae5;color:#065f46}.b-no{background:#fee2e2;color:#991b1b}
-.b-adm{background:#FF5722;color:#fff}.b-dos{background:#fef3c7;color:#92400e}.b-mhs{background:#dbeafe;color:#1e40af}
-.b-org{background:#fff7ed;color:#9a3412}
-/* STATS */
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
-.stat{background:var(--card);border-radius:10px;padding:16px;text-align:center;box-shadow:var(--sh);border-top:4px solid var(--blue)}
-.stat.g{border-color:var(--green)}.stat.p{border-color:var(--pur)}.stat.o{border-color:var(--org)}
-.stat-n{font-size:1.9rem;font-weight:800;color:var(--blue)}
-.stat.g .stat-n{color:var(--green)}.stat.p .stat-n{color:var(--pur)}.stat.o .stat-n{color:var(--org)}
-.stat-l{font-size:.73rem;color:var(--mut);margin-top:3px;font-weight:700;text-transform:uppercase}
 
-/* ─── LEAFLET MAP STYLES ─── */
-.map-container{border-radius:10px;overflow:hidden;border:2px solid var(--bdr);box-shadow:0 2px 12px rgba(0,0,0,.1);margin-top:14px;position:relative}
-#gps-map{width:100%;height:360px}
-#checkin-map{width:100%;height:240px}
-
-/* Map info overlay */
-.map-info-bar{
-  position:absolute;bottom:0;left:0;right:0;
-  background:rgba(31,78,121,.92);
-  backdrop-filter:blur(6px);
-  color:#fff;padding:8px 14px;
-  display:flex;align-items:center;justify-content:space-between;
-  font-size:.78rem;z-index:400;
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
 }
-.map-info-bar strong{font-size:.88rem}
-.map-info-bar a{color:#7EB8F7;text-decoration:none;font-size:.78rem}
-.map-info-bar a:hover{text-decoration:underline}
 
-/* Map controls */
-.map-controls{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+/* ── SCROLLBAR ──────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 4px; }
 
-/* Track status indicator */
-.track-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--mut);margin-right:5px;vertical-align:middle;transition:background .3s}
-.track-dot.active{background:#00B050;animation:pulse-dot 1.4s ease-in-out infinite}
-@keyframes pulse-dot{0%,100%{box-shadow:0 0 0 0 rgba(0,176,80,.5)}50%{box-shadow:0 0 0 6px rgba(0,176,80,0)}}
+/* ── ANIMATIONS ─────────────────────────────────────────── */
+@keyframes fadeIn  { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+@keyframes pulse   { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+@keyframes spin    { to { transform:rotate(360deg); } }
+@keyframes scanLine { 0%,100% { top:0%; } 50% { top:calc(100% - 3px); } }
+@keyframes glow    { 0%,100% { box-shadow:var(--glow); } 50% { box-shadow:0 0 40px rgba(59,130,246,0.5); } }
+@keyframes ripple  { to { transform:scale(4); opacity:0; } }
+@keyframes slideIn { from { transform:translateX(-100%); } to { transform:translateX(0); } }
+@keyframes timerTick { 0%,100% { color:var(--text); } 50% { color:var(--accent2); } }
 
-/* Leaflet popup custom */
-.leaflet-popup-content-wrapper{border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.2)}
-.leaflet-popup-content{font-size:.82rem;line-height:1.5}
-.pop-title{font-weight:700;color:var(--blue);margin-bottom:4px}
+/* ── GRID BACKGROUND ────────────────────────────────────── */
+body::before {
+  content:'';
+  position:fixed; inset:0;
+  background-image:
+    linear-gradient(rgba(59,130,246,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events:none; z-index:0;
+}
 
-/* SENSOR CHART */
-.accel-bars{display:flex;gap:8px;margin-top:12px;height:80px;align-items:flex-end}
-.bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
-.bar{width:100%;border-radius:4px 4px 0 0;transition:height .3s;min-height:2px}
-.bar.bx{background:var(--blue2)}.bar.by{background:var(--green2)}.bar.bz{background:var(--red)}
-.bar-lbl{font-size:.72rem;font-weight:700;color:var(--mut)}
-.accel-vals{display:flex;gap:16px;margin-top:8px;font-size:.85rem;font-weight:600}
-.accel-vals span{color:var(--mut)}.accel-vals strong{color:var(--txt)}
-/* MISC */
-.spinner{display:inline-block;width:14px;height:14px;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.mt2{margin-top:8px}.mt3{margin-top:14px}
-.mut{color:var(--mut);font-size:.83rem}
-.empty{text-align:center;padding:28px;color:var(--mut)}
-.maps-link{color:var(--blue2);font-size:.78rem;text-decoration:none}
-.maps-link:hover{text-decoration:underline}
-.divider{border:none;border-top:1px solid var(--bdr);margin:16px 0}
-#reader{width:100%;max-width:400px;margin:0 auto;border-radius:10px;overflow:hidden}
-@media(max-width:680px){
-  .layout{grid-template-columns:1fr}
-  .sidebar{position:static;display:flex;flex-wrap:wrap;gap:4px;padding:8px}
-  .sidebar-btn{flex:1;min-width:120px;justify-content:center}
-  .sidebar-label{width:100%}
-  .stats{grid-template-columns:1fr 1fr}.row2,.row3{grid-template-columns:1fr}
+/* ── LOGIN SCREEN ───────────────────────────────────────── */
+#loginScreen {
+  position:fixed; inset:0; z-index:1000;
+  display:flex; align-items:center; justify-content:center;
+  background: radial-gradient(ellipse 80% 80% at 50% 0%, rgba(59,130,246,0.15) 0%, transparent 60%),
+              var(--bg);
+  animation: fadeIn 0.6s ease;
+}
+.login-card {
+  width: 100%; max-width: 420px; padding: 48px 40px;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius2);
+  box-shadow: var(--shadow), var(--glow);
+}
+.login-logo {
+  text-align:center; margin-bottom:32px;
+}
+.login-logo .logo-icon {
+  width:64px; height:64px;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  border-radius:18px;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-size:28px; margin-bottom:16px;
+  box-shadow: var(--glow);
+  animation: glow 3s ease infinite;
+}
+.login-logo h1 { font-size:24px; font-weight:700; letter-spacing:-0.5px; }
+.login-logo p  { color:var(--text2); font-size:13px; margin-top:4px; }
+
+.form-group { margin-bottom:16px; }
+.form-group label { display:block; font-size:12px; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:8px; }
+.form-group input {
+  width:100%; padding:12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text); font-family:var(--sans); font-size:14px;
+  outline:none; transition:all 0.2s;
+}
+.form-group input:focus { border-color:var(--accent2); box-shadow:0 0 0 3px rgba(59,130,246,0.15); }
+
+/* ── BUTTONS ────────────────────────────────────────────── */
+.btn {
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  padding:12px 20px; border-radius:var(--radius); border:none;
+  font-family:var(--sans); font-size:14px; font-weight:600; cursor:pointer;
+  transition:all 0.2s; position:relative; overflow:hidden; text-decoration:none;
+  user-select:none; -webkit-tap-highlight-color:transparent;
+}
+.btn::after {
+  content:''; position:absolute;
+  width:20px; height:20px; border-radius:50%;
+  background:rgba(255,255,255,0.3); transform:scale(0); opacity:0;
+  transition:transform 0.5s, opacity 0.3s;
+}
+.btn:active::after { transform:scale(4); opacity:0; animation:ripple 0.5s ease; }
+.btn-primary { background:linear-gradient(135deg, var(--accent), #1d4ed8); color:#fff; width:100%; }
+.btn-primary:hover { filter:brightness(1.1); transform:translateY(-1px); box-shadow:var(--glow); }
+.btn-success { background:linear-gradient(135deg, var(--green), #059669); color:#fff; }
+.btn-success:hover { filter:brightness(1.1); box-shadow:var(--glow-green); }
+.btn-danger  { background:linear-gradient(135deg, var(--red), #b91c1c); color:#fff; }
+.btn-ghost   { background:transparent; color:var(--text2); border:1px solid var(--border); }
+.btn-ghost:hover { background:var(--surface); color:var(--text); }
+.btn-sm { padding:8px 14px; font-size:12px; }
+.btn-lg { padding:16px 28px; font-size:16px; }
+.btn-icon { width:36px; height:36px; padding:0; }
+.btn:disabled { opacity:0.5; cursor:not-allowed; transform:none !important; }
+
+/* ── APP LAYOUT ─────────────────────────────────────────── */
+#app {
+  display:none; min-height:100dvh;
+  flex-direction:column; position:relative; z-index:1;
+}
+#app.visible { display:flex; }
+
+/* ── SIDEBAR ────────────────────────────────────────────── */
+.sidebar {
+  position:fixed; left:0; top:0; bottom:0; width:260px;
+  background:var(--bg2); border-right:1px solid var(--border);
+  display:flex; flex-direction:column; z-index:100;
+  transform:translateX(-100%); transition:transform 0.3s cubic-bezier(.4,0,.2,1);
+}
+.sidebar.open { transform:translateX(0); }
+.sidebar-header {
+  padding:24px 20px; border-bottom:1px solid var(--border);
+  display:flex; align-items:center; gap:12px;
+}
+.sidebar-logo {
+  width:40px; height:40px; background:linear-gradient(135deg, var(--accent), var(--purple));
+  border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px;
+}
+.sidebar-title { font-weight:700; font-size:15px; }
+.sidebar-sub   { font-size:11px; color:var(--text2); font-family:var(--mono); }
+
+.sidebar-nav { flex:1; padding:16px 12px; overflow-y:auto; }
+.nav-section-label {
+  font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1px;
+  color:var(--text3); padding:8px 8px 4px;
+}
+.nav-item {
+  display:flex; align-items:center; gap:12px;
+  padding:10px 12px; border-radius:10px; cursor:pointer;
+  color:var(--text2); font-size:14px; font-weight:500;
+  transition:all 0.15s; margin-bottom:2px;
+  border:1px solid transparent;
+}
+.nav-item:hover { background:var(--surface); color:var(--text); }
+.nav-item.active {
+  background:rgba(59,130,246,0.12); color:var(--accent2);
+  border-color:rgba(59,130,246,0.2);
+}
+.nav-item .icon { font-size:18px; width:24px; text-align:center; }
+.nav-badge {
+  margin-left:auto; background:var(--accent); color:#fff;
+  font-size:10px; font-weight:700; padding:2px 7px; border-radius:10px;
+}
+
+.sidebar-footer {
+  padding:16px; border-top:1px solid var(--border);
+}
+.user-card {
+  display:flex; align-items:center; gap:10px;
+  padding:10px; border-radius:10px; background:var(--surface);
+}
+.user-avatar {
+  width:36px; height:36px; border-radius:10px;
+  background:linear-gradient(135deg, var(--accent), var(--purple));
+  display:flex; align-items:center; justify-content:center;
+  font-size:14px; font-weight:700; flex-shrink:0;
+}
+.user-name  { font-size:13px; font-weight:600; }
+.user-role  { font-size:11px; color:var(--text2); font-family:var(--mono); }
+
+/* ── TOPBAR ─────────────────────────────────────────────── */
+.topbar {
+  position:sticky; top:0; z-index:50;
+  background:rgba(8,13,26,0.85); backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center; gap:12px;
+  padding:12px 16px;
+}
+.topbar-title { font-size:16px; font-weight:700; flex:1; }
+.topbar-actions { display:flex; align-items:center; gap:8px; }
+
+/* ── MAIN CONTENT ───────────────────────────────────────── */
+.main {
+  flex:1; padding:20px 16px; max-width:1200px;
+  width:100%; margin:0 auto;
+}
+
+/* ── OVERLAY ────────────────────────────────────────────── */
+.overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.6);
+  backdrop-filter:blur(4px); z-index:90; opacity:0;
+  pointer-events:none; transition:opacity 0.3s;
+}
+.overlay.active { opacity:1; pointer-events:all; }
+
+/* ── CARDS ──────────────────────────────────────────────── */
+.card {
+  background:var(--bg2); border:1px solid var(--border);
+  border-radius:var(--radius2); padding:20px;
+  animation:fadeIn 0.4s ease;
+}
+.card + .card { margin-top:16px; }
+.card-title { font-size:13px; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:16px; }
+
+/* ── STAT CARDS ─────────────────────────────────────────── */
+.stats-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; margin-bottom:20px; }
+.stat-card {
+  background:var(--bg2); border:1px solid var(--border);
+  border-radius:var(--radius2); padding:20px;
+  position:relative; overflow:hidden;
+  animation:fadeIn 0.4s ease both;
+}
+.stat-card::before {
+  content:''; position:absolute; right:-20px; top:-20px;
+  width:80px; height:80px; border-radius:50%;
+  background:var(--accent-color, var(--accent)); opacity:0.06;
+}
+.stat-icon  { font-size:24px; margin-bottom:12px; }
+.stat-value { font-size:28px; font-weight:700; font-family:var(--mono); letter-spacing:-1px; }
+.stat-label { font-size:12px; color:var(--text2); margin-top:4px; font-weight:500; }
+.stat-delta { font-size:11px; color:var(--green); margin-top:8px; font-family:var(--mono); }
+
+/* ── QR DISPLAY ─────────────────────────────────────────── */
+.qr-wrapper {
+  display:flex; flex-direction:column; align-items:center;
+  gap:16px; padding:24px 0;
+}
+.qr-frame {
+  position:relative; padding:16px;
+  background:white; border-radius:16px;
+  box-shadow:var(--shadow), var(--glow);
+  animation:glow 3s ease infinite;
+}
+.qr-frame::before, .qr-frame::after {
+  content:''; position:absolute; width:20px; height:20px;
+  border-color:var(--accent); border-style:solid;
+}
+.qr-frame::before { top:4px; left:4px; border-width:2px 0 0 2px; }
+.qr-frame::after  { bottom:4px; right:4px; border-width:0 2px 2px 0; }
+.qr-scan-line {
+  position:absolute; left:16px; right:16px; height:3px;
+  background:linear-gradient(90deg, transparent, var(--accent), transparent);
+  animation:scanLine 2.5s ease infinite;
+  border-radius:2px;
+}
+
+.qr-token-badge {
+  font-family:var(--mono); font-size:18px; font-weight:700;
+  color:var(--accent2); letter-spacing:3px;
+  background:var(--surface); padding:8px 20px; border-radius:8px;
+  border:1px solid var(--border2);
+}
+.qr-timer {
+  font-family:var(--mono); font-size:13px; color:var(--text2);
+  animation:timerTick 1s ease infinite;
+}
+.qr-timer.urgent { color:var(--red) !important; }
+
+/* ── QR SCANNER ─────────────────────────────────────────── */
+.scanner-wrapper { position:relative; border-radius:16px; overflow:hidden; }
+#scanVideo { width:100%; display:block; border-radius:16px; }
+.scanner-overlay {
+  position:absolute; inset:0;
+  background:linear-gradient(rgba(0,0,0,0.5) 0%, transparent 30%, transparent 70%, rgba(0,0,0,0.5) 100%);
+}
+.scanner-box {
+  position:absolute; top:50%; left:50%; transform:translate(-50%, -50%);
+  width:200px; height:200px;
+}
+.scanner-box::before, .scanner-box::after,
+.scanner-box .corner-br, .scanner-box .corner-tl {
+  content:''; position:absolute; width:24px; height:24px;
+  border-color:#fff; border-style:solid;
+}
+.scanner-box::before { top:0; left:0; border-width:3px 0 0 3px; border-radius:4px 0 0 0; }
+.scanner-box::after  { top:0; right:0; border-width:3px 3px 0 0; border-radius:0 4px 0 0; }
+.scanner-box .corner-br { bottom:0; right:0; border-width:0 3px 3px 0; border-radius:0 0 4px 0; }
+.scanner-box .corner-tl { bottom:0; left:0; border-width:0 0 3px 3px; border-radius:0 0 0 4px; }
+.scan-beam {
+  position:absolute; left:0; right:0; height:2px;
+  background:linear-gradient(90deg, transparent, var(--green), transparent);
+  animation:scanLine 2s linear infinite;
+}
+
+/* ── PRESENCE STATUS ────────────────────────────────────── */
+.presence-badge {
+  display:inline-flex; align-items:center; gap:6px;
+  padding:6px 14px; border-radius:20px; font-size:12px; font-weight:600;
+}
+.presence-badge.checked_in  { background:rgba(16,185,129,0.15); color:var(--green2); border:1px solid rgba(16,185,129,0.3); }
+.presence-badge.not_checked  { background:rgba(239,68,68,0.15); color:#f87171; border:1px solid rgba(239,68,68,0.3); }
+.presence-badge.checked_out  { background:rgba(99,102,241,0.15); color:#a5b4fc; border:1px solid rgba(99,102,241,0.3); }
+.presence-badge .dot { width:6px; height:6px; border-radius:50%; background:currentColor; }
+
+/* ── MAP ────────────────────────────────────────────────── */
+#gpsMap { height:280px; border-radius:16px; border:1px solid var(--border); }
+
+/* ── TABLE ──────────────────────────────────────────────── */
+.table-wrap { overflow-x:auto; border-radius:var(--radius); }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+thead { background:var(--surface); }
+th { padding:10px 14px; text-align:left; font-size:11px; font-weight:700; color:var(--text2); text-transform:uppercase; letter-spacing:0.7px; white-space:nowrap; }
+td { padding:10px 14px; border-bottom:1px solid var(--border); color:var(--text); vertical-align:middle; }
+tr:last-child td { border-bottom:none; }
+tr:hover td { background:rgba(59,130,246,0.04); }
+
+/* ── FORM ELEMENTS ──────────────────────────────────────── */
+.input-group { margin-bottom:14px; }
+.input-group label { display:block; font-size:12px; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:0.7px; margin-bottom:6px; }
+.input, select.input, textarea.input {
+  width:100%; padding:10px 14px;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius); color:var(--text);
+  font-family:var(--sans); font-size:14px; outline:none;
+  transition:all 0.2s;
+}
+.input:focus, select.input:focus { border-color:var(--accent2); box-shadow:0 0 0 3px rgba(59,130,246,0.12); }
+select.input option { background:var(--bg2); }
+
+/* ── TOAST ──────────────────────────────────────────────── */
+.toast-container { position:fixed; bottom:20px; right:20px; z-index:9999; display:flex; flex-direction:column; gap:8px; }
+.toast {
+  display:flex; align-items:center; gap:12px;
+  padding:12px 16px; border-radius:12px; min-width:280px; max-width:360px;
+  box-shadow:var(--shadow);
+  animation:fadeIn 0.3s ease;
+  border:1px solid var(--border);
+}
+.toast.success { background:rgba(16,185,129,0.15); border-color:rgba(16,185,129,0.3); }
+.toast.error   { background:rgba(239,68,68,0.15);  border-color:rgba(239,68,68,0.3); }
+.toast.info    { background:rgba(59,130,246,0.15);  border-color:rgba(59,130,246,0.3); }
+.toast .toast-icon { font-size:18px; }
+.toast .toast-msg  { font-size:13px; font-weight:500; flex:1; }
+.toast .toast-close { font-size:16px; cursor:pointer; opacity:0.6; }
+
+/* ── MODAL ──────────────────────────────────────────────── */
+.modal-bg {
+  position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(8px);
+  z-index:500; display:none; align-items:center; justify-content:center; padding:20px;
+}
+.modal-bg.open { display:flex; }
+.modal {
+  background:var(--bg2); border:1px solid var(--border2);
+  border-radius:var(--radius2); padding:28px; width:100%; max-width:480px;
+  box-shadow:var(--shadow); animation:fadeIn 0.3s ease;
+}
+.modal-title { font-size:18px; font-weight:700; margin-bottom:20px; }
+
+/* ── TABS ───────────────────────────────────────────────── */
+.tabs { display:flex; gap:4px; background:var(--surface); padding:4px; border-radius:12px; margin-bottom:20px; }
+.tab { flex:1; padding:8px; border-radius:9px; text-align:center; font-size:12px; font-weight:600; cursor:pointer; color:var(--text2); transition:all 0.2s; border:none; background:transparent; }
+.tab.active { background:var(--bg2); color:var(--text); box-shadow:var(--shadow2); }
+
+/* ── PROGRESS ───────────────────────────────────────────── */
+.progress-bar { background:var(--surface); border-radius:4px; height:6px; overflow:hidden; }
+.progress-fill { height:100%; border-radius:4px; background:linear-gradient(90deg, var(--accent), var(--purple)); transition:width 0.5s ease; }
+
+/* ── CHIP/TAG ───────────────────────────────────────────── */
+.chip { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; }
+.chip-blue   { background:rgba(59,130,246,0.15); color:var(--accent3); }
+.chip-green  { background:rgba(16,185,129,0.15); color:var(--green2); }
+.chip-red    { background:rgba(239,68,68,0.15);  color:#f87171; }
+.chip-amber  { background:rgba(245,158,11,0.15); color:#fcd34d; }
+.chip-purple { background:rgba(139,92,246,0.15); color:#c4b5fd; }
+
+/* ── LOADING SPINNER ────────────────────────────────────── */
+.spinner { width:20px; height:20px; border:2px solid rgba(255,255,255,0.2); border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite; }
+
+/* ── EMPTY STATE ────────────────────────────────────────── */
+.empty-state { text-align:center; padding:48px 20px; color:var(--text2); }
+.empty-state .icon { font-size:48px; margin-bottom:12px; }
+.empty-state p { font-size:14px; }
+
+/* ── SECTION HEADER ─────────────────────────────────────── */
+.section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+.section-title { font-size:16px; font-weight:700; }
+
+/* ── ACCEL CHART ────────────────────────────────────────── */
+.accel-bars { display:flex; gap:6px; align-items:flex-end; height:60px; }
+.accel-bar { flex:1; border-radius:4px 4px 0 0; transition:height 0.3s ease; }
+.accel-bar.x { background:var(--accent); }
+.accel-bar.y { background:var(--green); }
+.accel-bar.z { background:var(--purple); }
+.accel-values { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.accel-val { background:var(--surface); border-radius:8px; padding:8px; text-align:center; }
+.accel-val .label { font-size:10px; color:var(--text2); font-weight:700; text-transform:uppercase; }
+.accel-val .value { font-family:var(--mono); font-size:14px; font-weight:600; margin-top:2px; }
+
+/* ── GPS INFO ───────────────────────────────────────────── */
+.gps-info { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.gps-info-item { background:var(--surface); border-radius:8px; padding:10px; }
+.gps-info-item .key { font-size:10px; color:var(--text2); font-weight:700; text-transform:uppercase; letter-spacing:0.5px; }
+.gps-info-item .val { font-family:var(--mono); font-size:13px; font-weight:600; margin-top:2px; }
+
+/* ── SUCCESS ANIMATION ──────────────────────────────────── */
+.success-checkmark {
+  width:80px; height:80px; border-radius:50%;
+  background:linear-gradient(135deg, var(--green), #059669);
+  display:flex; align-items:center; justify-content:center;
+  font-size:36px; margin:0 auto 20px;
+  box-shadow:var(--glow-green);
+  animation:glow 2s ease infinite;
+}
+
+/* ── RESPONSIVE ─────────────────────────────────────────── */
+@media (min-width:768px) {
+  .sidebar { transform:translateX(0); }
+  .main { padding-left:280px; }
+  .topbar { padding-left:280px; }
+  .stats-grid { grid-template-columns:repeat(4,1fr); }
+  .overlay { display:none !important; }
+}
+@media (max-width:767px) {
+  .stats-grid { grid-template-columns:repeat(2,1fr); }
 }
 </style>
 </head>
 <body>
 
-<nav>
-  <h1>🎓 Presensi QR Dinamis v3</h1>
-  <div class="nav-r" id="nav-user" style="display:none">
-    <span id="nav-name" style="font-size:.85rem;opacity:.85"></span>
-    <span class="chip" id="nav-chip"></span>
-    <button class="btn-nav" onclick="logout()">Keluar</button>
+<!-- ── LOGIN ──────────────────────────────────────────────── -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-icon">🎓</div>
+      <h1>CloudAttend</h1>
+      <p>Sistem Presensi Komputasi Awan</p>
+    </div>
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" id="loginUser" placeholder="Masukkan username" autocomplete="username">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="loginPass" placeholder="Masukkan password" autocomplete="current-password">
+    </div>
+    <button class="btn btn-primary btn-lg" onclick="doLogin()" id="loginBtn">
+      <span id="loginBtnText">Masuk</span>
+    </button>
+    <p style="text-align:center;font-size:12px;color:var(--text3);margin-top:16px;">
+      Login: superadmin / Admin@2026
+    </p>
   </div>
-</nav>
+</div>
 
-<!-- ══════════════ PAGE: AUTH ══════════════ -->
-<div class="page active" id="page-auth">
-  <div class="wrap" style="max-width:420px">
-    <div class="card" style="margin-top:36px">
-      <div style="text-align:center;margin-bottom:20px">
-        <div style="font-size:2.8rem">🎓</div>
-        <h2 style="justify-content:center;margin-bottom:4px;font-size:1.2rem">Sistem Presensi QR</h2>
-        <p class="mut">Masuk atau daftar akun baru</p>
+<!-- ── OVERLAY ────────────────────────────────────────────── -->
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- ── APP ────────────────────────────────────────────────── -->
+<div id="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">🎓</div>
+      <div>
+        <div class="sidebar-title">CloudAttend</div>
+        <div class="sidebar-sub" id="sidebarVersion">v1.0 · GAS Live</div>
       </div>
-      <div style="display:flex;gap:4px;background:var(--bdr);border-radius:8px;padding:4px;margin-bottom:18px">
-        <button id="tab-login" style="flex:1;padding:8px;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:.88rem;background:var(--card);color:var(--blue);box-shadow:0 1px 4px rgba(0,0,0,.1)" onclick="authTab('login')">Masuk</button>
-        <button id="tab-reg"   style="flex:1;padding:8px;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:.88rem;background:transparent;color:var(--mut)" onclick="authTab('reg')">Daftar</button>
-      </div>
-      <div id="auth-login">
-        <div class="fg"><label>Email</label><input id="l-email" type="email" placeholder="email@kampus.ac.id"></div>
-        <div class="fg"><label>Password</label><input id="l-pw" type="password" placeholder="••••••••"></div>
-        <button class="btn btn-blue btn-full" id="btn-login" onclick="doLogin()"><span class="ls"></span>Masuk</button>
-        <div class="alert" id="l-alert"></div>
-      </div>
-      <div id="auth-reg" style="display:none">
-        <div class="fg"><label>Nama Lengkap</label><input id="r-name" placeholder="Nama sesuai KTP"></div>
-        <div class="fg"><label>Email</label><input id="r-email" type="email" placeholder="email@kampus.ac.id"></div>
-        <div class="fg"><label>Password</label><input id="r-pw" type="password" placeholder="Min. 6 karakter"></div>
-        <div class="fg">
-          <label>Role</label>
-          <select id="r-role" onchange="showNim()">
-            <option value="">-- Pilih --</option>
-            <option value="mahasiswa">Mahasiswa</option>
-            <option value="dosen">Dosen</option>
-          </select>
+    </div>
+
+    <nav class="sidebar-nav" id="sidebarNav">
+      <!-- Populated by JS -->
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="user-avatar" id="userAvatar">SA</div>
+        <div style="flex:1;min-width:0">
+          <div class="user-name" id="sidebarUserName">Loading...</div>
+          <div class="user-role" id="sidebarUserRole">---</div>
         </div>
-        <div id="nim-wrap" class="fg" style="display:none"><label>NIM</label><input id="r-nim" placeholder="Nomor Induk Mahasiswa"></div>
-        <button class="btn btn-blue btn-full" id="btn-reg" onclick="doRegister()"><span class="rs"></span>Daftar</button>
-        <div class="alert" id="r-alert"></div>
+        <button class="btn btn-ghost btn-icon btn-sm" onclick="doLogout()" title="Keluar">🚪</button>
       </div>
+    </div>
+  </aside>
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <button class="btn btn-ghost btn-icon" onclick="toggleSidebar()">☰</button>
+    <div class="topbar-title" id="topbarTitle">Dashboard</div>
+    <div class="topbar-actions">
+      <div style="font-size:11px;color:var(--text3);font-family:var(--mono)" id="clockDisplay"></div>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main class="main" id="mainContent">
+    <!-- Pages rendered here -->
+  </main>
+</div>
+
+<!-- ── MODALS ──────────────────────────────────────────────── -->
+<div class="modal-bg" id="modalAddUser">
+  <div class="modal">
+    <div class="modal-title">➕ Tambah Pengguna</div>
+    <div class="input-group"><label>Nama Lengkap</label><input class="input" id="newUserName" placeholder="Nama lengkap"></div>
+    <div class="input-group"><label>Username</label><input class="input" id="newUserUsername" placeholder="username"></div>
+    <div class="input-group"><label>Password</label><input class="input" type="password" id="newUserPass" placeholder="Password"></div>
+    <div class="input-group"><label>NIM / NIP</label><input class="input" id="newUserNim" placeholder="NIM atau NIP"></div>
+    <div class="input-group"><label>Role</label>
+      <select class="input" id="newUserRole">
+        <option value="mahasiswa">Mahasiswa</option>
+        <option value="dosen">Dosen</option>
+        <option value="superadmin">Super Admin</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modalAddUser')">Batal</button>
+      <button class="btn btn-primary" style="flex:1" onclick="submitAddUser()">Simpan</button>
     </div>
   </div>
 </div>
 
-<!-- ══════════════ PAGE: APP ══════════════ -->
-<div class="page" id="page-app">
-  <div class="wrap">
-    <div class="layout">
-
-      <!-- SIDEBAR -->
-      <div class="sidebar" id="sidebar"></div>
-
-      <!-- CONTENT -->
-      <div id="content">
-
-        <!-- ── PANEL: Dashboard ── -->
-        <div class="tab-panel active" id="panel-dash">
-          <div class="card">
-            <h2>👋 Selamat Datang</h2>
-            <p class="mut" id="dash-greeting"></p>
-            <hr class="divider">
-            <div class="stats" id="dash-stats"></div>
-          </div>
-        </div>
-
-        <!-- ── PANEL: Admin — Kelola User ── -->
-        <div class="tab-panel" id="panel-admin-users">
-          <div class="card">
-            <div class="card-title-bar"><h2>👤 Kelola User</h2></div>
-            <div class="row2">
-              <div>
-                <div class="fg"><label>Nama</label><input id="au-name" placeholder="Nama lengkap"></div>
-                <div class="fg"><label>Email</label><input id="au-email" type="email" placeholder="email@kampus.ac.id"></div>
-                <div class="fg"><label>Password</label><input id="au-pw" type="password" placeholder="Password awal"></div>
-                <div class="fg">
-                  <label>Role</label>
-                  <select id="au-role" onchange="toggleAdminNim()">
-                    <option value="">-- Pilih --</option>
-                    <option value="mahasiswa">Mahasiswa</option>
-                    <option value="dosen">Dosen</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
-                <div id="au-nim-wrap" class="fg" style="display:none"><label>NIM</label><input id="au-nim" placeholder="NIM mahasiswa"></div>
-                <button class="btn btn-blue btn-full" id="btn-add-user" onclick="doAddUser()"><span class="aus"></span>Tambah User</button>
-                <div class="alert" id="au-alert"></div>
-              </div>
-              <div>
-                <div class="fg"><label>Reset Password</label></div>
-                <div class="fg"><label>Email Target</label><input id="rp-email" placeholder="email@kampus.ac.id"></div>
-                <div class="fg"><label>Password Baru</label><input id="rp-pw" type="password" placeholder="Password baru"></div>
-                <button class="btn btn-org btn-full mt2" id="btn-reset-pw" onclick="doResetPw()"><span class="rps"></span>Reset Password</button>
-                <div class="alert" id="rp-alert"></div>
-                <hr class="divider">
-                <div class="fg">
-                  <label>Filter Role</label>
-                  <select id="ul-filter" onchange="loadUserList()">
-                    <option value="">Semua Role</option>
-                    <option value="admin">Admin</option>
-                    <option value="dosen">Dosen</option>
-                    <option value="mahasiswa">Mahasiswa</option>
-                  </select>
-                </div>
-                <button class="btn btn-green btn-full" onclick="loadUserList()">🔄 Refresh</button>
-              </div>
-            </div>
-            <hr class="divider">
-            <div class="tbl-wrap">
-              <table>
-                <thead><tr><th>#</th><th>Nama</th><th>Email</th><th>Role</th><th>NIM</th><th>Dibuat</th></tr></thead>
-                <tbody id="user-list-tbody"><tr><td colspan="6" class="empty">Klik Refresh</td></tr></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- ── PANEL: Setup Kelas ── -->
-        <div class="tab-panel" id="panel-setup">
-          <div class="row2">
-            <div class="card">
-              <h2>📚 Mata Kuliah</h2>
-              <div class="fg"><label>Course ID</label><input id="ci-id" placeholder="cloud-101"></div>
-              <div class="fg"><label>Nama</label><input id="ci-name" placeholder="Praktik Komputasi Awan"></div>
-              <button class="btn btn-blue btn-full" id="btn-cc" onclick="doCreateCourse()"><span class="ccs"></span>Buat</button>
-              <div class="alert" id="cc-alert"></div>
-              <hr class="divider">
-              <div class="tbl-wrap">
-                <table><thead><tr><th>ID</th><th>Nama</th></tr></thead>
-                <tbody id="course-tbl"><tr><td colspan="2" class="empty">Memuat…</td></tr></tbody></table>
-              </div>
-            </div>
-            <div class="card">
-              <h2>📅 Sesi</h2>
-              <div class="fg"><label>Mata Kuliah</label><select id="ses-csel"><option value="">-- Pilih --</option></select></div>
-              <div class="fg"><label>Tanggal</label><input id="ses-date" type="date"></div>
-              <div class="fg"><label>Label</label><input id="ses-label" placeholder="Pertemuan 1, UTS …"></div>
-              <button class="btn btn-green btn-full" id="btn-cs" onclick="doCreateSession()"><span class="css2"></span>Buat</button>
-              <div class="alert" id="cs-alert"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ── PANEL: Generate QR ── -->
-        <div class="tab-panel" id="panel-qr">
-          <div class="card">
-            <h2>🔲 Generate QR Token Presensi</h2>
-            <div class="row2">
-              <div class="fg"><label>Mata Kuliah</label><select id="qr-csel" onchange="loadQrSessions()"><option value="">-- Pilih --</option></select></div>
-              <div class="fg"><label>Sesi</label><select id="qr-ssel"><option value="">-- Pilih --</option></select></div>
-            </div>
-            <button class="btn btn-green btn-full" id="btn-gen" onclick="doGenQR()"><span class="gens"></span>⚡ Generate QR</button>
-            <div class="alert" id="gen-alert"></div>
-            <div id="qr-box" style="display:none">
-              <p class="mut" style="margin-bottom:10px;font-size:.83rem">Tampilkan di proyektor — mahasiswa scan QR ini</p>
-              <div id="qrcode"></div>
-              <div class="token-badge" id="qr-tok"></div>
-              <div class="qr-timer" id="qr-timer">⏱ 02:00</div>
-              <p class="mut mt2" style="font-size:.78rem">Token expired otomatis. Klik Generate untuk baru.</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- ── PANEL: History Dosen/Admin ── -->
-        <div class="tab-panel" id="panel-history-all">
-          <div class="card">
-            <h2>📋 Rekap Absen Mahasiswa</h2>
-            <div class="row2">
-              <div class="fg"><label>Mata Kuliah</label><select id="ha-csel" onchange="loadHaSessions()"><option value="">-- Pilih --</option></select></div>
-              <div class="fg"><label>Sesi</label><select id="ha-ssel"><option value="">-- Pilih --</option></select></div>
-            </div>
-            <button class="btn btn-blue btn-full" onclick="loadHistoryAll()">🔍 Tampilkan</button>
-            <div class="stats mt3" id="ha-stats" style="display:none">
-              <div class="stat g"><div class="stat-n" id="ha-n">0</div><div class="stat-l">Hadir</div></div>
-              <div class="stat"><div class="stat-n" id="ha-sesi">-</div><div class="stat-l">Sesi</div></div>
-              <div class="stat o"><div class="stat-n" id="ha-tgl">-</div><div class="stat-l">Tanggal</div></div>
-            </div>
-            <!-- Peta rekap check-in mahasiswa -->
-            <div id="recap-map-wrap" style="display:none">
-              <p style="font-size:.82rem;font-weight:700;color:var(--mut);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">📍 Peta Lokasi Absen</p>
-              <div class="map-container" style="margin-top:0">
-                <div id="recap-map" style="height:280px"></div>
-              </div>
-            </div>
-            <div class="tbl-wrap mt3">
-              <table>
-                <thead><tr><th>#</th><th>NIM</th><th>Nama</th><th>Jam Absen</th><th>Lokasi</th><th>Status</th><th>Device</th></tr></thead>
-                <tbody id="ha-tbody"><tr><td colspan="7" class="empty">Pilih sesi</td></tr></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- ── PANEL: Scan QR (Mahasiswa) ── -->
-        <div class="tab-panel" id="panel-scan">
-          <div class="card">
-            <h2>📷 Scan QR Absen</h2>
-            <p class="mut" style="margin-bottom:14px">Arahkan kamera ke QR Code yang dosen tampilkan.</p>
-            <div style="text-align:center;display:flex;gap:8px;justify-content:center">
-              <button class="btn btn-green" id="btn-cam" onclick="startScan()">📷 Buka Kamera</button>
-              <button class="btn btn-red" id="btn-stop" style="display:none" onclick="stopScan()">⏹ Stop</button>
-            </div>
-            <div id="reader" class="mt3"></div>
-            <div id="scan-res" style="display:none;margin-top:14px">
-              <div class="alert a-info show">Token: <strong id="scan-tok"></strong></div>
-              <div class="row2 mt2">
-                <div class="fg"><label>Course ID</label><input id="sc-cid" placeholder="cloud-101"></div>
-                <div class="fg"><label>Session ID</label><input id="sc-sid" placeholder="SES-XXXXXX"></div>
-              </div>
-              <!-- Mini map untuk pilih/konfirmasi lokasi -->
-              <div class="fg">
-                <label>Lokasi Absen</label>
-                <div class="map-controls">
-                  <button class="btn btn-green btn-sm" type="button" onclick="getMyLocationScan()">📍 Deteksi Otomatis</button>
-                  <button class="btn btn-blue btn-sm" type="button" onclick="toggleCheckinMap()">🗺️ Pilih di Peta</button>
-                </div>
-                <small id="loc-status-scan" class="mut"></small>
-                <div id="checkin-map-wrap" style="display:none">
-                  <div class="map-container" style="margin-top:8px">
-                    <div id="checkin-map"></div>
-                    <div class="map-info-bar" id="checkin-map-info">Klik peta untuk memilih lokasi</div>
-                  </div>
-                  <small class="mut" style="display:block;margin-top:4px">Klik pada peta untuk memilih lokasi absen Anda.</small>
-                </div>
-              </div>
-              <div class="row2" style="display:none" id="sc-latlon-row">
-                <div class="fg"><label>Latitude</label><input id="sc-lat" type="number" step="any" placeholder="-7.2575" readonly></div>
-                <div class="fg"><label>Longitude</label><input id="sc-lng" type="number" step="any" placeholder="112.7521" readonly></div>
-              </div>
-              <button class="btn btn-green btn-full" id="btn-cin" onclick="doCheckin()"><span class="cins"></span>✅ Absen Sekarang</button>
-              <div class="alert" id="cin-alert"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ── PANEL: Manual (Mahasiswa) ── -->
-        <div class="tab-panel" id="panel-manual">
-          <div class="card">
-            <h2>⌨️ Input Token Manual</h2>
-            <p class="mut" style="margin-bottom:14px">Ketik token yang tertera di layar dosen jika kamera tidak tersedia.</p>
-            <div class="fg"><label>QR Token</label><input id="mt" placeholder="TKN-XXXXXX" style="font-family:monospace;font-size:1.1rem;text-transform:uppercase"></div>
-            <div class="row2">
-              <div class="fg"><label>Course ID</label><input id="mc" placeholder="cloud-101"></div>
-              <div class="fg"><label>Session ID</label><input id="ms" placeholder="SES-XXXXXX"></div>
-            </div>
-            <div class="fg">
-              <label>Lokasi</label>
-              <div class="map-controls">
-                <button class="btn btn-green btn-sm" type="button" onclick="getMyLocationManual()">📍 Deteksi Otomatis</button>
-                <button class="btn btn-blue btn-sm" type="button" onclick="toggleManualMap()">🗺️ Pilih di Peta</button>
-              </div>
-              <small class="mut" id="loc-status-m"></small>
-              <div id="manual-map-wrap" style="display:none">
-                <div class="map-container" style="margin-top:8px">
-                  <div id="manual-map" style="height:240px"></div>
-                  <div class="map-info-bar" id="manual-map-info">Klik peta untuk memilih lokasi</div>
-                </div>
-              </div>
-            </div>
-            <button class="btn btn-blue btn-full mt2" id="btn-man" onclick="doCheckinManual()"><span class="mans"></span>✅ Absen</button>
-            <div class="alert" id="man-alert"></div>
-          </div>
-        </div>
-
-        <!-- ── PANEL: History Mahasiswa ── -->
-        <div class="tab-panel" id="panel-history-mhs">
-          <div class="card">
-            <h2>📋 History Absen Saya</h2>
-            <div class="row2">
-              <div class="fg"><label>Course ID</label><input id="mh-cid" placeholder="cloud-101"></div>
-              <div style="display:flex;align-items:flex-end;padding-bottom:14px">
-                <button class="btn btn-blue btn-full" onclick="loadHistoryMhs()">🔍 Cari</button>
-              </div>
-            </div>
-            <p class="mut">Total Hadir: <strong id="mh-total">0</strong></p>
-            <!-- Peta history lokasi absen mahasiswa -->
-            <div id="mhs-map-wrap" style="display:none;margin-top:12px">
-              <p style="font-size:.82rem;font-weight:700;color:var(--mut);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">📍 Peta Lokasi Absen Saya</p>
-              <div class="map-container" style="margin-top:0">
-                <div id="mhs-map" style="height:220px"></div>
-              </div>
-            </div>
-            <div class="tbl-wrap mt2">
-              <table>
-                <thead><tr><th>#</th><th>Pertemuan</th><th>Tanggal</th><th>Jam Absen</th><th>Lokasi</th><th>Status</th></tr></thead>
-                <tbody id="mh-tbody"><tr><td colspan="6" class="empty">Masukkan Course ID</td></tr></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- ── PANEL: Accelerometer ── -->
-        <div class="tab-panel" id="panel-accel">
-          <div class="card">
-            <h2>📈 Accelerometer Realtime</h2>
-            <p class="mut" style="margin-bottom:14px">Data sensor accelerometer dari perangkat (gunakan browser mobile untuk sensor nyata).</p>
-            <div class="row2">
-              <div class="fg"><label>Device ID</label><input id="ac-dev" value="web-browser-01"></div>
-              <div style="display:flex;align-items:flex-end;padding-bottom:14px;gap:8px">
-                <button class="btn btn-green" id="btn-ac-start" onclick="startAccel()">▶ Mulai</button>
-                <button class="btn btn-red" id="btn-ac-stop" style="display:none" onclick="stopAccel()">⏹ Stop</button>
-              </div>
-            </div>
-            <div class="accel-vals">
-              <div><span>X: </span><strong id="av-x">0.00</strong> m/s²</div>
-              <div><span>Y: </span><strong id="av-y">0.00</strong> m/s²</div>
-              <div><span>Z: </span><strong id="av-z">9.81</strong> m/s²</div>
-            </div>
-            <div class="accel-bars">
-              <div class="bar-wrap"><div class="bar bx" id="bar-x" style="height:30px"></div><div class="bar-lbl">X</div></div>
-              <div class="bar-wrap"><div class="bar by" id="bar-y" style="height:30px"></div><div class="bar-lbl">Y</div></div>
-              <div class="bar-wrap"><div class="bar bz" id="bar-z" style="height:60px"></div><div class="bar-lbl">Z</div></div>
-            </div>
-            <div class="alert" id="ac-alert"></div>
-            <hr class="divider">
-            <h2>📊 Data Terbaru dari Server</h2>
-            <div class="fg"><label>Device ID</label>
-              <div style="display:flex;gap:8px">
-                <input id="ac-q-dev" placeholder="web-browser-01">
-                <button class="btn btn-blue btn-sm" onclick="fetchAccelLatest()">Ambil</button>
-              </div>
-            </div>
-            <div id="accel-latest" class="mut">—</div>
-          </div>
-        </div>
-
-        <!-- ── PANEL: GPS ── -->
-        <div class="tab-panel" id="panel-gps">
-          <div class="card">
-            <h2>🗺️ GPS Tracking</h2>
-            <div class="row2" style="margin-bottom:8px">
-              <div class="fg"><label>Device ID</label><input id="gps-dev" value="web-browser-01"></div>
-              <div style="display:flex;align-items:flex-end;padding-bottom:14px;gap:8px">
-                <button class="btn btn-green" id="btn-gps-start" onclick="startGPS()">▶ Track</button>
-                <button class="btn btn-red" id="btn-gps-stop" style="display:none" onclick="stopGPS()">⏹ Stop</button>
-              </div>
-            </div>
-            <!-- Status bar -->
-            <div style="background:var(--bg);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:.85rem;display:flex;align-items:center;gap:8px;justify-content:space-between">
-              <div style="display:flex;align-items:center;gap:8px">
-                <span class="track-dot" id="track-dot"></span>
-                <span id="gps-status-txt">Tidak aktif</span>
-              </div>
-              <span id="gps-accuracy-badge" style="display:none;background:var(--green);color:#fff;padding:2px 9px;border-radius:20px;font-size:.72rem;font-weight:700"></span>
-            </div>
-            <!-- ── LEAFLET MAP ── -->
-            <div class="map-container">
-              <div id="gps-map"></div>
-              <div class="map-info-bar" id="gps-map-bar" style="display:none">
-                <div>
-                  <span id="gps-coords-display">—</span>
-                  <br><span style="opacity:.7;font-size:.73rem" id="gps-time-display"></span>
-                </div>
-                <a id="gps-gmaps-link" href="#" target="_blank">🌐 Google Maps</a>
-              </div>
-            </div>
-            <div class="alert" id="gps-alert"></div>
-            <hr class="divider">
-            <!-- Riwayat dari server -->
-            <h2>📍 Riwayat GPS dari Server</h2>
-            <div class="fg">
-              <label>Device ID</label>
-              <div style="display:flex;gap:8px">
-                <input id="gps-q-dev" placeholder="web-browser-01">
-                <button class="btn btn-blue btn-sm" onclick="fetchGpsHistory()">Ambil & Tampilkan di Peta</button>
-              </div>
-            </div>
-            <!-- Peta khusus untuk riwayat server -->
-            <div id="history-map-wrap" style="display:none;margin-bottom:12px">
-              <div class="map-container" style="margin-top:0">
-                <div id="gps-history-map" style="height:280px"></div>
-              </div>
-              <p class="mut" style="margin-top:6px;font-size:.78rem">🔵 Jalur perjalanan (polyline)  •  🟢 Titik awal  •  🔴 Titik akhir</p>
-            </div>
-            <div class="tbl-wrap mt2">
-              <table>
-                <thead><tr><th>#</th><th>Waktu</th><th>Lat</th><th>Lng</th><th>Akurasi</th><th>Maps</th></tr></thead>
-                <tbody id="gps-hist-tbody"><tr><td colspan="6" class="empty">Masukkan Device ID</td></tr></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-      </div><!-- /content -->
-    </div><!-- /layout -->
+<div class="modal-bg" id="modalAddCourse">
+  <div class="modal">
+    <div class="modal-title">📚 Tambah Mata Kuliah</div>
+    <div class="input-group"><label>Kode MK</label><input class="input" id="newCourseCode" placeholder="mis: IF-301"></div>
+    <div class="input-group"><label>Nama MK</label><input class="input" id="newCourseName" placeholder="Nama mata kuliah"></div>
+    <div class="input-group"><label>SKS</label><input class="input" type="number" id="newCourseSks" value="3" min="1" max="6"></div>
+    <div class="input-group"><label>Semester</label><input class="input" id="newCourseSem" placeholder="Gasal 2025/2026"></div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modalAddCourse')">Batal</button>
+      <button class="btn btn-primary" style="flex:1" onclick="submitAddCourse()">Simpan</button>
+    </div>
   </div>
 </div>
 
+<div class="modal-bg" id="modalAddSession">
+  <div class="modal">
+    <div class="modal-title">📅 Buat Sesi Perkuliahan</div>
+    <div class="input-group"><label>Mata Kuliah</label>
+      <select class="input" id="newSessionCourse"></select>
+    </div>
+    <div class="input-group"><label>Tanggal</label><input class="input" type="date" id="newSessionDate"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="input-group"><label>Mulai</label><input class="input" type="time" id="newSessionStart" value="08:00"></div>
+      <div class="input-group"><label>Selesai</label><input class="input" type="time" id="newSessionEnd" value="10:00"></div>
+    </div>
+    <div class="input-group"><label>Topik</label><input class="input" id="newSessionTopic" placeholder="Topik pertemuan ini"></div>
+    <div class="input-group"><label>Ruangan</label><input class="input" id="newSessionRoom" placeholder="mis: Gedung A - 301"></div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modalAddSession')">Batal</button>
+      <button class="btn btn-primary" style="flex:1" onclick="submitAddSession()">Buat Sesi</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalCheckinSuccess">
+  <div class="modal" style="text-align:center">
+    <div class="success-checkmark">✓</div>
+    <div style="font-size:20px;font-weight:700;margin-bottom:8px">Check-in Berhasil!</div>
+    <div id="checkinSuccessInfo" style="color:var(--text2);font-size:14px;margin-bottom:20px"></div>
+    <div id="checkinGeoStatus" style="margin-bottom:20px"></div>
+    <button class="btn btn-success btn-lg" style="width:100%" onclick="closeModal('modalCheckinSuccess')">Selesai</button>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
+
 <script>
-// ═══════════════════════════════════════════════
-//  ⚠️  GANTI BASE_URL DENGAN URL DEPLOYMENT GAS
-// ═══════════════════════════════════════════════
-const BASE_URL = "https://script.google.com/macros/s/AKfycbx85Sb45S4bQ4b_NQVxdizFIWJdah8A-Rqs8nrasFN_6PvLW7lcu7gqzDlSaVzpEC4mjw/exec";
+// ============================================================
+// CLOUDATTEND — Frontend Application
+// ============================================================
 
-// ── STATE ─────────────────────────────────────
-let S = {}, qrTimer = null, scanner = null, accelTimer = null, gpsWatcher = null;
-let accelBatch = [], manLat = null, manLng = null;
-
-// ─── LEAFLET MAP INSTANCES ────────────────────
-const MAPS = {};  // keyed by id
-const TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
-const TILE_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
-const DEFAULT_CENTER = [-7.2575, 112.7521]; // Surabaya sebagai default
-const DEFAULT_ZOOM   = 15;
-
-// Custom Leaflet icons
-function makeIcon(color, size=30) {
-  return L.divIcon({
-    className: "",
-    html: `<div style="background:${color};width:${size}px;height:${size}px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;font-size:${size*0.4}px">📍</div>`,
-    iconSize: [size, size],
-    iconAnchor: [size/2, size/2],
-    popupAnchor: [0, -size/2]
-  });
-}
-function makeSmallDot(color) {
-  return L.divIcon({
-    className: "",
-    html: `<div style="background:${color};width:10px;height:10px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.3)"></div>`,
-    iconSize: [10, 10], iconAnchor: [5, 5]
-  });
-}
-const ICON_BLUE  = makeIcon("#2E75B6");
-const ICON_GREEN = makeIcon("#1E5631", 28);
-const ICON_RED   = makeIcon("#C00000", 28);
-const ICON_USER  = makeIcon("#4A235A");
-
-// Init a Leaflet map if not already done
-function initMap(id, center=DEFAULT_CENTER, zoom=DEFAULT_ZOOM) {
-  if (MAPS[id]) { MAPS[id].invalidateSize(); return MAPS[id]; }
-  const m = L.map(id, { zoomControl: true }).setView(center, zoom);
-  L.tileLayer(TILE_URL, { attribution: TILE_ATTR, maxZoom: 19 }).addTo(m);
-  MAPS[id] = m;
-  return m;
-}
-
-// ─────────────────────────────────────────────
-//  MENUS per role
-// ─────────────────────────────────────────────
-const MENUS = {
-  admin: [
-    { icon:"🏠", lbl:"Dashboard", panel:"dash" },
-    { sep:"Administrasi" },
-    { icon:"👤", lbl:"Kelola User", panel:"admin-users", fn: loadUserList },
-    { sep:"Akademik" },
-    { icon:"⚙️", lbl:"Setup Kelas", panel:"setup", fn: loadSetup },
-    { icon:"🔲", lbl:"Generate QR", panel:"qr", fn: loadQrCourses },
-    { icon:"📋", lbl:"Rekap Absen", panel:"history-all", fn: loadHaCourses },
-    { sep:"Sensor" },
-    { icon:"📈", lbl:"Accelerometer", panel:"accel" },
-    { icon:"🗺️", lbl:"GPS Tracking", panel:"gps", fn: initGpsPanel },
-  ],
-  dosen: [
-    { icon:"🏠", lbl:"Dashboard", panel:"dash" },
-    { sep:"Akademik" },
-    { icon:"⚙️", lbl:"Setup Kelas", panel:"setup", fn: loadSetup },
-    { icon:"🔲", lbl:"Generate QR", panel:"qr", fn: loadQrCourses },
-    { icon:"📋", lbl:"Rekap Absen", panel:"history-all", fn: loadHaCourses },
-    { sep:"Sensor" },
-    { icon:"🗺️", lbl:"GPS Tracking", panel:"gps", fn: initGpsPanel },
-  ],
-  mahasiswa: [
-    { icon:"🏠", lbl:"Dashboard", panel:"dash" },
-    { sep:"Presensi" },
-    { icon:"📷", lbl:"Scan QR", panel:"scan" },
-    { icon:"⌨️", lbl:"Token Manual", panel:"manual" },
-    { icon:"📋", lbl:"History Saya", panel:"history-mhs" },
-    { sep:"Sensor" },
-    { icon:"📈", lbl:"Accelerometer", panel:"accel" },
-    { icon:"🗺️", lbl:"GPS Tracking", panel:"gps", fn: initGpsPanel },
-  ]
+// ─── CONFIG ─────────────────────────────────────────────────
+const CONFIG = {
+  BASE_URL: 'https://script.google.com/macros/s/AKfycbyZXiVO4F60AVvosniQpR63oWRg5oYjtuc7tqW6NLFEuipQBQOXRDLyIqq88RIy7ZiKRA/exec',
+  ACCEL_INTERVAL: 2000,
+  GPS_INTERVAL:   5000,
 };
 
-// ─────────────────────────────────────────────
-//  API
-// ─────────────────────────────────────────────
-async function api(path, data={}) {
-  const body = { path, ...data };
-  if (S.token) body.auth_token = S.token;
-  try {
-    const r = await fetch(BASE_URL, { method:"POST", body: JSON.stringify(body) });
-    return JSON.parse(await r.text());
-  } catch(e) {
-    return { ok: false, error: "Network error: " + e.message };
+// ─── STATE ──────────────────────────────────────────────────
+const STATE = {
+  user: null,
+  token: null,
+  currentPage: 'dashboard',
+  scannerActive: false,
+  accelInterval: null,
+  gpsInterval: null,
+  gpsMap: null,
+  gpsMarker: null,
+  gpsPolyline: null,
+  gpsHistory: [],
+  qrTimer: null,
+  currentQR: null,
+  courses: [],
+  sessions: [],
+};
+
+// ─── NAVIGATION CONFIG ───────────────────────────────────────
+const NAV_CONFIG = {
+  superadmin: [
+    { section: 'Overview' },
+    { id: 'dashboard',  icon: '📊', label: 'Dashboard' },
+    { section: 'Manajemen' },
+    { id: 'users',     icon: '👥', label: 'Pengguna' },
+    { id: 'courses',   icon: '📚', label: 'Mata Kuliah' },
+    { id: 'sessions',  icon: '📅', label: 'Sesi Kuliah' },
+    { section: 'Presensi' },
+    { id: 'qrgen',     icon: '🔲', label: 'Generate QR' },
+    { id: 'attendance', icon: '📋', label: 'Rekap Presensi' },
+    { section: 'Telemetri' },
+    { id: 'gps',       icon: '🗺️', label: 'GPS Tracker' },
+    { id: 'accel',     icon: '📡', label: 'Accelerometer' },
+  ],
+  dosen: [
+    { section: 'Overview' },
+    { id: 'dashboard',  icon: '📊', label: 'Dashboard' },
+    { section: 'Kelas' },
+    { id: 'courses',   icon: '📚', label: 'Mata Kuliah Saya' },
+    { id: 'sessions',  icon: '📅', label: 'Sesi Kuliah' },
+    { id: 'qrgen',     icon: '🔲', label: 'Generate QR' },
+    { id: 'attendance', icon: '📋', label: 'Rekap Presensi' },
+  ],
+  mahasiswa: [
+    { section: 'Overview' },
+    { id: 'dashboard',  icon: '📊', label: 'Dashboard Saya' },
+    { section: 'Presensi' },
+    { id: 'scan',      icon: '📷', label: 'Scan QR' },
+    { id: 'mystatus',  icon: '✅', label: 'Status Presensi' },
+    { section: 'Telemetri' },
+    { id: 'gps',       icon: '🗺️', label: 'GPS Tracker' },
+    { id: 'accel',     icon: '📡', label: 'Accelerometer' },
+  ],
+};
+
+// ============================================================
+// API
+// ============================================================
+
+// ── Deteksi apakah berjalan di dalam GAS (via HtmlService) ─
+const IS_GAS = typeof google !== 'undefined' && typeof google.script !== 'undefined';
+
+async function api(method, path, data, skipAuth) {
+  // ── Mode 1: Berjalan di dalam GAS (HtmlService) ──────────
+  if (IS_GAS) {
+    return new Promise((resolve) => {
+      if (!skipAuth && STATE.token) data = { ...data, auth_token: STATE.token };
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(err => resolve({ ok: false, error: err.message }))
+        .apiCall(method, path, data || {});
+    });
+  }
+
+  // ── Mode 2: Demo mode (tidak ada BASE_URL) ────────────────
+  if (!CONFIG.BASE_URL) {
+    return mockApi(method, path, data);
+  }
+
+  // ── Mode 3: External hosting → fetch ke GAS ──────────────
+  // GAS pathInfo: suffix setelah /exec/
+  const gasBase = CONFIG.BASE_URL.replace(/\/exec\/?$/, '');
+  const fullUrl = `${gasBase}/exec/${path}`;
+
+  if (method === 'GET') {
+    const params = { ...(data || {}) };
+    if (!skipAuth && STATE.token) params.auth_token = STATE.token;
+    const entries = Object.entries(params).filter(([,v]) => v !== undefined && v !== null && v !== '');
+    const qs = new URLSearchParams(Object.fromEntries(entries)).toString();
+    const finalUrl = qs ? `${fullUrl}?${qs}` : fullUrl;
+    try {
+      const res = await fetch(finalUrl, { method: 'GET', redirect: 'follow', mode: 'cors' });
+      const text = await res.text();
+      try { return JSON.parse(text); } catch(_) { return { ok: false, error: 'invalid_json: ' + text.slice(0,200) }; }
+    } catch (err) {
+      return { ok: false, error: 'network_error: ' + err.message };
+    }
+  }
+
+  if (method === 'POST' || method === 'PUT') {
+    if (!skipAuth && STATE.token) data = { ...data, auth_token: STATE.token };
+    try {
+      const res = await fetch(fullUrl, {
+        method: 'POST',
+        redirect: 'follow',
+        mode: 'cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(data || {}),
+      });
+      const text = await res.text();
+      try { return JSON.parse(text); } catch(_) { return { ok: false, error: 'invalid_json: ' + text.slice(0,200) }; }
+    } catch (err) {
+      return { ok: false, error: 'network_error: ' + err.message };
+    }
   }
 }
 
-// ─────────────────────────────────────────────
-//  HELPERS
-// ─────────────────────────────────────────────
-const $  = id => document.getElementById(id);
-const _v = id => $(id) ? $(id).value.trim() : "";
-function showAlert(id, msg, type="err") {
-  const el=$(id); el.textContent=msg; el.className=`alert show a-${type}`;
-  if(type!=="info") setTimeout(()=>el.className="alert",6000);
-}
-function setSpin(id, on) { const el=$(id); if(el) el.innerHTML = on?'<span class="spinner"></span>&nbsp;':""; }
-function fmtDt(ts) {
-  if(!ts) return "-";
-  try { return new Date(ts).toLocaleString("id-ID",{dateStyle:"short",timeStyle:"short"}); } catch { return ts; }
-}
-function fmtTime(ts) {
-  if(!ts) return "-";
-  try { return new Date(ts).toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit",second:"2-digit"}); } catch { return ts; }
+// ─── DEMO MOCK ───────────────────────────────────────────────
+const MOCK_DB = {
+  users: [
+    { user_id:'SA-000001', username:'superadmin', full_name:'Super Administrator', role:'superadmin', is_active:'true' },
+    { user_id:'D-000001',  username:'pak_budi',   full_name:'Dr. Budi Santoso, M.Kom', role:'dosen', is_active:'true' },
+    { user_id:'M-000001',  username:'andi2023',   full_name:'Andi Pratama', role:'mahasiswa', nim_nip:'2023310001', is_active:'true' },
+    { user_id:'M-000002',  username:'sari2023',   full_name:'Sari Dewi', role:'mahasiswa', nim_nip:'2023310002', is_active:'true' },
+    { user_id:'M-000003',  username:'rio2023',    full_name:'Rio Firmansyah', role:'mahasiswa', nim_nip:'2023310003', is_active:'true' },
+  ],
+  courses: [
+    { course_id:'CRS-CLOUD', course_code:'IF-401', course_name:'Praktik Komputasi Awan', dosen_id:'D-000001', sks:'3', semester:'Gasal 2025/2026', status:'active' },
+    { course_id:'CRS-DB',    course_code:'IF-302', course_name:'Basis Data Lanjut',       dosen_id:'D-000001', sks:'3', semester:'Gasal 2025/2026', status:'active' },
+  ],
+  sessions: [
+    { session_id:'CRS-CLOUD-S01', course_id:'CRS-CLOUD', course_name:'Praktik Komputasi Awan', session_num:'1', session_date:new Date().toISOString().slice(0,10), start_time:'08:00', end_time:'10:00', topic:'Kickoff & API Contract', room:'Gedung A - 301', status:'scheduled' },
+    { session_id:'CRS-CLOUD-S02', course_id:'CRS-CLOUD', course_name:'Praktik Komputasi Awan', session_num:'2', session_date:'2026-03-29', start_time:'08:00', end_time:'10:00', topic:'Google Apps Script Deep Dive', room:'Gedung A - 301', status:'scheduled' },
+  ],
+  presence: [],
+  tokens: [],
+};
+
+function mockApi(method, path, data) {
+  // Login
+  if (path === 'auth/login') {
+    const creds = { superadmin:'Admin@2026', pak_budi:'Dosen@2026', andi2023:'Mhs@2026', sari2023:'Mhs@2026', rio2023:'Mhs@2026' };
+    const u = MOCK_DB.users.find(u => u.username === data.username);
+    if (!u || creds[data.username] !== data.password) return { ok:false, error:'invalid_credentials' };
+    return { ok:true, data:{ auth_token:'MOCK-TOKEN-'+u.role, user_id:u.user_id, username:u.username, full_name:u.full_name, role:u.role }};
+  }
+  if (path === 'health') return { ok:true, data:{ status:'ok (demo mode)', ts:new Date().toISOString() }};
+  if (path === 'dashboard/summary') return { ok:true, data:{ total_users:5, total_mahasiswa:3, total_dosen:1, total_courses:2, total_presence:MOCK_DB.presence.length, today_checkins:MOCK_DB.presence.filter(p=>p.checkin_ts.startsWith(new Date().toISOString().slice(0,10))).length, ts:new Date().toISOString() }};
+  if (path === 'admin/users') return { ok:true, data:{ total:MOCK_DB.users.length, items:MOCK_DB.users }};
+  if (path === 'admin/courses') return { ok:true, data:{ total:MOCK_DB.courses.length, items:MOCK_DB.courses }};
+  if (path === 'admin/sessions') {
+    let s = MOCK_DB.sessions;
+    if (data && data.course_id) s = s.filter(x => x.course_id === data.course_id);
+    return { ok:true, data:{ total:s.length, items:s }};
+  }
+  // QR Generate
+  if (path === 'presence/qr/generate') {
+    const course = MOCK_DB.courses.find(c => c.course_id === data.course_id);
+    const session = MOCK_DB.sessions.find(s => s.session_id === data.session_id);
+    const token = 'TKN-' + Math.random().toString(36).slice(2,8).toUpperCase();
+    const expires = new Date(Date.now() + (data.duration_minutes||5)*60000).toISOString();
+    const payload = JSON.stringify({ t:token, c:data.course_id, s:data.session_id, e:expires });
+    MOCK_DB.tokens.push({ qr_token:token, course_id:data.course_id, session_id:data.session_id, expires_at:expires, status:'active', course_name:course?.course_name, room:session?.room||'' });
+    return { ok:true, data:{ qr_token:token, qr_payload:payload, course_name:course?.course_name, room:session?.room, expires_at:expires, duration_minutes:data.duration_minutes||5 }};
+  }
+  // Check-in
+  if (path === 'presence/checkin') {
+    const tok = MOCK_DB.tokens.find(t => t.qr_token === data.qr_token && t.status === 'active');
+    if (!tok) return { ok:false, error:'token_invalid' };
+    if (new Date(tok.expires_at) < new Date()) return { ok:false, error:'token_expired' };
+    const dup = MOCK_DB.presence.find(p => p.user_id===data.user_id && p.course_id===data.course_id && p.session_id===data.session_id);
+    if (dup) return { ok:true, data:{ presence_id:dup.presence_id, status:'already_checked_in', course_name:tok.course_name }};
+    const pid = 'PR-'+Math.random().toString(36).slice(2,8).toUpperCase();
+    const geo = (data.lat && tok.geo_fence_lat) ? 'in_range' : 'not_verified';
+    MOCK_DB.presence.push({ presence_id:pid, user_id:data.user_id, course_id:data.course_id, session_id:data.session_id, status:'checked_in', checkin_ts:new Date().toISOString(), course_name:tok.course_name, room:tok.room, geo_status:geo });
+    return { ok:true, data:{ presence_id:pid, status:'checked_in', course_name:tok.course_name, room:tok.room, geo_status:geo, checkin_ts:new Date().toISOString() }};
+  }
+  // Status
+  if (path.startsWith('presence/status')) {
+    const p = MOCK_DB.presence.find(x => x.user_id===data.user_id && x.course_id===data.course_id && x.session_id===data.session_id);
+    if (!p) return { ok:true, data:{ status:'not_checked_in', user_id:data.user_id, course_id:data.course_id, session_id:data.session_id, last_ts:null }};
+    return { ok:true, data:p };
+  }
+  if (path.startsWith('presence/list')) {
+    const list = MOCK_DB.presence.filter(p => p.course_id===data.course_id && p.session_id===data.session_id);
+    return { ok:true, data:{ items:list, total:list.length }};
+  }
+  if (path === 'admin/users' && method==='POST') {
+    const uid = data.role.charAt(0).toUpperCase()+'-'+Math.random().toString(36).slice(2,8).toUpperCase();
+    MOCK_DB.users.push({...data, user_id:uid, is_active:'true'});
+    return { ok:true, data:{ user_id:uid }};
+  }
+  if (path === 'admin/courses' && method==='POST') {
+    const cid = 'CRS-'+Math.random().toString(36).slice(2,8).toUpperCase();
+    MOCK_DB.courses.push({...data, course_id:cid, status:'active'});
+    STATE.courses = MOCK_DB.courses;
+    return { ok:true, data:{ course_id:cid }};
+  }
+  if (path === 'admin/sessions' && method==='POST') {
+    const c = MOCK_DB.courses.find(x=>x.course_id===data.course_id);
+    const num = MOCK_DB.sessions.filter(s=>s.course_id===data.course_id).length+1;
+    const sid = data.course_id+'-S'+String(num).padStart(2,'0');
+    MOCK_DB.sessions.push({...data, session_id:sid, session_num:num, course_name:c?.course_name, status:'scheduled'});
+    return { ok:true, data:{ session_id:sid }};
+  }
+  if (path === 'telemetry/accel') return { ok:true, data:{ accepted:data.samples?.length||0 }};
+  if (path === 'telemetry/accel/latest') return { ok:true, data:{ t:new Date().toISOString(), x:(Math.random()*0.4-0.2).toFixed(3)*1, y:(Math.random()*0.4-0.2).toFixed(3)*1, z:(9.5+Math.random()*0.5).toFixed(3)*1, magnitude:9.8 }};
+  if (path === 'telemetry/gps') return { ok:true, data:{ accepted:true }};
+  if (path === 'telemetry/gps/latest') return { ok:true, data:{ lat:-7.2575+Math.random()*0.001, lng:112.7521+Math.random()*0.001, accuracy_m:12.5, ts:new Date().toISOString() }};
+  if (path === 'telemetry/gps/history') return { ok:true, data:{ device_id:data.device_id, items:Array.from({length:10},(_,i)=>({ ts:new Date(Date.now()-i*10000).toISOString(), lat:-7.2575+i*0.0001, lng:112.7521+i*0.0001 })).reverse() }};
+  return { ok:false, error:'not_implemented_in_demo' };
 }
 
-// ─────────────────────────────────────────────
-//  AUTH
-// ─────────────────────────────────────────────
-function authTab(t) {
-  $("auth-login").style.display = t==="login"?"block":"none";
-  $("auth-reg").style.display   = t==="reg"?"block":"none";
-  $("tab-login").style.background = t==="login"?'var(--card)':"transparent";
-  $("tab-login").style.color      = t==="login"?'var(--blue)':"var(--mut)";
-  $("tab-reg").style.background   = t==="reg"?'var(--card)':"transparent";
-  $("tab-reg").style.color        = t==="reg"?'var(--blue)':"var(--mut)";
-  $("tab-login").style.boxShadow  = t==="login"?'0 1px 4px rgba(0,0,0,.1)':"none";
-  $("tab-reg").style.boxShadow    = t==="reg"?'0 1px 4px rgba(0,0,0,.1)':"none";
-}
-function showNim() { $("nim-wrap").style.display = $("r-role").value==="mahasiswa"?"block":"none"; }
-function toggleAdminNim() { $("au-nim-wrap").style.display = $("au-role").value==="mahasiswa"?"block":"none"; }
-
-async function doRegister() {
-  const name=_v("r-name"),email=_v("r-email"),password=_v("r-pw"),role=$("r-role").value,nim=_v("r-nim");
-  if(!name||!email||!password||!role) return showAlert("r-alert","Semua field wajib diisi.");
-  setSpin("rs",true); const r = await api("auth/register",{name,email,password,role,nim}); setSpin("rs",false);
-  if(!r.ok) return showAlert("r-alert",r.error);
-  showAlert("r-alert",`✅ Berhasil! Login sebagai ${role}.`,"ok");
-}
+// ============================================================
+// AUTH
+// ============================================================
 
 async function doLogin() {
-  const email=_v("l-email"), password=_v("l-pw");
-  if(!email||!password) return showAlert("l-alert","Isi email dan password.");
-  setSpin("ls",true); const r = await api("auth/login",{email,password}); setSpin("ls",false);
-  if(!r.ok) return showAlert("l-alert",r.error);
-  const d=r.data;
-  S={token:d.token,user_id:d.user_id,name:d.name,role:d.role,nim:d.nim};
-  sessionStorage.setItem("ps",JSON.stringify(S));
-  afterLogin();
+  const username = document.getElementById('loginUser').value.trim();
+  const password = document.getElementById('loginPass').value;
+  if (!username || !password) { showToast('Isi username dan password', 'error'); return; }
+
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div>';
+
+  const res = await api('POST', 'auth/login', { username, password }, true);
+  btn.disabled = false;
+  btn.innerHTML = '<span id="loginBtnText">Masuk</span>';
+
+  if (!res.ok) { showToast(res.error || 'Login gagal', 'error'); return; }
+
+  STATE.user  = res.data;
+  STATE.token = res.data.auth_token;
+  localStorage.setItem('ca_token', STATE.token);
+  localStorage.setItem('ca_user',  JSON.stringify(res.data));
+
+  initApp();
 }
 
-function afterLogin() {
-  $("nav-user").style.display="flex";
-  $("nav-name").textContent=S.name;
-  const chip=$("nav-chip");
-  chip.textContent = S.role==="admin"?"🔐 Admin":S.role==="dosen"?"👨‍🏫 Dosen":"👨‍🎓 Mahasiswa";
-  chip.className   = "chip "+S.role;
-  buildSidebar();
-  showPage("page-app");
-  showPanel("dash");
-  buildDash();
+function doLogout() {
+  stopTelemetry();
+  STATE.user = STATE.token = null;
+  localStorage.removeItem('ca_token');
+  localStorage.removeItem('ca_user');
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
 }
 
-function logout() {
-  S={}; sessionStorage.removeItem("ps");
-  $("nav-user").style.display="none";
-  stopScan(); stopAccel(); stopGPS();
-  // Clear maps
-  Object.values(MAPS).forEach(m => { try { m.remove(); } catch(e){} });
-  for (const k in MAPS) delete MAPS[k];
-  showPage("page-auth");
+// ============================================================
+// INIT
+// ============================================================
+
+function initApp() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').classList.add('visible');
+
+  const u = STATE.user;
+  document.getElementById('sidebarUserName').textContent = u.full_name;
+  document.getElementById('sidebarUserRole').textContent = u.role;
+  document.getElementById('userAvatar').textContent = u.full_name.charAt(0).toUpperCase();
+
+  // Build nav
+  buildNav(u.role);
+
+  // Clock
+  setInterval(() => {
+    document.getElementById('clockDisplay').textContent = new Date().toLocaleTimeString('id-ID');
+  }, 1000);
+
+  // Load courses into state
+  loadCoursesState();
+
+  navigate('dashboard');
 }
 
-(function(){ try{ const s=sessionStorage.getItem("ps"); if(s){S=JSON.parse(s);if(S.token)afterLogin();} }catch(e){} })();
+function buildNav(role) {
+  const nav = document.getElementById('sidebarNav');
+  nav.innerHTML = '';
+  const items = NAV_CONFIG[role] || NAV_CONFIG.mahasiswa;
 
-// ─────────────────────────────────────────────
-//  PAGE / PANEL ROUTING
-// ─────────────────────────────────────────────
-function showPage(id) { document.querySelectorAll(".page").forEach(p=>p.classList.remove("active")); $(id).classList.add("active"); }
-function showPanel(id, fn) {
-  document.querySelectorAll(".tab-panel").forEach(p=>p.classList.remove("active"));
-  document.querySelectorAll(".sidebar-btn").forEach(b=>b.classList.remove("active"));
-  const panel=$("panel-"+id); if(panel) panel.classList.add("active");
-  const btn=$("sb-"+id); if(btn) btn.classList.add("active");
-  if(fn) fn();
-  // Fix Leaflet size after show
-  setTimeout(()=>{ Object.values(MAPS).forEach(m=>{ try{m.invalidateSize();}catch(e){} }); }, 120);
-}
-
-function buildSidebar() {
-  const menus = MENUS[S.role] || [];
-  const sb = $("sidebar"); sb.innerHTML="";
-  menus.forEach(m => {
-    if(m.sep) {
-      const l=document.createElement("div"); l.className="sidebar-label"; l.textContent=m.sep; sb.appendChild(l);
+  items.forEach(item => {
+    if (item.section) {
+      nav.innerHTML += `<div class="nav-section-label">${item.section}</div>`;
     } else {
-      const b=document.createElement("button");
-      b.className="sidebar-btn"; b.id="sb-"+m.panel;
-      b.innerHTML=`${m.icon} ${m.lbl}`;
-      b.onclick=()=>showPanel(m.panel, m.fn||null);
-      sb.appendChild(b);
+      nav.innerHTML += `
+        <div class="nav-item" id="nav-${item.id}" onclick="navigate('${item.id}')">
+          <span class="icon">${item.icon}</span>
+          <span>${item.label}</span>
+        </div>`;
     }
   });
 }
 
-// ─────────────────────────────────────────────
-//  DASHBOARD
-// ─────────────────────────────────────────────
-function buildDash() {
-  const g=$("dash-greeting");
-  g.innerHTML=`Halo, <strong>${S.name}</strong>! Role: <span class="badge b-${S.role}">${S.role}</span>${S.nim?` · NIM: <strong>${S.nim}</strong>`:""}`;
-  const stats=$("dash-stats");
-  if(S.role==="mahasiswa") {
-    stats.innerHTML=`
-      <div class="stat g"><div class="stat-n">—</div><div class="stat-l">Total Hadir</div></div>
-      <div class="stat p"><div class="stat-n">—</div><div class="stat-l">Mata Kuliah</div></div>
-      <div class="stat o"><div class="stat-n">—</div><div class="stat-l">Device ID</div></div>`;
+function navigate(page) {
+  STATE.currentPage = page;
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  const navEl = document.getElementById('nav-' + page);
+  if (navEl) navEl.classList.add('active');
+  closeSidebar();
+  renderPage(page);
+}
+
+async function loadCoursesState() {
+  const res = await api('GET', 'admin/courses', {});
+  if (res.ok) STATE.courses = res.data.items || [];
+}
+
+// ============================================================
+// PAGES
+// ============================================================
+
+function renderPage(page) {
+  const titles = {
+    dashboard: 'Dashboard', users: 'Manajemen Pengguna',
+    courses: 'Mata Kuliah', sessions: 'Sesi Kuliah',
+    qrgen: 'Generate QR Presensi', scan: 'Scan QR Presensi',
+    attendance: 'Rekap Presensi', mystatus: 'Status Presensi Saya',
+    gps: 'GPS Tracker', accel: 'Accelerometer',
+  };
+  document.getElementById('topbarTitle').textContent = titles[page] || page;
+  stopTelemetry();
+
+  const pages = {
+    dashboard:  pageDashboard,
+    users:      pageUsers,
+    courses:    pageCourses,
+    sessions:   pageSessions,
+    qrgen:      pageQRGen,
+    scan:       pageScan,
+    attendance: pageAttendance,
+    mystatus:   pageMyStatus,
+    gps:        pageGPS,
+    accel:      pageAccel,
+  };
+
+  const fn = pages[page];
+  if (fn) fn();
+  else document.getElementById('mainContent').innerHTML = `<div class="empty-state"><div class="icon">🚧</div><p>Halaman belum tersedia</p></div>`;
+}
+
+// ─── DASHBOARD ──────────────────────────────────────────────
+async function pageDashboard() {
+  const main = document.getElementById('mainContent');
+  main.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:200px"><div class="spinner" style="width:32px;height:32px;border-width:3px"></div></div>`;
+
+  const [sum] = await Promise.all([api('GET', 'dashboard/summary', {})]);
+  const d = sum.ok ? sum.data : {};
+
+  const role = STATE.user.role;
+  const isAdmin = role === 'superadmin';
+  const isDosen = role === 'dosen';
+
+  main.innerHTML = `
+    <div style="margin-bottom:8px">
+      <div style="font-size:22px;font-weight:700">Selamat datang, ${STATE.user.full_name.split(' ')[0]} 👋</div>
+      <div style="color:var(--text2);font-size:14px;margin-top:4px">${new Date().toLocaleDateString('id-ID',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
+    </div>
+
+    <div class="stats-grid" style="margin-top:20px">
+      ${isAdmin ? `
+      <div class="stat-card" style="--accent-color:var(--accent); animation-delay:0s">
+        <div class="stat-icon">👥</div>
+        <div class="stat-value">${d.total_users||0}</div>
+        <div class="stat-label">Total Pengguna</div>
+        <div class="stat-delta">↑ ${d.total_mahasiswa||0} mahasiswa · ${d.total_dosen||0} dosen</div>
+      </div>
+      <div class="stat-card" style="--accent-color:var(--purple); animation-delay:0.05s">
+        <div class="stat-icon">📚</div>
+        <div class="stat-value">${d.total_courses||0}</div>
+        <div class="stat-label">Mata Kuliah Aktif</div>
+      </div>
+      ` : ''}
+      <div class="stat-card" style="--accent-color:var(--green); animation-delay:0.1s">
+        <div class="stat-icon">✅</div>
+        <div class="stat-value">${d.today_checkins||0}</div>
+        <div class="stat-label">Check-in Hari Ini</div>
+      </div>
+      <div class="stat-card" style="--accent-color:var(--amber); animation-delay:0.15s">
+        <div class="stat-icon">📋</div>
+        <div class="stat-value">${d.total_presence||0}</div>
+        <div class="stat-label">Total Presensi</div>
+      </div>
+    </div>
+
+    ${isAdmin || isDosen ? `
+    <div class="card" style="margin-top:4px">
+      <div class="section-header">
+        <div class="section-title">Aksi Cepat</div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px">
+        <button class="btn btn-primary" onclick="navigate('qrgen')">🔲 Generate QR</button>
+        <button class="btn btn-ghost" onclick="navigate('sessions')">📅 Buat Sesi</button>
+        <button class="btn btn-ghost" onclick="navigate('attendance')">📋 Lihat Rekap</button>
+        ${isAdmin ? `<button class="btn btn-ghost" onclick="navigate('users')">➕ Tambah User</button>` : ''}
+      </div>
+    </div>` : `
+    <div class="card" style="margin-top:4px">
+      <div class="section-header">
+        <div class="section-title">Aksi Cepat</div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px">
+        <button class="btn btn-primary" onclick="navigate('scan')">📷 Scan QR Presensi</button>
+        <button class="btn btn-ghost" onclick="navigate('mystatus')">✅ Cek Status</button>
+        <button class="btn btn-ghost" onclick="navigate('gps')">🗺️ GPS Tracker</button>
+      </div>
+    </div>`}
+
+    <div class="card" style="margin-top:16px">
+      <div class="section-header"><div class="section-title">Sesi Hari Ini</div></div>
+      <div id="todaySessionsList"><div class="spinner" style="margin:20px auto"></div></div>
+    </div>`;
+
+  // Load today sessions
+  const sRes = await api('GET', 'admin/sessions', {});
+  const today = new Date().toISOString().slice(0,10);
+  const todaySessions = (sRes.ok ? sRes.data.items : []).filter(s => s.session_date === today);
+  const tsl = document.getElementById('todaySessionsList');
+  if (!todaySessions.length) {
+    tsl.innerHTML = `<div class="empty-state" style="padding:24px"><div class="icon">📅</div><p>Tidak ada sesi hari ini</p></div>`;
   } else {
-    stats.innerHTML=`
-      <div class="stat g"><div class="stat-n">—</div><div class="stat-l">Matkul</div></div>
-      <div class="stat"><div class="stat-n">—</div><div class="stat-l">Sesi</div></div>
-      <div class="stat o"><div class="stat-n">—</div><div class="stat-l">Mahasiswa</div></div>`;
+    tsl.innerHTML = `<div class="table-wrap"><table>
+      <thead><tr><th>Mata Kuliah</th><th>Waktu</th><th>Ruangan</th><th>Topik</th></tr></thead>
+      <tbody>${todaySessions.map(s=>`
+        <tr>
+          <td><b>${s.course_name}</b></td>
+          <td><span class="chip chip-blue">${s.start_time}–${s.end_time}</span></td>
+          <td>${s.room||'-'}</td>
+          <td style="color:var(--text2)">${s.topic||'-'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>`;
   }
 }
 
-// ─────────────────────────────────────────────
-//  ADMIN: KELOLA USER
-// ─────────────────────────────────────────────
-async function doAddUser() {
-  const name=_v("au-name"),email=_v("au-email"),password=_v("au-pw"),role=$("au-role").value,nim=_v("au-nim");
-  if(!name||!email||!password||!role) return showAlert("au-alert","Semua field wajib.");
-  setSpin("aus",true); const r=await api("admin/add-user",{name,email,password,role,nim}); setSpin("aus",false);
-  if(!r.ok) return showAlert("au-alert",r.error);
-  showAlert("au-alert",`✅ User ${r.data.name} berhasil ditambah (${r.data.role}).`,"ok");
-  $("au-name").value=$("au-email").value=$("au-pw").value=$("au-nim").value=""; $("au-role").value="";
-  loadUserList();
+// ─── USERS ──────────────────────────────────────────────────
+async function pageUsers() {
+  const main = document.getElementById('mainContent');
+  main.innerHTML = `
+    <div class="section-header">
+      <div class="section-title">Daftar Pengguna</div>
+      <button class="btn btn-primary btn-sm" onclick="openModal('modalAddUser')">➕ Tambah</button>
+    </div>
+    <div class="card">
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <input class="input" id="userSearch" placeholder="🔍 Cari nama / username..." oninput="filterUsers()" style="flex:1">
+        <select class="input" id="roleFilter" onchange="filterUsers()" style="width:140px">
+          <option value="">Semua Role</option>
+          <option value="superadmin">Super Admin</option>
+          <option value="dosen">Dosen</option>
+          <option value="mahasiswa">Mahasiswa</option>
+        </select>
+      </div>
+      <div id="usersTable"><div style="text-align:center;padding:40px"><div class="spinner" style="margin:auto"></div></div></div>
+    </div>`;
+
+  const res = await api('GET', 'admin/users', {});
+  window._allUsers = res.ok ? res.data.items : [];
+  renderUsersTable(window._allUsers);
 }
 
-async function doResetPw() {
-  const target_email=_v("rp-email"), new_password=_v("rp-pw");
-  if(!target_email||!new_password) return showAlert("rp-alert","Isi email dan password baru.");
-  setSpin("rps",true); const r=await api("admin/reset-password",{target_email,new_password}); setSpin("rps",false);
-  if(!r.ok) return showAlert("rp-alert",r.error);
-  showAlert("rp-alert","✅ Password berhasil direset.","ok");
+function filterUsers() {
+  const q = document.getElementById('userSearch').value.toLowerCase();
+  const r = document.getElementById('roleFilter').value;
+  const filtered = (window._allUsers||[]).filter(u =>
+    (!r || u.role===r) &&
+    (!q || u.full_name.toLowerCase().includes(q) || u.username.toLowerCase().includes(q))
+  );
+  renderUsersTable(filtered);
 }
 
-async function loadUserList() {
-  const role=$("ul-filter").value;
-  const r=await api("admin/list-users",role?{role}:{});
-  if(!r.ok) return;
-  const items=r.data.items||[];
-  const roleChip={admin:"b-adm",dosen:"b-dos",mahasiswa:"b-mhs"};
-  $("user-list-tbody").innerHTML=items.length===0
-    ?'<tr><td colspan="6" class="empty">Tidak ada user</td></tr>'
-    :items.map((u,i)=>`<tr>
-      <td>${i+1}</td><td>${u.name}</td><td>${u.email}</td>
-      <td><span class="badge ${roleChip[u.role]||""}">${u.role}</span></td>
-      <td>${u.nim||"-"}</td><td class="mut">${fmtDt(u.created_at)}</td></tr>`).join("");
+function renderUsersTable(users) {
+  const roleColors = { superadmin:'chip-purple', dosen:'chip-blue', mahasiswa:'chip-green' };
+  document.getElementById('usersTable').innerHTML = users.length ? `
+    <div class="table-wrap"><table>
+      <thead><tr><th>Nama</th><th>Username</th><th>NIM/NIP</th><th>Role</th><th>Status</th></tr></thead>
+      <tbody>${users.map(u=>`
+        <tr>
+          <td><b>${u.full_name}</b></td>
+          <td><span style="font-family:var(--mono);font-size:12px">${u.username}</span></td>
+          <td style="color:var(--text2)">${u.nim_nip||'-'}</td>
+          <td><span class="chip ${roleColors[u.role]||'chip-blue'}">${u.role}</span></td>
+          <td><span class="chip ${u.is_active==='true'?'chip-green':'chip-red'}">${u.is_active==='true'?'Aktif':'Nonaktif'}</span></td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>` :
+    `<div class="empty-state"><div class="icon">👥</div><p>Tidak ada pengguna ditemukan</p></div>`;
 }
 
-// ─────────────────────────────────────────────
-//  COURSES & SESSIONS
-// ─────────────────────────────────────────────
-async function loadSetup() {
-  const r=await api("courses");
-  if(!r.ok) return;
-  const items=r.data.items||[];
-  ["ses-csel","qr-csel","ha-csel"].forEach(id=>{
-    const el=$(id); if(!el) return;
-    el.innerHTML='<option value="">-- Pilih --</option>';
-    items.forEach(c=>el.innerHTML+=`<option value="${c.course_id}">${c.course_name} (${c.course_id})</option>`);
-  });
-  $("course-tbl").innerHTML=items.length===0
-    ?'<tr><td colspan="2" class="empty">Belum ada matkul</td></tr>'
-    :items.map(c=>`<tr><td><code>${c.course_id}</code></td><td>${c.course_name}</td></tr>`).join("");
+async function submitAddUser() {
+  const body = {
+    full_name: document.getElementById('newUserName').value,
+    username:  document.getElementById('newUserUsername').value,
+    password:  document.getElementById('newUserPass').value,
+    nim:       document.getElementById('newUserNim').value,
+    role:      document.getElementById('newUserRole').value,
+  };
+  if (!body.full_name || !body.username || !body.password) { showToast('Lengkapi form', 'error'); return; }
+  const res = await api('POST', 'admin/users', body);
+  if (res.ok) { showToast('Pengguna berhasil ditambahkan ✅', 'success'); closeModal('modalAddUser'); pageUsers(); }
+  else showToast(res.error, 'error');
 }
 
-async function doCreateCourse() {
-  const course_id=_v("ci-id"),course_name=_v("ci-name");
-  if(!course_id||!course_name) return showAlert("cc-alert","Isi semua field.");
-  setSpin("ccs",true); const r=await api("courses/create",{course_id,course_name}); setSpin("ccs",false);
-  if(!r.ok) return showAlert("cc-alert",r.error);
-  showAlert("cc-alert","✅ Mata kuliah dibuat!","ok");
-  $("ci-id").value=$("ci-name").value=""; loadSetup();
+// ─── COURSES ─────────────────────────────────────────────────
+async function pageCourses() {
+  const main = document.getElementById('mainContent');
+  main.innerHTML = `
+    <div class="section-header">
+      <div class="section-title">Mata Kuliah</div>
+      <button class="btn btn-primary btn-sm" onclick="openModal('modalAddCourse')">➕ Tambah</button>
+    </div>
+    <div id="coursesList"><div style="text-align:center;padding:40px"><div class="spinner" style="margin:auto"></div></div></div>`;
+
+  const res = await api('GET', 'admin/courses', {});
+  const courses = res.ok ? res.data.items : [];
+  STATE.courses = courses;
+
+  document.getElementById('coursesList').innerHTML = courses.length ? `
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">
+      ${courses.map(c=>`
+        <div class="card" style="cursor:pointer" onclick="navigate('sessions')">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between">
+            <div>
+              <span class="chip chip-blue" style="margin-bottom:8px">${c.course_code}</span>
+              <div style="font-weight:700;font-size:15px;margin-top:4px">${c.course_name}</div>
+              <div style="color:var(--text2);font-size:12px;margin-top:6px">${c.sks} SKS · ${c.semester||''}</div>
+            </div>
+            <span class="chip ${c.status==='active'?'chip-green':'chip-red'}" style="flex-shrink:0">${c.status}</span>
+          </div>
+        </div>`).join('')}
+    </div>` :
+    `<div class="empty-state"><div class="icon">📚</div><p>Belum ada mata kuliah</p></div>`;
 }
 
-async function doCreateSession() {
-  const course_id=$("ses-csel").value,date=_v("ses-date"),label=_v("ses-label");
-  if(!course_id||!date||!label) return showAlert("cs-alert","Isi semua field.");
-  setSpin("css2",true); const r=await api("sessions/create",{course_id,date,label}); setSpin("css2",false);
-  if(!r.ok) return showAlert("cs-alert",r.error);
-  showAlert("cs-alert","✅ Sesi dibuat! ID: "+r.data.session_id,"ok");
-  $("ses-date").value=$("ses-label").value="";
+async function submitAddCourse() {
+  const body = {
+    course_code: document.getElementById('newCourseCode').value,
+    course_name: document.getElementById('newCourseName').value,
+    sks:         document.getElementById('newCourseSks').value,
+    semester:    document.getElementById('newCourseSem').value,
+  };
+  if (!body.course_code || !body.course_name) { showToast('Lengkapi form', 'error'); return; }
+  const res = await api('POST', 'admin/courses', body);
+  if (res.ok) { showToast('Mata kuliah berhasil ditambahkan ✅', 'success'); closeModal('modalAddCourse'); pageCourses(); }
+  else showToast(res.error, 'error');
 }
 
-// ─────────────────────────────────────────────
-//  QR GENERATE
-// ─────────────────────────────────────────────
-async function loadQrCourses() { await loadSetup(); }
-async function loadQrSessions() {
-  const cid=$("qr-csel").value; if(!cid) return;
-  const r=await api("sessions",{course_id:cid});
-  const el=$("qr-ssel"); el.innerHTML='<option value="">-- Pilih --</option>';
-  if(r.ok) r.data.items.forEach(s=>el.innerHTML+=`<option value="${s.session_id}">${s.label} — ${s.date} (${s.session_id})</option>`);
+// ─── SESSIONS ────────────────────────────────────────────────
+async function pageSessions() {
+  const main = document.getElementById('mainContent');
+  main.innerHTML = `
+    <div class="section-header">
+      <div class="section-title">Sesi Kuliah</div>
+      <button class="btn btn-primary btn-sm" onclick="openAddSession()">📅 Buat Sesi</button>
+    </div>
+    <div id="sessionsList"><div style="text-align:center;padding:40px"><div class="spinner" style="margin:auto"></div></div></div>`;
+
+  const res = await api('GET', 'admin/sessions', {});
+  const sessions = res.ok ? res.data.items : [];
+  const today = new Date().toISOString().slice(0,10);
+
+  document.getElementById('sessionsList').innerHTML = sessions.length ? `
+    <div class="card">
+      <div class="table-wrap"><table>
+        <thead><tr><th>#</th><th>Mata Kuliah</th><th>Tanggal</th><th>Waktu</th><th>Topik</th><th>Ruangan</th><th>Aksi</th></tr></thead>
+        <tbody>${sessions.map(s=>`
+          <tr>
+            <td style="font-family:var(--mono)">${s.session_num}</td>
+            <td><b>${s.course_name}</b></td>
+            <td><span class="chip ${s.session_date===today?'chip-green':'chip-blue'}">${s.session_date}</span></td>
+            <td style="font-family:var(--mono);font-size:12px">${s.start_time}–${s.end_time}</td>
+            <td style="color:var(--text2)">${s.topic||'-'}</td>
+            <td>${s.room||'-'}</td>
+            <td>
+              <button class="btn btn-primary btn-sm" onclick="quickGenQR('${s.course_id}','${s.session_id}','${s.course_name}')">🔲 QR</button>
+            </td>
+          </tr>`).join('')}
+        </tbody>
+      </table></div>
+    </div>` :
+    `<div class="empty-state"><div class="icon">📅</div><p>Belum ada sesi</p></div>`;
 }
 
-async function doGenQR() {
-  const course_id=$("qr-csel").value, session_id=$("qr-ssel").value;
-  if(!course_id||!session_id) return showAlert("gen-alert","Pilih matkul dan sesi.");
-  setSpin("gens",true); const r=await api("presence/qr/generate",{course_id,session_id}); setSpin("gens",false);
-  if(!r.ok) return showAlert("gen-alert",r.error);
-
-  const {qr_token,expires_at}=r.data;
-  $("qr-box").style.display="block";
-  $("qr-tok").textContent=qr_token;
-  $("qrcode").innerHTML="";
-  new QRCode($("qrcode"),{text:qr_token,width:220,height:220,colorDark:"#1F4E79",colorLight:"#fff",correctLevel:QRCode.CorrectLevel.H});
-
-  if(qrTimer) clearInterval(qrTimer);
-  const exp=new Date(expires_at).getTime();
-  function tick(){
-    const rem=Math.max(0,Math.floor((exp-Date.now())/1000));
-    const m=String(Math.floor(rem/60)).padStart(2,"0"),s2=String(rem%60).padStart(2,"0");
-    $("qr-timer").textContent=rem>0?`⏱ ${m}:${s2}`:"⛔ Expired — Generate lagi";
-    $("qr-timer").style.color=rem<=30?"#C00000":"#1E5631";
-    if(!rem) clearInterval(qrTimer);
-  }
-  tick(); qrTimer=setInterval(tick,1000);
+async function openAddSession() {
+  const sel = document.getElementById('newSessionCourse');
+  sel.innerHTML = STATE.courses.map(c => `<option value="${c.course_id}">${c.course_name}</option>`).join('');
+  document.getElementById('newSessionDate').value = new Date().toISOString().slice(0,10);
+  openModal('modalAddSession');
 }
 
-// ─────────────────────────────────────────────
-//  HISTORY DOSEN/ADMIN (+ Leaflet peta marker)
-// ─────────────────────────────────────────────
-async function loadHaCourses() { await loadSetup(); }
-async function loadHaSessions() {
-  const cid=$("ha-csel").value; if(!cid) return;
-  const r=await api("sessions",{course_id:cid});
-  const el=$("ha-ssel"); el.innerHTML='<option value="">-- Pilih --</option>';
-  if(r.ok) r.data.items.forEach(s=>el.innerHTML+=`<option value="${s.session_id}">${s.label} — ${s.date} (${s.session_id})</option>`);
+async function submitAddSession() {
+  const body = {
+    course_id:    document.getElementById('newSessionCourse').value,
+    session_date: document.getElementById('newSessionDate').value,
+    start_time:   document.getElementById('newSessionStart').value,
+    end_time:     document.getElementById('newSessionEnd').value,
+    topic:        document.getElementById('newSessionTopic').value,
+    room:         document.getElementById('newSessionRoom').value,
+  };
+  const res = await api('POST', 'admin/sessions', body);
+  if (res.ok) { showToast('Sesi berhasil dibuat ✅', 'success'); closeModal('modalAddSession'); pageSessions(); }
+  else showToast(res.error, 'error');
 }
 
-// Recap map layer groups
-let recapMarkersLayer = null;
+async function quickGenQR(course_id, session_id, course_name) {
+  STATE.pendingQR = { course_id, session_id };
+  navigate('qrgen');
+}
 
-async function loadHistoryAll() {
-  const sid=$("ha-ssel").value; if(!sid) return;
-  const r=await api("presence/history/all",{session_id:sid});
-  if(!r.ok) return;
-  const d=r.data, items=d.items||[];
-  $("ha-n").textContent=d.total_hadir;
-  $("ha-sesi").textContent=d.pertemuan||sid;
-  $("ha-tgl").textContent=d.tanggal||"-";
-  $("ha-stats").style.display="grid";
+// ─── QR GENERATE ─────────────────────────────────────────────
+async function pageQRGen() {
+  const main = document.getElementById('mainContent');
+  const courses = STATE.courses;
+  const cRes = await api('GET', 'admin/sessions', {});
+  const sessions = cRes.ok ? cRes.data.items : [];
 
-  $("ha-tbody").innerHTML=items.length===0
-    ?'<tr><td colspan="7" class="empty">Belum ada yang absen</td></tr>'
-    :items.map(p=>`<tr>
-        <td>${p.no}</td>
-        <td><code>${p.nim||"-"}</code></td>
-        <td><strong>${p.nama}</strong></td>
-        <td class="mut">${fmtTime(p.jam_checkin)}</td>
-        <td>${p.maps_url?`<a class="maps-link" href="${p.maps_url}" target="_blank">📍 Lihat</a>`:"<span class='mut'>-</span>"}</td>
-        <td><span class="badge b-ok">${p.status}</span></td>
-        <td class="mut">${p.device_id}</td>
-      </tr>`).join("");
+  main.innerHTML = `
+    <div class="card">
+      <div class="card-title">Konfigurasi QR</div>
+      <div class="input-group">
+        <label>Mata Kuliah</label>
+        <select class="input" id="qrCourse" onchange="filterQRSessions()">
+          <option value="">— Pilih Mata Kuliah —</option>
+          ${courses.map(c=>`<option value="${c.course_id}">${c.course_name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="input-group">
+        <label>Sesi</label>
+        <select class="input" id="qrSession">
+          <option value="">— Pilih Sesi —</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label>Durasi QR (menit)</label>
+        <input class="input" type="number" id="qrDuration" value="5" min="1" max="30">
+      </div>
+      <button class="btn btn-primary btn-lg" onclick="generateQR()" style="width:100%;margin-top:4px">🔲 Generate QR</button>
+    </div>
 
-  // ── Plot markers di Leaflet ──
-  const withLoc = items.filter(p=>p.lokasi&&p.lokasi.lat);
-  if (withLoc.length > 0) {
-    $("recap-map-wrap").style.display = "block";
-    const map = initMap("recap-map");
+    <div id="qrResult" style="display:none">
+      <div class="card" style="margin-top:0">
+        <div class="card-title">QR Code Aktif</div>
+        <div class="qr-wrapper">
+          <div class="qr-frame">
+            <div id="qrDisplay"></div>
+            <div class="qr-scan-line"></div>
+          </div>
+          <div class="qr-token-badge" id="qrTokenText">---</div>
+          <div id="qrCourseInfo" style="text-align:center;font-size:13px;color:var(--text2)"></div>
+          <div class="qr-timer" id="qrTimerDisplay">⏱ Expires in...</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost btn-sm" onclick="generateQR()">🔄 Refresh QR</button>
+            <button class="btn btn-success btn-sm" onclick="navigate('attendance')">📋 Lihat Presensi</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
 
-    if (recapMarkersLayer) { map.removeLayer(recapMarkersLayer); }
-    recapMarkersLayer = L.layerGroup().addTo(map);
+  window._allSessions = sessions;
 
-    const bounds = [];
-    withLoc.forEach(p => {
-      const {lat, lng} = p.lokasi;
-      bounds.push([lat, lng]);
-      L.marker([lat, lng], { icon: ICON_BLUE })
-        .bindPopup(`<div class="pop-title">${p.nama}</div>NIM: ${p.nim||"-"}<br>Jam: ${fmtTime(p.jam_checkin)}<br>Akurasi: ±${p.lokasi.accuracy_m||"?"}m`)
-        .addTo(recapMarkersLayer);
-      // Accuracy circle
-      if (p.lokasi.accuracy_m) {
-        L.circle([lat, lng], { radius: p.lokasi.accuracy_m, color:"#2E75B6", weight:1, fillOpacity:0.07 }).addTo(recapMarkersLayer);
+  // Pre-fill if coming from sessions page
+  if (STATE.pendingQR) {
+    setTimeout(async () => {
+      document.getElementById('qrCourse').value = STATE.pendingQR.course_id;
+      await filterQRSessions();
+      const sel = document.getElementById('qrSession');
+      for (let opt of sel.options) {
+        if (opt.value === STATE.pendingQR.session_id) { sel.value = STATE.pendingQR.session_id; break; }
       }
-    });
-
-    if (bounds.length > 0) {
-      try { map.fitBounds(bounds, { padding: [40, 40], maxZoom: 17 }); } catch(e){}
-    }
-    setTimeout(()=>map.invalidateSize(), 150);
-  } else {
-    $("recap-map-wrap").style.display = "none";
+      STATE.pendingQR = null;
+      generateQR();
+    }, 100);
   }
 }
 
-// ─────────────────────────────────────────────
-//  MAHASISWA: SCAN + PETA CHECKIN
-// ─────────────────────────────────────────────
-let checkinMapVisible = false;
-let checkinPickMarker = null;
-
-function startScan() {
-  $("btn-cam").style.display="none"; $("btn-stop").style.display="inline-flex";
-  scanner=new Html5Qrcode("reader");
-  scanner.start({facingMode:"environment"},{fps:10,qrbox:{width:260,height:260}},
-    text=>{ stopScan(); $("scan-tok").textContent=text; $("scan-res").style.display="block"; },
-    ()=>{}
-  ).catch(e=>showAlert("cin-alert","Kamera error: "+e));
-}
-function stopScan() {
-  if(scanner){try{scanner.stop().then(()=>scanner.clear());}catch(e){} scanner=null;}
-  $("btn-cam").style.display="inline-flex"; $("btn-stop").style.display="none";
+function filterQRSessions() {
+  const cid = document.getElementById('qrCourse').value;
+  const sel = document.getElementById('qrSession');
+  const filtered = (window._allSessions||[]).filter(s => s.course_id === cid);
+  sel.innerHTML = `<option value="">— Pilih Sesi —</option>` +
+    filtered.map(s=>`<option value="${s.session_id}">${s.session_date} | ${s.topic||'Sesi '+s.session_num}</option>`).join('');
+  return filtered;
 }
 
-function getMyLocationScan() {
-  $("loc-status-scan").textContent="Mendapatkan lokasi…";
-  if(!navigator.geolocation) { $("loc-status-scan").textContent="Geolocation tidak didukung."; return; }
-  navigator.geolocation.getCurrentPosition(pos=>{
-    const {latitude:lat, longitude:lng, accuracy} = pos.coords;
-    $("sc-lat").value = lat.toFixed(6);
-    $("sc-lng").value = lng.toFixed(6);
-    $("loc-status-scan").textContent = `📍 ${lat.toFixed(5)}, ${lng.toFixed(5)} (±${accuracy.toFixed(0)}m)`;
-    // Auto-show map and center
-    if (checkinMapVisible) updateCheckinMapMarker(lat, lng, accuracy);
-  }, ()=>{ $("loc-status-scan").textContent = "Gagal mendapat lokasi."; });
-}
+async function generateQR() {
+  const course_id  = document.getElementById('qrCourse').value;
+  const session_id = document.getElementById('qrSession').value;
+  const duration   = parseInt(document.getElementById('qrDuration').value) || 5;
 
-function toggleCheckinMap() {
-  const wrap = $("checkin-map-wrap");
-  checkinMapVisible = !checkinMapVisible;
-  wrap.style.display = checkinMapVisible ? "block" : "none";
+  if (!course_id || !session_id) { showToast('Pilih mata kuliah dan sesi', 'error'); return; }
 
-  if (checkinMapVisible) {
-    setTimeout(()=>{
-      const map = initMap("checkin-map", DEFAULT_CENTER, 14);
-      map.on("click", e=>{
-        const {lat, lng} = e.latlng;
-        $("sc-lat").value = lat.toFixed(6);
-        $("sc-lng").value = lng.toFixed(6);
-        $("loc-status-scan").textContent = `📍 ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-        updateCheckinMapMarker(lat, lng, null);
-        $("checkin-map-info").textContent = `Lokasi dipilih: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-      });
-      // If already have coords, show marker
-      const lat = parseFloat(_v("sc-lat")), lng = parseFloat(_v("sc-lng"));
-      if (!isNaN(lat) && !isNaN(lng)) { updateCheckinMapMarker(lat, lng, null); map.setView([lat,lng], 16); }
-    }, 80);
-  }
-}
-
-function updateCheckinMapMarker(lat, lng, accuracy) {
-  const map = MAPS["checkin-map"]; if (!map) return;
-  if (checkinPickMarker) map.removeLayer(checkinPickMarker);
-  checkinPickMarker = L.marker([lat, lng], { icon: ICON_USER })
-    .bindPopup(`<div class="pop-title">Lokasi Absen Anda</div>${lat.toFixed(5)}, ${lng.toFixed(5)}`)
-    .addTo(map).openPopup();
-  if (accuracy) L.circle([lat, lng], { radius: accuracy, color:"#4A235A", weight:1, fillOpacity:0.08 }).addTo(map);
-  map.setView([lat, lng], 17);
-}
-
-async function doCheckin() {
-  const qr_token=$("scan-tok").textContent.trim(), course_id=_v("sc-cid"), session_id=_v("sc-sid");
-  const lat=_v("sc-lat"), lng=_v("sc-lng");
-  if(!course_id||!session_id) return showAlert("cin-alert","Isi Course ID dan Session ID.");
-  const payload={device_id:"web-scan-01",course_id,session_id,qr_token};
-  if(lat&&lng){payload.lat=parseFloat(lat);payload.lng=parseFloat(lng);}
-  setSpin("cins",true); const r=await api("presence/checkin",payload); setSpin("cins",false);
-  if(!r.ok) return showAlert("cin-alert",r.error);
-  showAlert("cin-alert",`✅ Absen berhasil! ID: ${r.data.presence_id}`,"ok");
-  $("scan-res").style.display="none";
-  $("checkin-map-wrap").style.display="none"; checkinMapVisible=false;
-}
-
-// ─────────────────────────────────────────────
-//  TOKEN MANUAL + PETA
-// ─────────────────────────────────────────────
-let manualMapVisible = false;
-let manualPickMarker = null;
-
-function getMyLocationManual() {
-  if(!navigator.geolocation) return;
-  $("loc-status-m").textContent="Mendapatkan lokasi…";
-  navigator.geolocation.getCurrentPosition(pos=>{
-    const {latitude:lat, longitude:lng, accuracy} = pos.coords;
-    manLat=lat; manLng=lng;
-    $("loc-status-m").textContent=`📍 ${lat.toFixed(5)}, ${lng.toFixed(5)} (±${accuracy.toFixed(0)}m)`;
-    if (manualMapVisible) updateManualMapMarker(lat, lng);
-  },()=>$("loc-status-m").textContent="Gagal mendapat lokasi.");
-}
-
-function toggleManualMap() {
-  const wrap = $("manual-map-wrap");
-  manualMapVisible = !manualMapVisible;
-  wrap.style.display = manualMapVisible ? "block" : "none";
-
-  if (manualMapVisible) {
-    setTimeout(()=>{
-      const map = initMap("manual-map", DEFAULT_CENTER, 14);
-      map.on("click", e=>{
-        const {lat, lng} = e.latlng;
-        manLat=lat; manLng=lng;
-        $("loc-status-m").textContent = `📍 ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-        updateManualMapMarker(lat, lng);
-        $("manual-map-info").textContent = `Lokasi dipilih: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-      });
-      if (manLat && manLng) { updateManualMapMarker(manLat, manLng); MAPS["manual-map"].setView([manLat, manLng], 16); }
-    }, 80);
-  }
-}
-
-function updateManualMapMarker(lat, lng) {
-  const map = MAPS["manual-map"]; if (!map) return;
-  if (manualPickMarker) map.removeLayer(manualPickMarker);
-  manualPickMarker = L.marker([lat, lng], { icon: ICON_USER })
-    .bindPopup(`<div class="pop-title">Lokasi Absen Anda</div>${lat.toFixed(5)}, ${lng.toFixed(5)}`)
-    .addTo(map).openPopup();
-  map.setView([lat, lng], 17);
-}
-
-async function doCheckinManual() {
-  const qr_token=_v("mt").toUpperCase(), course_id=_v("mc"), session_id=_v("ms");
-  if(!qr_token||!course_id||!session_id) return showAlert("man-alert","Isi semua field.");
-  const payload={device_id:"web-manual-01",course_id,session_id,qr_token};
-  if(manLat&&manLng){payload.lat=manLat;payload.lng=manLng;}
-  setSpin("mans",true); const r=await api("presence/checkin",payload); setSpin("mans",false);
-  if(!r.ok) return showAlert("man-alert",r.error);
-  showAlert("man-alert",`✅ Absen berhasil! ID: ${r.data.presence_id}`,"ok");
-  $("mt").value=""; manLat=null; manLng=null; $("loc-status-m").textContent="";
-  $("manual-map-wrap").style.display="none"; manualMapVisible=false;
-}
-
-// ─────────────────────────────────────────────
-//  HISTORY MAHASISWA + Leaflet markers
-// ─────────────────────────────────────────────
-let mhsMarkersLayer = null;
-
-async function loadHistoryMhs() {
-  const course_id=_v("mh-cid"); if(!course_id) return;
-  const r=await api("presence/history",{course_id});
-  if(!r.ok){$("mh-tbody").innerHTML=`<tr><td colspan="6" class="empty">${r.error}</td></tr>`;return;}
-  const items=r.data.items||[];
-  $("mh-total").textContent=items.length;
-  $("mh-tbody").innerHTML=items.length===0
-    ?'<tr><td colspan="6" class="empty">Belum ada data</td></tr>'
-    :items.map(p=>`<tr>
-        <td>${p.no}</td>
-        <td><strong>${p.pertemuan}</strong></td>
-        <td class="mut">${p.tanggal||"-"}</td>
-        <td class="mut">${fmtTime(p.jam_checkin)}</td>
-        <td>${p.maps_url?`<a class="maps-link" href="${p.maps_url}" target="_blank">📍 ${p.lokasi.lat.toFixed(4)},${p.lokasi.lng.toFixed(4)}</a>`:"<span class='mut'>-</span>"}</td>
-        <td><span class="badge b-ok">${p.status}</span></td>
-      </tr>`).join("");
-
-  // Peta lokasi absen
-  const withLoc = items.filter(p=>p.lokasi&&p.lokasi.lat);
-  if (withLoc.length > 0) {
-    $("mhs-map-wrap").style.display = "block";
-    const map = initMap("mhs-map");
-    if (mhsMarkersLayer) map.removeLayer(mhsMarkersLayer);
-    mhsMarkersLayer = L.layerGroup().addTo(map);
-    const bounds = [];
-    withLoc.forEach((p,i) => {
-      const {lat, lng} = p.lokasi;
-      bounds.push([lat, lng]);
-      const icon = i===0 ? ICON_GREEN : (i===withLoc.length-1 ? ICON_RED : ICON_BLUE);
-      L.marker([lat, lng], {icon})
-        .bindPopup(`<div class="pop-title">${p.pertemuan}</div>${p.tanggal}<br>Jam: ${fmtTime(p.jam_checkin)}`)
-        .addTo(mhsMarkersLayer);
-    });
-    if (bounds.length > 1) {
-      // Draw a line connecting all attendance locations chronologically
-      L.polyline(bounds, { color:"#2E75B6", weight:2, dashArray:"4 6", opacity:.6 }).addTo(mhsMarkersLayer);
-    }
-    if (bounds.length > 0) try { map.fitBounds(bounds, {padding:[40,40],maxZoom:17}); } catch(e){}
-    setTimeout(()=>map.invalidateSize(), 150);
-  } else {
-    $("mhs-map-wrap").style.display = "none";
-  }
-}
-
-// ─────────────────────────────────────────────
-//  ACCELEROMETER
-// ─────────────────────────────────────────────
-let accelActive=false;
-function startAccel() {
-  accelActive=true;
-  $("btn-ac-start").style.display="none";
-  $("btn-ac-stop").style.display="inline-flex";
-
-  function sendBatch(){
-    if(!accelActive||accelBatch.length===0) return;
-    const samples=[...accelBatch]; accelBatch=[];
-    api("telemetry/accel",{device_id:_v("ac-dev")||"web-01",ts:new Date().toISOString(),samples})
-      .then(r=>{ if(!r.ok) showAlert("ac-alert","Accel error: "+r.error); });
-  }
-
-  if(window.DeviceMotionEvent && typeof DeviceMotionEvent.requestPermission==="function") {
-    DeviceMotionEvent.requestPermission().then(state=>{
-      if(state==="granted") listenMotion();
-    });
-  } else if(window.DeviceMotionEvent) {
-    listenMotion();
-  } else {
-    showAlert("ac-alert","DeviceMotion tidak tersedia — menggunakan data simulasi.","info");
-    accelTimer=setInterval(()=>{
-      const x=(Math.random()-0.5)*2, y=(Math.random()-0.5)*2, z=9.5+Math.random();
-      updateAccelUI(x,y,z);
-      accelBatch.push({t:new Date().toISOString(),x:+x.toFixed(3),y:+y.toFixed(3),z:+z.toFixed(3)});
-      if(accelBatch.length>=5) sendBatch();
-    },300);
-  }
-  setInterval(sendBatch,3000);
-}
-
-function listenMotion() {
-  window.addEventListener("devicemotion", e=>{
-    if(!accelActive||!e.acceleration) return;
-    const {x,y,z}=e.acceleration;
-    updateAccelUI(x,y,z);
-    accelBatch.push({t:new Date().toISOString(),x:+x.toFixed(3),y:+y.toFixed(3),z:+(z||9.81).toFixed(3)});
+  const res = await api('POST', 'presence/qr/generate', {
+    course_id, session_id, duration_minutes: duration, ts: new Date().toISOString()
   });
+  if (!res.ok) { showToast(res.error, 'error'); return; }
+
+  const d = res.data;
+  STATE.currentQR = d;
+
+  document.getElementById('qrResult').style.display = 'block';
+  document.getElementById('qrTokenText').textContent = d.qr_token;
+  document.getElementById('qrCourseInfo').innerHTML =
+    `<b>${d.course_name||''}</b>${d.room?' · '+d.room:''}`;
+
+  // Render QR image
+  const qrDiv = document.getElementById('qrDisplay');
+  qrDiv.innerHTML = '';
+  new QRCode(qrDiv, {
+    text: d.qr_payload,
+    width: 220, height: 220,
+    colorDark: '#0a0f1e', colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.H,
+  });
+
+  // Start timer
+  clearInterval(STATE.qrTimer);
+  const expires = new Date(d.expires_at);
+  STATE.qrTimer = setInterval(() => {
+    const diff = Math.max(0, Math.floor((expires - new Date()) / 1000));
+    const m = Math.floor(diff / 60);
+    const s = diff % 60;
+    const el = document.getElementById('qrTimerDisplay');
+    if (!el) { clearInterval(STATE.qrTimer); return; }
+    el.textContent = `⏱ Expires in ${m}:${String(s).padStart(2,'0')}`;
+    el.classList.toggle('urgent', diff < 30);
+    if (diff === 0) { el.textContent = '⚠️ QR Expired — klik Refresh'; clearInterval(STATE.qrTimer); }
+  }, 1000);
+
+  showToast('QR berhasil di-generate!', 'success');
 }
 
-function updateAccelUI(x,y,z) {
-  $("av-x").textContent=x.toFixed(3); $("av-y").textContent=y.toFixed(3); $("av-z").textContent=z.toFixed(3);
-  const norm=(v,max)=>Math.min(100,Math.abs(v)/max*100);
-  $("bar-x").style.height=norm(x,20)*0.8+"px";
-  $("bar-y").style.height=norm(y,20)*0.8+"px";
-  $("bar-z").style.height=norm(z,15)*0.8+"px";
+// ─── SCAN QR ─────────────────────────────────────────────────
+function pageScan() {
+  const main = document.getElementById('mainContent');
+  main.innerHTML = `
+    <div class="card">
+      <div class="card-title">Scan QR Presensi</div>
+      <p style="color:var(--text2);font-size:13px;margin-bottom:16px">Arahkan kamera ke QR Code yang ditampilkan dosen. GPS akan otomatis terdeteksi.</p>
+      <div class="scanner-wrapper" id="scannerWrapper">
+        <video id="scanVideo" autoplay muted playsinline></video>
+        <div class="scanner-overlay"></div>
+        <div class="scanner-box">
+          <div class="corner-br"></div>
+          <div class="corner-tl"></div>
+          <div class="scan-beam"></div>
+        </div>
+      </div>
+      <div id="scanStatus" style="text-align:center;padding:16px;color:var(--text2);font-size:13px">📷 Membuka kamera...</div>
+      <canvas id="scanCanvas" style="display:none"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">Input Manual</div>
+      <div style="display:flex;gap:8px">
+        <input class="input" id="manualToken" placeholder="Masukkan QR Token (TKN-XXXXXX)">
+        <button class="btn btn-primary" onclick="doManualCheckin()">Check-in</button>
+      </div>
+    </div>`;
+
+  startScanner();
 }
 
-function stopAccel() {
-  accelActive=false;
-  if(accelTimer){clearInterval(accelTimer);accelTimer=null;}
-  $("btn-ac-start").style.display="inline-flex";
-  $("btn-ac-stop").style.display="none";
+async function startScanner() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    const video  = document.getElementById('scanVideo');
+    if (!video) return;
+    video.srcObject = stream;
+    STATE.scannerActive = true;
+    STATE.scannerStream = stream;
+    document.getElementById('scanStatus').textContent = '🔍 Mencari QR Code...';
+    requestAnimationFrame(scanFrame);
+  } catch (e) {
+    document.getElementById('scanStatus').textContent = '⚠️ Kamera tidak tersedia. Gunakan input manual.';
+  }
 }
 
-async function fetchAccelLatest() {
-  const device_id=_v("ac-q-dev"); if(!device_id) return;
-  const r=await api("telemetry/accel/latest",{device_id});
-  if(!r.ok) return $("accel-latest").textContent=r.error;
-  const d=r.data;
-  $("accel-latest").innerHTML=`<strong>${d.device_id}</strong> — t: ${fmtDt(d.t)} | X: <strong>${d.x}</strong> | Y: <strong>${d.y}</strong> | Z: <strong>${d.z}</strong>`;
+function scanFrame() {
+  if (!STATE.scannerActive) return;
+  const video  = document.getElementById('scanVideo');
+  const canvas = document.getElementById('scanCanvas');
+  if (!video || !canvas || video.readyState !== video.HAVE_ENOUGH_DATA) {
+    requestAnimationFrame(scanFrame); return;
+  }
+  canvas.width  = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0);
+  const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const code = jsQR(img.data, img.width, img.height);
+  if (code) {
+    STATE.scannerActive = false;
+    stopScannerStream();
+    processQRCode(code.data);
+  } else {
+    requestAnimationFrame(scanFrame);
+  }
 }
 
-// ═══════════════════════════════════════════════
-//  GPS TRACKING — Leaflet Integration
-// ═══════════════════════════════════════════════
-
-// GPS state
-let gpsMarker       = null;   // current position marker
-let gpsAccCircle    = null;   // accuracy circle
-let gpsTrailLayer   = null;   // live polyline layer group
-let gpsTrailPoints  = [];     // [[lat,lng], ...]
-let gpsPolyline     = null;   // live trail polyline
-
-// History map
-let historyMapLayer = null;
-
-function initGpsPanel() {
-  // Delay so the DOM is visible
-  setTimeout(() => {
-    const map = initMap("gps-map", DEFAULT_CENTER, DEFAULT_ZOOM);
-    gpsTrailLayer = L.layerGroup().addTo(map);
-    map.invalidateSize();
-  }, 120);
+function stopScannerStream() {
+  if (STATE.scannerStream) {
+    STATE.scannerStream.getTracks().forEach(t => t.stop());
+    STATE.scannerStream = null;
+  }
 }
 
-function setTrackDot(active) {
-  $("track-dot").className = "track-dot" + (active ? " active" : "");
-  $("btn-gps-start").style.display = active ? "none" : "inline-flex";
-  $("btn-gps-stop").style.display  = active ? "inline-flex" : "none";
-}
+async function processQRCode(data) {
+  let payload;
+  try { payload = JSON.parse(data); } catch (_) { showToast('QR tidak valid', 'error'); return; }
 
-function startGPS() {
-  if(!navigator.geolocation) return showAlert("gps-alert","Geolocation tidak didukung browser ini.");
-  setTrackDot(true);
-  gpsTrailPoints = [];
-  $("gps-status-txt").textContent = "Aktif — menunggu GPS…";
-  $("gps-map-bar").style.display = "none";
+  document.getElementById('scanStatus').innerHTML = `<div class="spinner" style="margin:auto"></div><br>Memproses check-in...`;
 
-  const map = MAPS["gps-map"] || initMap("gps-map");
-  if (!gpsTrailLayer) gpsTrailLayer = L.layerGroup().addTo(map);
+  // Get GPS
+  const gpsData = await getGPSPosition();
 
-  gpsWatcher = navigator.geolocation.watchPosition(pos=>{
-    const {latitude:lat, longitude:lng, accuracy} = pos.coords;
-    const now = new Date();
+  const user = STATE.user;
+  const body = {
+    user_id:    user.user_id,
+    device_id:  getDeviceId(),
+    course_id:  payload.c,
+    session_id: payload.s,
+    qr_token:   payload.t,
+    ts:         new Date().toISOString(),
+    ...(gpsData ? { lat: gpsData.lat, lng: gpsData.lng, accuracy_m: gpsData.accuracy } : {}),
+  };
 
-    // Status bar
-    $("gps-status-txt").textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-    const accBadge = $("gps-accuracy-badge");
-    accBadge.style.display = "inline";
-    accBadge.textContent = `±${accuracy.toFixed(0)}m`;
-    accBadge.style.background = accuracy < 20 ? "var(--green)" : accuracy < 60 ? "var(--org)" : "var(--red)";
-
-    // Map info bar
-    $("gps-map-bar").style.display = "flex";
-    $("gps-coords-display").textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-    $("gps-time-display").textContent   = fmtDt(now);
-    $("gps-gmaps-link").href = `https://maps.google.com/?q=${lat},${lng}`;
-
-    // Marker
-    if (!gpsMarker) {
-      gpsMarker = L.marker([lat, lng], { icon: ICON_USER })
-        .bindPopup(`<div class="pop-title">Posisi Anda</div>`)
-        .addTo(map);
+  const res = await api('POST', 'presence/checkin', body);
+  const el  = document.getElementById('scanStatus');
+  if (el) {
+    if (res.ok) {
+      el.innerHTML = `<span style="color:var(--green)">✅ Check-in Berhasil!</span>`;
+      showCheckinSuccess(res.data, gpsData);
     } else {
-      gpsMarker.setLatLng([lat, lng]);
+      el.innerHTML = `<span style="color:var(--red)">❌ ${res.error}</span>`;
+      showToast(res.error, 'error');
     }
-    gpsMarker.getPopup().setContent(
-      `<div class="pop-title">Posisi Saat Ini</div>${lat.toFixed(5)}, ${lng.toFixed(5)}<br>Akurasi: ±${accuracy.toFixed(0)}m<br><small style="color:#888">${fmtDt(now)}</small>`
-    );
+  }
+}
 
-    // Accuracy circle
-    if (gpsAccCircle) map.removeLayer(gpsAccCircle);
-    gpsAccCircle = L.circle([lat, lng], {
-      radius: accuracy, color:"#4A235A", weight:1.5, fillOpacity:0.08
-    }).addTo(map);
+function showCheckinSuccess(data, gps) {
+  const geo = data.geo_status;
+  document.getElementById('checkinSuccessInfo').innerHTML = `
+    <b>${data.course_name||'Mata Kuliah'}</b><br>
+    ${data.room ? '📍 '+data.room+'<br>' : ''}
+    🕐 ${new Date(data.checkin_ts||Date.now()).toLocaleTimeString('id-ID')}
+  `;
+  document.getElementById('checkinGeoStatus').innerHTML = `
+    <div class="presence-badge ${geo==='in_range'?'checked_in':geo==='out_of_range'?'not_checked':'checked_out'}">
+      <div class="dot"></div>
+      GPS: ${geo==='in_range'?'Dalam Area':'geo'==='out_of_range'?'Di Luar Area':'Tidak Diverifikasi'}
+    </div>
+    ${gps ? `<div style="font-size:11px;color:var(--text2);margin-top:8px;font-family:var(--mono)">${gps.lat.toFixed(6)}, ${gps.lng.toFixed(6)} (±${gps.accuracy?.toFixed(0)}m)</div>` : ''}
+  `;
+  openModal('modalCheckinSuccess');
+}
 
-    // Trail polyline
-    gpsTrailPoints.push([lat, lng]);
-    if (gpsPolyline) map.removeLayer(gpsPolyline);
-    if (gpsTrailPoints.length > 1) {
-      gpsPolyline = L.polyline(gpsTrailPoints, {
-        color:"#2E75B6", weight:4, opacity:.75, lineCap:"round"
-      }).addTo(map);
+async function doManualCheckin() {
+  const raw = document.getElementById('manualToken').value.trim();
+  if (!raw) return;
+
+  // Detect format: JSON payload or plain token
+  let payload;
+  try {
+    payload = JSON.parse(raw);
+  } catch (_) {
+    // Treat as plain token — need course/session
+    showToast('Masukkan format JSON payload atau scan QR', 'error'); return;
+  }
+
+  document.getElementById('manualToken').value = '';
+  await processQRCode(JSON.stringify(payload));
+}
+
+// ─── ATTENDANCE ──────────────────────────────────────────────
+async function pageAttendance() {
+  const main = document.getElementById('mainContent');
+  const courses = STATE.courses;
+
+  main.innerHTML = `
+    <div class="card">
+      <div class="card-title">Filter Rekap</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <select class="input" id="attCourse" onchange="loadAttendance()" style="flex:1;min-width:180px">
+          <option value="">— Pilih Mata Kuliah —</option>
+          ${courses.map(c=>`<option value="${c.course_id}">${c.course_name}</option>`).join('')}
+        </select>
+        <select class="input" id="attSession" onchange="loadAttendanceDetail()" style="flex:1;min-width:180px">
+          <option value="">— Pilih Sesi —</option>
+        </select>
+      </div>
+    </div>
+    <div id="attendanceResult"></div>`;
+}
+
+async function loadAttendance() {
+  const cid = document.getElementById('attCourse').value;
+  if (!cid) return;
+  const res = await api('GET', 'admin/sessions', { course_id: cid });
+  const sessions = res.ok ? res.data.items : [];
+  const sel = document.getElementById('attSession');
+  sel.innerHTML = `<option value="">— Pilih Sesi —</option>` +
+    sessions.map(s=>`<option value="${s.session_id}">${s.session_date} | ${s.topic||'Sesi '+s.session_num}</option>`).join('');
+  document.getElementById('attendanceResult').innerHTML = '';
+}
+
+async function loadAttendanceDetail() {
+  const cid = document.getElementById('attCourse').value;
+  const sid = document.getElementById('attSession').value;
+  if (!cid || !sid) return;
+
+  const res = await api('GET', 'presence/list', { course_id:cid, session_id:sid });
+  const container = document.getElementById('attendanceResult');
+  if (!res.ok) { container.innerHTML = `<div class="card"><p style="color:var(--red)">${res.error}</p></div>`; return; }
+
+  const items = res.data.items || [];
+  const total = items.length;
+
+  container.innerHTML = `
+    <div class="card">
+      <div class="section-header">
+        <div class="section-title">Rekap Kehadiran</div>
+        <span class="chip chip-green">${total} hadir</span>
+      </div>
+      <div class="progress-bar" style="margin-bottom:16px">
+        <div class="progress-fill" style="width:${Math.min(100,total/30*100)}%"></div>
+      </div>
+      ${total ? `<div class="table-wrap"><table>
+        <thead><tr><th>User ID</th><th>Check-in</th><th>Status</th><th>GPS</th><th>Device</th></tr></thead>
+        <tbody>${items.map(p=>`
+          <tr>
+            <td style="font-family:var(--mono)">${p.user_id}</td>
+            <td style="font-family:var(--mono);font-size:12px">${p.checkin_ts?new Date(p.checkin_ts).toLocaleString('id-ID'):'-'}</td>
+            <td><span class="presence-badge ${p.status}"><div class="dot"></div>${p.status}</span></td>
+            <td><span class="chip ${p.geo_status==='in_range'?'chip-green':'chip-amber'}">${p.geo_status||'-'}</span></td>
+            <td style="font-family:var(--mono);font-size:11px;color:var(--text2)">${p.device_id||'-'}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table></div>` : `<div class="empty-state"><div class="icon">📋</div><p>Belum ada yang check-in</p></div>`}
+    </div>`;
+}
+
+// ─── MY STATUS ───────────────────────────────────────────────
+async function pageMyStatus() {
+  const main = document.getElementById('mainContent');
+  const courses = STATE.courses;
+
+  main.innerHTML = `
+    <div class="card">
+      <div class="card-title">Cek Status Presensi</div>
+      <div class="input-group"><label>Mata Kuliah</label>
+        <select class="input" id="myStatCourse" onchange="loadMySessions()">
+          <option value="">— Pilih —</option>
+          ${courses.map(c=>`<option value="${c.course_id}">${c.course_name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="input-group"><label>Sesi</label>
+        <select class="input" id="myStatSession"><option value="">— Pilih Sesi —</option></select>
+      </div>
+      <button class="btn btn-primary" style="width:100%" onclick="checkMyStatus()">Cek Status</button>
+    </div>
+    <div id="myStatusResult"></div>`;
+}
+
+async function loadMySessions() {
+  const cid = document.getElementById('myStatCourse').value;
+  if (!cid) return;
+  const res = await api('GET', 'admin/sessions', { course_id:cid });
+  const sel = document.getElementById('myStatSession');
+  sel.innerHTML = `<option value="">— Pilih Sesi —</option>` +
+    (res.ok?res.data.items:[]).map(s=>`<option value="${s.session_id}">${s.session_date} | ${s.topic||'Sesi '+s.session_num}</option>`).join('');
+}
+
+async function checkMyStatus() {
+  const cid = document.getElementById('myStatCourse').value;
+  const sid = document.getElementById('myStatSession').value;
+  if (!cid || !sid) { showToast('Pilih mata kuliah dan sesi', 'error'); return; }
+
+  const res = await api('GET', 'presence/status', { user_id:STATE.user.user_id, course_id:cid, session_id:sid });
+  const container = document.getElementById('myStatusResult');
+  if (!res.ok) { container.innerHTML = `<div class="card"><p style="color:var(--red)">${res.error}</p></div>`; return; }
+
+  const d = res.data;
+  container.innerHTML = `
+    <div class="card" style="text-align:center">
+      <div style="font-size:48px;margin-bottom:12px">${d.status==='checked_in'?'✅':d.status==='checked_out'?'🏁':'❌'}</div>
+      <div class="presence-badge ${d.status==='checked_in'?'checked_in':d.status==='checked_out'?'checked_out':'not_checked'}" style="margin:0 auto 16px">
+        <div class="dot"></div>
+        ${d.status==='checked_in'?'Sudah Check-in':d.status==='checked_out'?'Sudah Check-out':'Belum Check-in'}
+      </div>
+      ${d.course_name?`<div style="font-weight:700;margin-bottom:8px">${d.course_name}</div>`:''}
+      ${d.last_ts?`<div style="color:var(--text2);font-size:13px">🕐 ${new Date(d.last_ts).toLocaleString('id-ID')}</div>`:''}
+      ${d.geo_status && d.geo_status!=='not_verified'?`<div style="margin-top:12px"><span class="chip ${d.geo_status==='in_range'?'chip-green':'chip-amber'}">GPS: ${d.geo_status}</span></div>`:''}
+    </div>`;
+}
+
+// ─── GPS TRACKER ─────────────────────────────────────────────
+function pageGPS() {
+  const main = document.getElementById('mainContent');
+  main.innerHTML = `
+    <div class="card">
+      <div class="section-header">
+        <div class="section-title">GPS Tracker</div>
+        <div id="gpsStatusBadge"><span class="chip chip-amber">⏸ Standby</span></div>
+      </div>
+      <div id="gpsMap"></div>
+      <div class="gps-info" style="margin-top:12px" id="gpsInfoPanel">
+        <div class="gps-info-item"><div class="key">Latitude</div><div class="val" id="gpsLat">—</div></div>
+        <div class="gps-info-item"><div class="key">Longitude</div><div class="val" id="gpsLng">—</div></div>
+        <div class="gps-info-item"><div class="key">Accuracy</div><div class="val" id="gpsAcc">—</div></div>
+        <div class="gps-info-item"><div class="key">Last Update</div><div class="val" id="gpsTs">—</div></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="btn btn-success" id="gpsStartBtn" onclick="startGPS()" style="flex:1">▶ Mulai Tracking</button>
+        <button class="btn btn-danger"  id="gpsStopBtn"  onclick="stopGPS()"  style="flex:1" disabled>⏹ Stop</button>
+      </div>
+    </div>`;
+
+  // Init map
+  setTimeout(() => {
+    STATE.gpsMap = L.map('gpsMap').setView([-7.2575, 112.7521], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap',
+    }).addTo(STATE.gpsMap);
+  }, 100);
+}
+
+async function startGPS() {
+  document.getElementById('gpsStartBtn').disabled = true;
+  document.getElementById('gpsStopBtn').disabled  = false;
+  document.getElementById('gpsStatusBadge').innerHTML = `<span class="chip chip-green" style="animation:pulse 1.5s infinite">● Live</span>`;
+  STATE.gpsTracking = true;
+
+  const trackLoop = async () => {
+    if (!STATE.gpsTracking) return;
+    const pos = await getGPSPosition();
+    if (pos) {
+      updateGPSDisplay(pos);
+      await api('POST', 'telemetry/gps', { device_id:getDeviceId(), lat:pos.lat, lng:pos.lng, accuracy_m:pos.accuracy, ts:new Date().toISOString() });
+      updateGPSMap(pos);
     }
+    STATE.gpsInterval = setTimeout(trackLoop, CONFIG.GPS_INTERVAL);
+  };
 
-    // Pan map to keep user centered
-    map.panTo([lat, lng], { animate:true, duration:0.5 });
-
-    // Send to server
-    api("telemetry/gps",{
-      device_id: _v("gps-dev")||"web-01",
-      ts: now.toISOString(), lat, lng, accuracy_m: accuracy
-    }).catch(()=>{});
-
-  }, err=>{
-    showAlert("gps-alert","GPS error: "+err.message);
-    setTrackDot(false);
-  }, { enableHighAccuracy:true, timeout:15000, maximumAge:0 });
+  trackLoop();
 }
 
 function stopGPS() {
-  if(gpsWatcher!==null){navigator.geolocation.clearWatch(gpsWatcher);gpsWatcher=null;}
-  setTrackDot(false);
-  $("gps-status-txt").textContent="Tidak aktif";
-  $("gps-accuracy-badge").style.display="none";
+  STATE.gpsTracking = false;
+  clearTimeout(STATE.gpsInterval);
+  document.getElementById('gpsStartBtn').disabled = false;
+  document.getElementById('gpsStopBtn').disabled  = true;
+  document.getElementById('gpsStatusBadge').innerHTML = `<span class="chip chip-amber">⏸ Stopped</span>`;
 }
 
-// ── Fetch GPS history from server & draw on dedicated map ──
-async function fetchGpsHistory() {
-  const device_id=_v("gps-q-dev"); if(!device_id) return;
-  const r=await api("telemetry/gps/history",{device_id,limit:200});
-  if(!r.ok) return showAlert("gps-alert",r.error);
-  const items=r.data.items||[];
-
-  // Table
-  $("gps-hist-tbody").innerHTML=items.length===0
-    ?'<tr><td colspan="6" class="empty">Tidak ada data</td></tr>'
-    :items.map((g,i)=>`<tr>
-        <td>${i+1}</td>
-        <td class="mut">${fmtDt(g.ts)}</td>
-        <td>${g.lat.toFixed(5)}</td>
-        <td>${g.lng.toFixed(5)}</td>
-        <td class="mut">${g.accuracy_m?`±${g.accuracy_m.toFixed(0)}m`:"-"}</td>
-        <td><a class="maps-link" href="https://maps.google.com/?q=${g.lat},${g.lng}" target="_blank">🗺️</a></td>
-      </tr>`).join("");
-
-  if (items.length === 0) { $("history-map-wrap").style.display="none"; return; }
-
-  // Show history map
-  $("history-map-wrap").style.display = "block";
-  setTimeout(()=>{
-    const map = initMap("gps-history-map");
-    if (historyMapLayer) map.removeLayer(historyMapLayer);
-    historyMapLayer = L.layerGroup().addTo(map);
-
-    const coords = items.map(g=>[g.lat, g.lng]);
-    const bounds = coords;
-
-    // Polyline
-    if (coords.length > 1) {
-      L.polyline(coords, {
-        color:"#2E75B6", weight:4, opacity:.8, lineCap:"round"
-      }).addTo(historyMapLayer);
-    }
-
-    // Start marker (first point — oldest)
-    L.marker(coords[0], { icon: ICON_GREEN })
-      .bindPopup(`<div class="pop-title">🟢 Titik Awal</div>${fmtDt(items[0].ts)}`)
-      .addTo(historyMapLayer);
-
-    // End marker (last point — newest)
-    if (coords.length > 1) {
-      L.marker(coords[coords.length-1], { icon: ICON_RED })
-        .bindPopup(`<div class="pop-title">🔴 Posisi Terbaru</div>${fmtDt(items[items.length-1].ts)}`)
-        .addTo(historyMapLayer);
-    }
-
-    // Small dot markers for intermediate points
-    coords.slice(1, -1).forEach((c, i) => {
-      L.marker(c, { icon: makeSmallDot("#2E75B6") })
-        .bindPopup(`<div class="pop-title">Titik ${i+2}</div>${fmtDt(items[i+1].ts)}<br>${c[0].toFixed(5)}, ${c[1].toFixed(5)}`)
-        .addTo(historyMapLayer);
-    });
-
-    try { map.fitBounds(bounds, {padding:[40,40],maxZoom:17}); } catch(e){}
-    map.invalidateSize();
-  }, 120);
+function updateGPSDisplay(pos) {
+  const f = n => n.toFixed(6);
+  document.getElementById('gpsLat').textContent = f(pos.lat);
+  document.getElementById('gpsLng').textContent = f(pos.lng);
+  document.getElementById('gpsAcc').textContent = pos.accuracy ? pos.accuracy.toFixed(1)+'m' : '—';
+  document.getElementById('gpsTs').textContent  = new Date().toLocaleTimeString('id-ID');
 }
+
+function updateGPSMap(pos) {
+  if (!STATE.gpsMap) return;
+  const latlng = [pos.lat, pos.lng];
+
+  if (STATE.gpsMarker) STATE.gpsMarker.setLatLng(latlng);
+  else STATE.gpsMarker = L.circleMarker(latlng, { color:'#3b82f6', fillColor:'#3b82f6', fillOpacity:0.8, radius:8 }).addTo(STATE.gpsMap);
+
+  STATE.gpsHistory.push(latlng);
+  if (STATE.gpsPolyline) STATE.gpsPolyline.setLatLngs(STATE.gpsHistory);
+  else STATE.gpsPolyline = L.polyline(STATE.gpsHistory, { color:'#3b82f6', weight:3, opacity:0.7 }).addTo(STATE.gpsMap);
+
+  STATE.gpsMap.setView(latlng, Math.max(STATE.gpsMap.getZoom(), 16));
+}
+
+// ─── ACCELEROMETER ───────────────────────────────────────────
+function pageAccel() {
+  const main = document.getElementById('mainContent');
+  main.innerHTML = `
+    <div class="card">
+      <div class="section-header">
+        <div class="section-title">Accelerometer Telemetry</div>
+        <div id="accelStatusBadge"><span class="chip chip-amber">⏸ Standby</span></div>
+      </div>
+
+      <div class="accel-bars" id="accelBars">
+        <div class="accel-bar x" style="height:30px"></div>
+        <div class="accel-bar x" style="height:30px"></div>
+        <div class="accel-bar x" style="height:30px"></div>
+        <div class="accel-bar y" style="height:30px"></div>
+        <div class="accel-bar y" style="height:30px"></div>
+        <div class="accel-bar z" style="height:50px"></div>
+        <div class="accel-bar z" style="height:50px"></div>
+        <div class="accel-bar z" style="height:50px"></div>
+      </div>
+      <div style="display:flex;gap:6px;margin:8px 0 16px;font-size:11px">
+        <span style="color:var(--accent)">■ X</span>
+        <span style="color:var(--green);margin-left:8px">■ Y</span>
+        <span style="color:var(--purple);margin-left:8px">■ Z</span>
+      </div>
+
+      <div class="accel-values" id="accelValues">
+        <div class="accel-val"><div class="label">X-axis</div><div class="value" id="accelX">—</div></div>
+        <div class="accel-val"><div class="label">Y-axis</div><div class="value" id="accelY">—</div></div>
+        <div class="accel-val"><div class="label">Z-axis</div><div class="value" id="accelZ">—</div></div>
+      </div>
+      <div style="text-align:center;margin-top:12px;font-size:12px;color:var(--text2)">
+        Magnitude: <span id="accelMag" style="font-family:var(--mono);font-weight:600">—</span> m/s²
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn btn-success" id="accelStartBtn" onclick="startAccel()" style="flex:1">▶ Mulai Kirim</button>
+        <button class="btn btn-danger"  id="accelStopBtn"  onclick="stopAccel()"  style="flex:1" disabled>⏹ Stop</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Log Pengiriman Batch</div>
+      <div id="accelLog" style="font-family:var(--mono);font-size:11px;color:var(--text2);max-height:150px;overflow-y:auto"></div>
+    </div>`;
+}
+
+let accelBatch = [];
+
+async function startAccel() {
+  if (!window.DeviceMotionEvent) {
+    showToast('DeviceMotion tidak tersedia — menggunakan simulasi', 'info');
+    startAccelSimulated();
+    return;
+  }
+
+  // Request permission (iOS 13+)
+  if (typeof DeviceMotionEvent.requestPermission === 'function') {
+    const perm = await DeviceMotionEvent.requestPermission();
+    if (perm !== 'granted') { showToast('Izin sensor ditolak', 'error'); return; }
+  }
+
+  document.getElementById('accelStartBtn').disabled = true;
+  document.getElementById('accelStopBtn').disabled  = false;
+  document.getElementById('accelStatusBadge').innerHTML = `<span class="chip chip-green" style="animation:pulse 1.5s infinite">● Live</span>`;
+
+  STATE.accelTracking = true;
+  window.addEventListener('devicemotion', handleMotion);
+
+  // Send batch every interval
+  STATE.accelInterval = setInterval(sendAccelBatch, CONFIG.ACCEL_INTERVAL);
+}
+
+function handleMotion(e) {
+  const a = e.accelerationIncludingGravity;
+  if (!a) return;
+  const x = +(a.x||0).toFixed(4), y = +(a.y||0).toFixed(4), z = +(a.z||0).toFixed(4);
+  accelBatch.push({ t: new Date().toISOString(), x, y, z });
+  updateAccelDisplay(x, y, z);
+}
+
+function startAccelSimulated() {
+  document.getElementById('accelStartBtn').disabled = true;
+  document.getElementById('accelStopBtn').disabled  = false;
+  document.getElementById('accelStatusBadge').innerHTML = `<span class="chip chip-green" style="animation:pulse 1.5s infinite">● Simulated</span>`;
+  STATE.accelTracking = true;
+
+  const simLoop = () => {
+    if (!STATE.accelTracking) return;
+    const x = +(Math.random()*0.4-0.2).toFixed(4);
+    const y = +(Math.random()*0.4-0.2).toFixed(4);
+    const z = +(9.5+Math.random()*0.5).toFixed(4);
+    accelBatch.push({ t:new Date().toISOString(), x, y, z });
+    updateAccelDisplay(x, y, z);
+    setTimeout(simLoop, 300);
+  };
+
+  simLoop();
+  STATE.accelInterval = setInterval(sendAccelBatch, CONFIG.ACCEL_INTERVAL);
+}
+
+function updateAccelDisplay(x, y, z) {
+  const xEl = document.getElementById('accelX');
+  if (!xEl) return;
+  xEl.textContent = x.toFixed(3);
+  document.getElementById('accelY').textContent = y.toFixed(3);
+  document.getElementById('accelZ').textContent = z.toFixed(3);
+  const mag = Math.sqrt(x*x+y*y+z*z);
+  document.getElementById('accelMag').textContent = mag.toFixed(3);
+
+  // Animate bars
+  const bars = document.querySelectorAll('.accel-bar');
+  if (bars.length) {
+    const toH = v => Math.max(4, Math.min(56, Math.abs(v) * 100)) + 'px';
+    bars[0].style.height = bars[1].style.height = bars[2].style.height = toH(x);
+    bars[3].style.height = bars[4].style.height = toH(y);
+    bars[5].style.height = bars[6].style.height = bars[7].style.height = toH(z);
+  }
+}
+
+async function sendAccelBatch() {
+  if (!accelBatch.length) return;
+  const batch = [...accelBatch];
+  accelBatch = [];
+
+  const res = await api('POST', 'telemetry/accel', {
+    device_id: getDeviceId(), ts: new Date().toISOString(), samples: batch
+  });
+
+  const log = document.getElementById('accelLog');
+  if (log) {
+    log.innerHTML = `<div>[${new Date().toLocaleTimeString('id-ID')}] Batch ${batch.length} samples → ${res.ok?'✅ accepted:'+res.data?.accepted:'❌ '+res.error}</div>` + log.innerHTML;
+  }
+}
+
+function stopAccel() {
+  STATE.accelTracking = false;
+  clearInterval(STATE.accelInterval);
+  window.removeEventListener('devicemotion', handleMotion);
+  accelBatch = [];
+  document.getElementById('accelStartBtn').disabled = false;
+  document.getElementById('accelStopBtn').disabled  = true;
+  document.getElementById('accelStatusBadge').innerHTML = `<span class="chip chip-amber">⏸ Stopped</span>`;
+}
+
+function stopTelemetry() {
+  if (STATE.gpsTracking) { STATE.gpsTracking = false; clearTimeout(STATE.gpsInterval); }
+  if (STATE.accelTracking) stopAccel();
+  if (STATE.scannerActive) { STATE.scannerActive = false; stopScannerStream(); }
+  if (STATE.qrTimer) { clearInterval(STATE.qrTimer); STATE.qrTimer = null; }
+  STATE.gpsMap = STATE.gpsMarker = STATE.gpsPolyline = null;
+  STATE.gpsHistory = [];
+}
+
+// ============================================================
+// UTILITY
+// ============================================================
+
+function getDeviceId() {
+  let id = localStorage.getItem('ca_device_id');
+  if (!id) {
+    id = 'DEV-' + Math.random().toString(36).slice(2,10).toUpperCase();
+    localStorage.setItem('ca_device_id', id);
+  }
+  return id;
+}
+
+function getGPSPosition() {
+  return new Promise(resolve => {
+    if (!navigator.geolocation) { resolve(null); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy }),
+      ()  => resolve(null),
+      { timeout: 8000, maximumAge: 10000, enableHighAccuracy: true }
+    );
+  });
+}
+
+function showToast(msg, type = 'info') {
+  const icons = { success:'✅', error:'❌', info:'ℹ️' };
+  const id = 'toast-' + Date.now();
+  const html = `
+    <div class="toast ${type}" id="${id}">
+      <span class="toast-icon">${icons[type]||'ℹ️'}</span>
+      <span class="toast-msg">${msg}</span>
+      <span class="toast-close" onclick="this.parentElement.remove()">✕</span>
+    </div>`;
+  document.getElementById('toastContainer').insertAdjacentHTML('beforeend', html);
+  setTimeout(() => document.getElementById(id)?.remove(), 4000);
+}
+
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('active');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('active');
+}
+
+// ── Enter key login ──────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('loginScreen').style.display !== 'none') doLogin();
+});
+
+// ── Init on load ─────────────────────────────────────────────
+window.addEventListener('load', () => {
+  // Check for stored session (demo only — in production validate token server-side)
+  const savedUser = localStorage.getItem('ca_user');
+  if (savedUser) {
+    try {
+      STATE.user  = JSON.parse(savedUser);
+      STATE.token = localStorage.getItem('ca_token');
+      initApp();
+    } catch (_) {}
+  }
+});
 </script>
 </body>
 </html>
