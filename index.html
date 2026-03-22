@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#0a0f1e">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <title>CloudAttend — Sistem Presensi Cerdas</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -461,6 +462,7 @@ select.input option { background:var(--bg2); }
   .stats-grid { grid-template-columns:repeat(2,1fr); }
 }
 </style>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
 </head>
 <body>
 
@@ -472,6 +474,7 @@ select.input option { background:var(--bg2); }
       <h1>CloudAttend</h1>
       <p>Sistem Presensi Komputasi Awan</p>
     </div>
+    <form onsubmit="event.preventDefault(); doLogin()">
     <div class="form-group">
       <label>Username</label>
       <input type="text" id="loginUser" placeholder="Masukkan username" autocomplete="username">
@@ -480,9 +483,10 @@ select.input option { background:var(--bg2); }
       <label>Password</label>
       <input type="password" id="loginPass" placeholder="Masukkan password" autocomplete="current-password">
     </div>
-    <button class="btn btn-primary btn-lg" onclick="doLogin()" id="loginBtn">
+    <button class="btn btn-primary btn-lg" type="submit" id="loginBtn">
       <span id="loginBtnText">Masuk</span>
     </button>
+    </form>
     <p style="text-align:center;font-size:12px;color:var(--text3);margin-top:16px;">
       Login: superadmin / Admin@2026
     </p>
@@ -676,14 +680,21 @@ const NAV_CONFIG = {
 // API
 // ============================================================
 
-// ── Deteksi apakah berjalan di dalam GAS (via HtmlService) ─
-const IS_GAS = typeof google !== 'undefined' && typeof google.script !== 'undefined';
+// ── Mode detection ───────────────────────────────────────────
+// IS_GAS: true jika dijalankan via GAS HtmlService (no CORS issue)
+const IS_GAS = (typeof google !== 'undefined') && (typeof google.script !== 'undefined');
 
+// ── API Function ─────────────────────────────────────────────
+// Mendukung 3 mode:
+//   1. GAS-served  → google.script.run (no CORS, no fetch)
+//   2. External    → GET tunnel trick  (bypass CORS)
+//   3. Demo        → mock data lokal
 async function api(method, path, data, skipAuth) {
-  // ── Mode 1: Berjalan di dalam GAS (HtmlService) ──────────
+
+  // ── Mode 1: Berjalan di dalam GAS HtmlService ─────────────
   if (IS_GAS) {
     return new Promise((resolve) => {
-      if (!skipAuth && STATE.token) data = { ...data, auth_token: STATE.token };
+      if (!skipAuth && STATE.token) data = { ...(data||{}), auth_token: STATE.token };
       google.script.run
         .withSuccessHandler(resolve)
         .withFailureHandler(err => resolve({ ok: false, error: err.message }))
@@ -691,46 +702,42 @@ async function api(method, path, data, skipAuth) {
     });
   }
 
-  // ── Mode 2: Demo mode (tidak ada BASE_URL) ────────────────
+  // ── Mode 2: Demo mode (BASE_URL kosong) ───────────────────
   if (!CONFIG.BASE_URL) {
     return mockApi(method, path, data);
   }
 
-  // ── Mode 3: External hosting → fetch ke GAS ──────────────
-  // GAS pathInfo: suffix setelah /exec/
-  const gasBase = CONFIG.BASE_URL.replace(/\/exec\/?$/, '');
-  const fullUrl = `${gasBase}/exec/${path}`;
+  // ── Mode 3: External hosting → GET tunnel ─────────────────
+  // GAS HANYA mengizinkan CORS untuk GET requests.
+  // Solusi: encode semua request (termasuk POST) sebagai GET params.
+  // Format: GET /exec/[path]?_method=POST&_body={...json...}&auth_token=...
+  try {
+    const base = CONFIG.BASE_URL.replace(/\/exec\/?$/, '');
+    const fullPath = `${base}/exec/${path}`;
 
-  if (method === 'GET') {
-    const params = { ...(data || {}) };
-    if (!skipAuth && STATE.token) params.auth_token = STATE.token;
-    const entries = Object.entries(params).filter(([,v]) => v !== undefined && v !== null && v !== '');
-    const qs = new URLSearchParams(Object.fromEntries(entries)).toString();
-    const finalUrl = qs ? `${fullUrl}?${qs}` : fullUrl;
-    try {
-      const res = await fetch(finalUrl, { method: 'GET', redirect: 'follow', mode: 'cors' });
-      const text = await res.text();
-      try { return JSON.parse(text); } catch(_) { return { ok: false, error: 'invalid_json: ' + text.slice(0,200) }; }
-    } catch (err) {
-      return { ok: false, error: 'network_error: ' + err.message };
-    }
-  }
+    const params = new URLSearchParams();
 
-  if (method === 'POST' || method === 'PUT') {
-    if (!skipAuth && STATE.token) data = { ...data, auth_token: STATE.token };
-    try {
-      const res = await fetch(fullUrl, {
-        method: 'POST',
-        redirect: 'follow',
-        mode: 'cors',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(data || {}),
+    if (method !== 'GET') {
+      params.set('_method', method);
+      if (!skipAuth && STATE.token) data = { ...(data||{}), auth_token: STATE.token };
+      params.set('_body', JSON.stringify(data || {}));
+    } else {
+      const d = { ...(data||{}) };
+      if (!skipAuth && STATE.token) d.auth_token = STATE.token;
+      Object.entries(d).forEach(([k,v]) => {
+        if (v !== undefined && v !== null && v !== '') params.set(k, v);
       });
-      const text = await res.text();
-      try { return JSON.parse(text); } catch(_) { return { ok: false, error: 'invalid_json: ' + text.slice(0,200) }; }
-    } catch (err) {
-      return { ok: false, error: 'network_error: ' + err.message };
     }
+
+    const url = params.toString() ? `${fullPath}?${params}` : fullPath;
+
+    const res  = await fetch(url, { method: 'GET', redirect: 'follow' });
+    const text = await res.text();
+    try { return JSON.parse(text); }
+    catch(_) { return { ok: false, error: 'invalid_json: ' + text.slice(0, 200) }; }
+
+  } catch (err) {
+    return { ok: false, error: 'network_error: ' + err.message };
   }
 }
 
@@ -1896,11 +1903,6 @@ function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('overlay').classList.remove('active');
 }
-
-// ── Enter key login ──────────────────────────────────────────
-document.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && document.getElementById('loginScreen').style.display !== 'none') doLogin();
-});
 
 // ── Init on load ─────────────────────────────────────────────
 window.addEventListener('load', () => {
