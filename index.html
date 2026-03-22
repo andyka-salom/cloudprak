@@ -1063,8 +1063,11 @@ const GATE_INTERVAL=100; // ms per sample
 
 function startAccelGate(){
   if(gateVerified)return;
-  gateActive=true; gateAccumMove=0; gateSamples=[];
+  gateActive=true;
+  gateAccumMove=0;
+  gateSamples=[];
   gateLastX=null; gateLastY=null; gateLastZ=null;
+
   $("btn-start-gate").style.display="none";
   $("btn-stop-gate").style.display="inline-flex";
   $("accel-progress-wrap").style.display="block";
@@ -1072,370 +1075,115 @@ function startAccelGate(){
   $("agv-label").textContent="Gerakkan!";
   updateGatePct(0);
 
-  function processMotion(x,y,z){
+  // Interval ticker: naik terus selama sensor bergerak (100ms per tick)
+  var lastMoved=false;
+  var progressTimer=null;
+
+  function processMotion(ax,ay,az){
     if(!gateActive)return;
-    // Hitung magnitude perubahan (delta)
-    let delta=0;
-    if(gateLastX!==null){
-      delta=Math.sqrt(Math.pow(x-gateLastX,2)+Math.pow(y-gateLastY,2)+Math.pow(z-gateLastZ,2));
+
+    // Update bar visual
+    var vx=Math.abs(ax), vy=Math.abs(ay);
+    var vz=Math.abs(az>5 ? az-9.81 : az); // kompensasi gravity jika incl.gravity
+    $("agv-bx").style.width=Math.min(180,vx*20)+"px";
+    $("agv-by").style.width=Math.min(180,vy*20)+"px";
+    $("agv-bz").style.width=Math.min(180,vz*20)+"px";
+
+    // Hitung magnitude total (apapun sumbernya)
+    var mag;
+    if(Math.abs(az)>5){
+      // accelerationIncludingGravity: kurangi komponen gravity statis
+      var dx= gateLastX!==null ? ax-gateLastX : 0;
+      var dy= gateLastY!==null ? ay-gateLastY : 0;
+      var dz= gateLastZ!==null ? az-gateLastZ : 0;
+      mag = Math.sqrt(dx*dx+dy*dy+dz*dz);
+    } else {
+      // acceleration tanpa gravity: pakai nilai langsung
+      mag = Math.sqrt(ax*ax+ay*ay+az*az);
     }
-    gateLastX=x; gateLastY=y; gateLastZ=z;
+    gateLastX=ax; gateLastY=ay; gateLastZ=az;
 
-    // Update bar visualisasi
-    const maxBar=200;
-    $("agv-bx").style.width=Math.min(maxBar,Math.abs(x)*18)+"px";
-    $("agv-by").style.width=Math.min(maxBar,Math.abs(y)*18)+"px";
-    $("agv-bz").style.width=Math.min(maxBar,Math.abs(z-9.81)*18)+"px";
-
-    // Hitung gerakan bermakna (tiap sample = GATE_INTERVAL/1000 detik)
-    if(delta>GATE_THRESH){
-      gateAccumMove+=(GATE_INTERVAL/1000);
-      gateSamples.push({t:new Date().toISOString(),x:+x.toFixed(3),y:+y.toFixed(3),z:+z.toFixed(3)});
-    }
-
-    const pct=Math.min(100,(gateAccumMove/GATE_NEEDED)*100);
-    updateGatePct(pct);
-    if(gateAccumMove>=GATE_NEEDED) onGateVerified();
+    // Threshold rendah: 0.5 sudah cukup untuk deteksi gerakan HP
+    lastMoved = (mag > 0.5);
+    gateSamples.push({t:new Date().toISOString(),x:+ax.toFixed(3),y:+ay.toFixed(3),z:+az.toFixed(3)});
   }
 
-  // Aktifkan DeviceMotion
+  // Timer progress: naik 0.1s per 100ms selama sensor "bergerak"
+  progressTimer=setInterval(function(){
+    if(!gateActive){ clearInterval(progressTimer); return; }
+    if(lastMoved){
+      gateAccumMove+=0.1;
+      lastMoved=false; // reset, harus ada gerakan baru di 100ms berikutnya
+    }
+    var pct=Math.min(100,(gateAccumMove/GATE_NEEDED)*100);
+    updateGatePct(pct);
+    if(gateAccumMove>=GATE_NEEDED){
+      clearInterval(progressTimer);
+      onGateVerified();
+    }
+  },100);
+
+  // Simpan timer agar bisa di-stop
+  window._gateProgressTimer=progressTimer;
+
+  // Aktifkan sensor
   if(!window.DeviceMotionEvent){
-    // Desktop: simulasi otomatis
-    showAlert("gate-alert","📱 Sensor tidak tersedia (desktop) — simulasi aktif","info");
+    showAlert("gate-alert","📱 Sensor tidak tersedia — simulasi aktif","info");
     startGateSimulation(processMotion);
     return;
   }
 
   if(typeof DeviceMotionEvent.requestPermission==="function"){
-    // iOS 13+ — request permission (HARUS dari user gesture, sudah oke karena dari onclick)
+    // iOS 13+
     DeviceMotionEvent.requestPermission()
-      .then(state=>{
+      .then(function(state){
         if(state==="granted"){
           attachMotionGate(processMotion);
           showAlert("gate-alert","✅ Sensor aktif — gerakkan HP Anda!","info");
         } else {
-          showAlert("gate-alert","⚠️ Izin sensor ditolak. Buka: Pengaturan → Safari → Motion & Orientation Access","err");
+          showAlert("gate-alert","⚠️ Izin ditolak. Pengaturan → Safari → Motion & Orientation Access","err");
           startGateSimulation(processMotion);
         }
       })
-      .catch(err=>{
-        showAlert("gate-alert","⚠️ Error izin: "+err.message+" — pakai simulasi","info");
+      .catch(function(err){
+        showAlert("gate-alert","⚠️ "+err.message+" — pakai simulasi","info");
         startGateSimulation(processMotion);
       });
   } else {
-    // Android & browser non-iOS — langsung attach
+    // Android & browser lain
     attachMotionGate(processMotion);
     showAlert("gate-alert","✅ Sensor aktif — gerakkan HP Anda!","info");
   }
 }
 
-function attachMotionGate(cb){
-  let lastT=0;
-  gateMotionHandler=e=>{
-    if(!gateActive)return;
-    // Throttle ke ~30fps
-    const now=Date.now();
-    if(now-lastT < 33) return;
-    lastT=now;
-
-    let x=0,y=0,z=9.81;
-    // Coba acceleration (tanpa gravity) dulu
-    if(e.acceleration && e.acceleration.x!==null && e.acceleration.x!==undefined){
-      x=e.acceleration.x||0; y=e.acceleration.y||0; z=e.acceleration.z||0;
-    } else if(e.accelerationIncludingGravity && e.accelerationIncludingGravity.x!==null){
-      x=e.accelerationIncludingGravity.x||0;
-      y=e.accelerationIncludingGravity.y||0;
-      z=e.accelerationIncludingGravity.z||9.81;
-    } else {
-      return; // tidak ada data sensor sama sekali
-    }
-    cb(x,y,z);
-  };
-  window.addEventListener("devicemotion",gateMotionHandler,{passive:true});
-}
-
-function startGateSimulation(cb){
-  // Simulasi di desktop: user "menggoyangkan" dengan mouse atau otomatis kecil
-  // Pakai interval dengan noise acak yang makin besar saat progress
-  let tick=0;
-  gateTimer=setInterval(()=>{
-    if(!gateActive){clearInterval(gateTimer);return}
-    // Simulasi gerakan kecil → user harus menekan tombol "goyangkan"
-    // Gerakan naik bertahap
-    const amp=0.5+Math.random()*3.5;
-    const x=(Math.random()-.5)*amp*2;
-    const y=(Math.random()-.5)*amp*2;
-    const z=9.81+(Math.random()-.5)*amp;
-    cb(x,y,z);
-  },GATE_INTERVAL);
-}
-
-function updateGatePct(pct){
-  $("accel-prog-bar").style.width=pct+"%";
-  $("accel-pct").textContent=Math.round(pct)+"%";
-  const rem=Math.max(0,(GATE_NEEDED-(GATE_NEEDED*pct/100))).toFixed(1);
-  $("accel-prog-msg").textContent=pct<100?`Terus gerakkan… ${rem}s lagi`:"Verifikasi selesai!";
-}
-
-function onGateVerified(){
-  gateVerified=true;
-  stopAccelGate(true);
-  // Kirim data accel ke server
-  if(gateSamples.length>0){
-    api("telemetry/accel",{device_id:"scan-gate-"+(S.user_id||"01"),ts:new Date().toISOString(),samples:gateSamples.slice(-20)});
-  }
-  // Update UI
-  $("agv-ring").className="agv-ring done";
-  $("agv-icon").textContent="✅";
-  $("agv-label").textContent="Terverifikasi!";
-  $("accel-gate-badge").textContent="✅ TERVERIFIKASI";
-  $("accel-gate-badge").style.cssText="font-family:var(--mono);font-size:.68rem;font-weight:700;padding:4px 10px;border-radius:20px;background:rgba(6,214,160,.1);color:var(--grn2);border:1px solid rgba(6,214,160,.25)";
-  $("accel-prog-msg").textContent="✅ Gerakan terverifikasi — "+gateSamples.length+" sampel tersimpan";
-  $("accel-prog-bar").style.background="var(--gradg)";
-  // Buka lock scan
-  const scanCard=$("scan-qr-card");
-  scanCard.classList.add("scan-unlocked");
-  $("accel-gate-lock").style.display="none";
-  $("scan-lock-badge").textContent="✅ TERBUKA";
-  $("scan-lock-badge").style.cssText="font-family:var(--mono);font-size:.68rem;font-weight:700;padding:4px 10px;border-radius:20px;background:rgba(6,214,160,.1);color:var(--grn2);border:1px solid rgba(6,214,160,.25)";
-  showAlert("gate-alert","✅ Verifikasi gerak berhasil! Silakan scan QR di bawah.","ok");
-}
-
 function stopAccelGate(verified=false){
   gateActive=false;
-  if(gateTimer){clearInterval(gateTimer);gateTimer=null}
-  if(gateMotionHandler){window.removeEventListener("devicemotion",gateMotionHandler);gateMotionHandler=null}
+  if(window._gateProgressTimer){ clearInterval(window._gateProgressTimer); window._gateProgressTimer=null; }
+  if(gateMotionHandler){ window.removeEventListener("devicemotion",gateMotionHandler); gateMotionHandler=null; }
+  if(gateTimer){ clearInterval(gateTimer); gateTimer=null; }
   if(!verified){
     $("btn-start-gate").style.display="inline-flex";
     $("btn-stop-gate").style.display="none";
     $("agv-ring").className="agv-ring";
     $("agv-label").textContent="Tekan Mulai";
     $("agv-icon").textContent="📱";
+    gateAccumMove=0;
+    updateGatePct(0);
   } else {
     $("btn-start-gate").style.display="none";
     $("btn-stop-gate").style.display="none";
   }
 }
-
-function openCheckinModal(qrData){
-  pendingCheckin=qrData; pendingGps=null;
-  $("modal-state-gps").style.display="block";
-  $("modal-state-ok").style.display="none";
-  $("modal-state-err").style.display="none";
-  $("modal-qr-info").innerHTML=`<div class="mdr"><span style="font-size:.9rem">🔑</span><span class="mdr-key">Token</span><span class="mdr-val">${qrData.qr_token}</span></div><div class="mdr"><span style="font-size:.9rem">📚</span><span class="mdr-key">Kelas</span><span class="mdr-val">${qrData.course_id}</span></div><div class="mdr"><span style="font-size:.9rem">📅</span><span class="mdr-key">Sesi</span><span class="mdr-val">${qrData.session_id}</span></div>`;
-  const dot=$("modal-gps-dot");
-  dot.className="gps-spin";
-  $("modal-gps-txt").textContent="Mengambil lokasi GPS otomatis…";
-  $("btn-modal-checkin").disabled=true; // Tunggu GPS dulu
-  $("modal-checkin").classList.add("open");
-
-  // GPS WAJIB — ambil otomatis
-  if(navigator.geolocation){
-    gpsTimeoutId=setTimeout(()=>{
-      // Timeout tapi tetap bisa lanjut
-      dot.className="gps-spin err";
-      $("modal-gps-txt").textContent="GPS timeout — absen tanpa koordinat";
-      $("btn-modal-checkin").disabled=false;
-    },10000);
-    navigator.geolocation.getCurrentPosition(pos=>{
-      clearTimeout(gpsTimeoutId);
-      const{latitude:lat,longitude:lng,accuracy}=pos.coords;
-      pendingGps={lat,lng,accuracy_m:accuracy};
-      dot.className="gps-spin ok";
-      $("modal-gps-txt").textContent=`📍 ${lat.toFixed(5)}, ${lng.toFixed(5)} (±${accuracy.toFixed(0)}m) — tersimpan`;
-      $("btn-modal-checkin").disabled=false;
-    },()=>{
-      clearTimeout(gpsTimeoutId);
-      dot.className="gps-spin err";
-      $("modal-gps-txt").textContent="GPS tidak tersedia";
-      $("btn-modal-checkin").disabled=false;
-    },{enableHighAccuracy:true,timeout:10000,maximumAge:0});
-  } else {
-    dot.className="gps-spin err";
-    $("modal-gps-txt").textContent="Geolocation tidak didukung browser ini";
-    $("btn-modal-checkin").disabled=false;
-  }
+function startGateSimulation(cb){
+  // Simulasi gerakan HP untuk desktop / saat sensor tidak tersedia
+  // Gerakan sinusoidal agar progress naik konsisten
+  var t=0;
+  gateTimer=setInterval(function(){
+    if(!gateActive){ clearInterval(gateTimer); return; }
+    t+=0.1;
+    var x=Math.sin(t*2.1)*2.5+(Math.random()-.5)*0.8;
+    var y=Math.cos(t*1.8)*2.0+(Math.random()-.5)*0.8;
+    var z=9.81+Math.sin(t*3.3)*1.5+(Math.random()-.5)*0.5;
+    cb(x,y,z);
+  },80);
 }
-
-async function confirmCheckin(){
-  if(!pendingCheckin)return;
-  setSpin("cins",true); $("btn-modal-checkin").disabled=true;
-  const now=new Date().toISOString();
-
-  // Kirim gate accel ke server dulu (background, tidak block checkin)
-  if(gateSamples.length>0){
-    api("telemetry/accel/gate",{
-      device_id:"scan-gate-"+(S.user_id||"01"),
-      ts:now,
-      samples:gateSamples.slice(-20),
-      session_id:pendingCheckin.session_id,
-      duration_sec:GATE_NEEDED
-    });
-  }
-
-  const payload={
-    device_id:"web-scan-"+(S.user_id||"01"),
-    course_id:pendingCheckin.course_id,
-    session_id:pendingCheckin.session_id,
-    qr_token:pendingCheckin.qr_token,
-    ts:now,
-    accel_verified:gateVerified,
-    accel_samples:gateSamples.length
-  };
-  if(pendingGps){
-    payload.lat=pendingGps.lat;
-    payload.lng=pendingGps.lng;
-    payload.accuracy_m=pendingGps.accuracy_m;
-  }
-  const r=await api("presence/checkin",payload);
-  setSpin("cins",false);
-  if(!r.ok){
-    $("modal-state-gps").style.display="none";
-    $("modal-state-err").style.display="block";
-    $("modal-err-txt").textContent=r.error; return;
-  }
-
-  // GPS ke telemetry/gps sudah dilakukan server-side (double-write)
-  // Tapi jika server tidak simpan (gps_saved=false), kirim manual
-  if(pendingGps && !r.data.gps_saved){
-    api("telemetry/gps",{
-      device_id:"web-scan-"+(S.user_id||"01"),
-      ts:now, lat:pendingGps.lat, lng:pendingGps.lng,
-      accuracy_m:pendingGps.accuracy_m, session_id:pendingCheckin.session_id
-    });
-  }
-
-  $("modal-state-gps").style.display="none";
-  $("modal-state-ok").style.display="block";
-  $("modal-ok-detail").textContent=`${r.data.course_id} · ${r.data.session_id}`;
-  $("modal-ok-id").textContent="Presence ID: "+r.data.presence_id;
-
-  if(r.data.gps_saved && r.data.gps){
-    $("modal-ok-gps").style.display="flex";
-    $("modal-ok-gps-txt").textContent=`GPS: ${r.data.gps.lat.toFixed(5)}, ${r.data.gps.lng.toFixed(5)}`;
-  }
-  if(r.data.accel_verified){
-    $("modal-ok-accel").style.display="flex";
-    $("modal-ok-accel-txt").textContent=`Gerakan terverifikasi (${r.data.accel_samples} sampel)`;
-  }
-
-  gateVerified=false; gateSamples=[];
-  setTimeout(closeModal,4000);
-}
-
-function closeModal(){
-  $("modal-checkin").classList.remove("open");
-  clearTimeout(gpsTimeoutId); pendingCheckin=null; pendingGps=null;
-}
-
-function startScan(){
-  if(!gateVerified){showAlert("cin-alert","⚠️ Selesaikan verifikasi gerak di Langkah 1 terlebih dahulu!","err");return}
-  $("btn-cam").style.display="none"; $("btn-stop").style.display="inline-flex";
-  scanner=new Html5Qrcode("qr-reader");
-  scanner.start({facingMode:"environment"},{fps:10,qrbox:{width:250,height:250}},
-    text=>{
-      stopScan();
-      let qrData=null;
-      try{const p=JSON.parse(text);if(p.qr_token&&p.course_id&&p.session_id)qrData=p}catch(e){}
-      if(qrData){openCheckinModal(qrData)}
-      else{showAlert("cin-alert","QR tidak valid. Gunakan QR dari sistem ini.","err");$("btn-cam").style.display="inline-flex"}
-    },()=>{}
-  ).catch(e=>showAlert("cin-alert","Kamera error: "+e));
-}
-function stopScan(){if(scanner){try{scanner.stop().then(()=>scanner.clear())}catch(e){}scanner=null}$("btn-cam").style.display="inline-flex";$("btn-stop").style.display="none"}
-let manLat=null,manLng=null,manMapVis=false,manMark=null;
-function getMyLocationManual(){if(!navigator.geolocation)return;$("loc-status-m").textContent="Mendeteksi GPS…";navigator.geolocation.getCurrentPosition(pos=>{manLat=pos.coords.latitude;manLng=pos.coords.longitude;$("loc-status-m").textContent=`📍 ${manLat.toFixed(5)}, ${manLng.toFixed(5)} (±${pos.coords.accuracy.toFixed(0)}m)`;if(manMapVis)updateManMark(manLat,manLng)},()=>$("loc-status-m").textContent="Gagal mendapat lokasi.")}
-function toggleManualMap(){const w=$("manual-map-wrap");manMapVis=!manMapVis;w.style.display=manMapVis?"block":"none";if(manMapVis)setTimeout(()=>{const map=initMap("manual-map",DEF_C,14);map.on("click",e=>{manLat=e.latlng.lat;manLng=e.latlng.lng;$("loc-status-m").textContent=`📍 ${manLat.toFixed(5)}, ${manLng.toFixed(5)}`;updateManMark(manLat,manLng);$("manual-map-info").textContent=`Dipilih: ${manLat.toFixed(5)}, ${manLng.toFixed(5)}`});if(manLat&&manLng){updateManMark(manLat,manLng);MAPS["manual-map"].setView([manLat,manLng],16)}},80)}
-function updateManMark(lat,lng){const map=MAPS["manual-map"];if(!map)return;if(manMark)map.removeLayer(manMark);manMark=L.marker([lat,lng],{icon:IC_PUR}).bindPopup(`<div class="pop-title">Lokasi Dipilih</div>${lat.toFixed(5)}, ${lng.toFixed(5)}`).addTo(map).openPopup();map.setView([lat,lng],17)}
-async function doCheckinManual(){const qt=_v("mt").toUpperCase(),cid=_v("mc"),sid=_v("ms");if(!qt||!cid||!sid)return showAlert("man-alert","Isi semua field.");const payload={device_id:"web-manual-"+(S.user_id||"01"),course_id:cid,session_id:sid,qr_token:qt,ts:new Date().toISOString()};if(manLat&&manLng){payload.lat=manLat;payload.lng=manLng}setSpin("mans",true);const r=await api("presence/checkin",payload);setSpin("mans",false);if(!r.ok)return showAlert("man-alert",r.error);showAlert("man-alert",`✅ Absen berhasil! ID: ${r.data.presence_id}`,"ok");$("mt").value="";manLat=null;manLng=null;$("loc-status-m").textContent="";$("manual-map-wrap").style.display="none";manMapVis=false}
-let mhsLayer=null;
-async function loadHistoryMhs(){const cid=_v("mh-cid");if(!cid)return;const r=await api("presence/history",{course_id:cid});if(!r.ok){$("mh-tbody").innerHTML=`<tr><td colspan="6" class="empty">${r.error}</td></tr>`;return}const items=r.data.items||[];$("mh-total").textContent=items.length;$("mh-tbody").innerHTML=items.length===0?'<tr><td colspan="6" class="empty">Belum ada data</td></tr>':items.map(p=>`<tr><td>${p.no}</td><td><strong>${p.pertemuan}</strong></td><td style="color:var(--txt2)">${p.tanggal||"-"}</td><td style="font-size:.82rem">${fmtTime(p.jam_checkin)}</td><td>${p.maps_url?`<a class="maps-link" href="${p.maps_url}" target="_blank">📍 ${p.lokasi.lat.toFixed(4)},${p.lokasi.lng.toFixed(4)}</a>`:"<span style='color:var(--txt4)'>-</span>"}</td><td><span class="badge b-ok">${p.status}</span></td></tr>`).join("");const wl=items.filter(p=>p.lokasi&&p.lokasi.lat);if(wl.length>0){$("mhs-map-wrap").style.display="block";const map=initMap("mhs-map");if(mhsLayer)map.removeLayer(mhsLayer);mhsLayer=L.layerGroup().addTo(map);const bounds=[];wl.forEach((p,i)=>{const{lat,lng}=p.lokasi;bounds.push([lat,lng]);const icon=i===0?IC_GRN:i===wl.length-1?IC_RED:IC_IND;L.marker([lat,lng],{icon}).bindPopup(`<div class="pop-title">${p.pertemuan}</div>${p.tanggal}<br>${fmtTime(p.jam_checkin)}`).addTo(mhsLayer)});if(bounds.length>1)L.polyline(bounds,{color:"#4361ee",weight:2.5,dashArray:"5 7",opacity:.6}).addTo(mhsLayer);try{map.fitBounds(bounds,{padding:[40,40],maxZoom:17})}catch(e){}setTimeout(()=>map.invalidateSize(),150)}else{$("mhs-map-wrap").style.display="none"}}
-function startAccel(){
-  accelActive=true; accelBatch=[];
-  $("btn-ac-start").style.display="none";
-  $("btn-ac-stop").style.display="inline-flex";
-
-  function sendBatch(){
-    if(!accelActive||accelBatch.length===0)return;
-    const samples=[...accelBatch]; accelBatch=[];
-    api("telemetry/accel",{device_id:_v("ac-dev")||"web-01",ts:new Date().toISOString(),samples})
-      .then(r=>{if(!r.ok)showAlert("ac-alert","Accel error: "+r.error);});
-  }
-
-  function doListen(){
-    listenMotion();
-    showAlert("ac-alert","✅ Sensor aktif — gerakkan HP","info");
-  }
-
-  if(window.DeviceMotionEvent){
-    if(typeof DeviceMotionEvent.requestPermission==="function"){
-      // iOS 13+ — WAJIB dipanggil dari user gesture (ini sudah dari onclick)
-      DeviceMotionEvent.requestPermission()
-        .then(state=>{
-          if(state==="granted"){ doListen(); }
-          else {
-            showAlert("ac-alert","⚠️ Izin sensor ditolak. Buka Pengaturan → Safari → Izinkan Sensor Gerak","err");
-            startAccelSimulation();
-          }
-        })
-        .catch(err=>{
-          showAlert("ac-alert","⚠️ Tidak bisa minta izin: "+err.message+". Menggunakan simulasi.","info");
-          startAccelSimulation();
-        });
-    } else {
-      // Android & browser lain — langsung listen
-      doListen();
-    }
-  } else {
-    // Desktop — simulasi
-    showAlert("ac-alert","📱 DeviceMotion tidak tersedia (desktop). Menggunakan simulasi.","info");
-    startAccelSimulation();
-  }
-
-  setInterval(sendBatch, 2000);
-}
-
-function startAccelSimulation(){
-  // Simulasi data sensor untuk desktop / saat izin ditolak
-  accelTimer=setInterval(()=>{
-    const t=Date.now()/1000;
-    const x=Math.sin(t*2.3)*1.2+(Math.random()-.5)*.4;
-    const y=Math.cos(t*1.7)*0.9+(Math.random()-.5)*.4;
-    const z=9.81+Math.sin(t*3.1)*.3+(Math.random()-.5)*.2;
-    updateAccelUI(x,y,z,"sim");
-    accelBatch.push({t:new Date().toISOString(),x:+x.toFixed(3),y:+y.toFixed(3),z:+z.toFixed(3)});
-  },150);
-}
-
-function updateAccelUI(x,y,z,src){
-  const ex=$("av-x"),ey=$("av-y"),ez=$("av-z");
-  if(ex) ex.textContent=x.toFixed(3);
-  if(ey) ey.textContent=y.toFixed(3);
-  if(ez) ez.textContent=z.toFixed(3);
-  const srcEl=$("ac-src");
-  if(srcEl){
-    const labels={"sim":"simulasi","acc":"tanpa gravity","incl":"incl. gravity"};
-    srcEl.textContent=labels[src]||src||"sensor";
-  }
-}
-function stopAccel(){
-  accelActive=false;
-  if(accelTimer){clearInterval(accelTimer);accelTimer=null;}
-  // Hapus event listener devicemotion untuk panel sensor
-  // (menggunakan removeEventListener dengan fungsi anonim tidak bisa,
-  //  jadi kita set flag accelActive=false yang dicek di handler)
-  $("btn-ac-start").style.display="inline-flex";
-  $("btn-ac-stop").style.display="none";
-  const srcEl=$("ac-src");
-  if(srcEl) srcEl.textContent="berhenti";
-}
-async function fetchAccelLatest(){const dev=_v("ac-q-dev");if(!dev)return;const r=await api("telemetry/accel/latest",{device_id:dev});if(!r.ok)return $("accel-latest").textContent=r.error;const d=r.data;$("accel-latest").innerHTML=`<strong>${d.device_id}</strong> — t:${fmtDt(d.t)} | X:<strong>${d.x}</strong> Y:<strong>${d.y}</strong> Z:<strong>${d.z}</strong>`}
-let gpsMarker=null,gpsCircle=null,gpsPts=[],gpsPoly=null,histLayer=null;
-function initGpsPanel(){setTimeout(()=>{initMap("gps-map",DEF_C,15).invalidateSize()},120)}
-function setTrackDot(a){$("track-dot").className="track-dot"+(a?" active":"");$("btn-gps-start").style.display=a?"none":"inline-flex";$("btn-gps-stop").style.display=a?"inline-flex":"none"}
-function startGPS(){if(!navigator.geolocation)return showAlert("gps-alert","Geolocation tidak didukung.");setTrackDot(true);gpsPts=[];$("gps-status-txt").textContent="Aktif…";$("gps-map-bar").style.display="none";const map=MAPS["gps-map"]||initMap("gps-map");gpsWatcher=navigator.geolocation.watchPosition(pos=>{const{latitude:lat,longitude:lng,accuracy}=pos.coords,now=new Date();$("gps-status-txt").textContent=`${lat.toFixed(5)}, ${lng.toFixed(5)}`;const ab=$("gps-acc-badge");ab.style.display="inline";ab.textContent=`±${accuracy.toFixed(0)}m`;const isGood=accuracy<20,isMed=accuracy<60;ab.style.cssText=`display:inline;font-family:var(--mono);font-size:.7rem;padding:3px 9px;border-radius:20px;background:${isGood?"rgba(6,214,160,.12)":isMed?"rgba(244,162,97,.12)":"rgba(239,35,60,.1)"};color:${isGood?"var(--grn2)":isMed?"#c05621":"var(--red)"};border:1px solid ${isGood?"rgba(6,214,160,.3)":isMed?"rgba(244,162,97,.3)":"rgba(239,35,60,.2)"}`;$("gps-map-bar").style.display="flex";$("gps-coords").textContent=`${lat.toFixed(6)}, ${lng.toFixed(6)}`;$("gps-time").textContent=fmtDt(now);$("gps-gmaps").href=`https://maps.google.com/?q=${lat},${lng}`;if(!gpsMarker)gpsMarker=L.marker([lat,lng],{icon:IC_PUR}).bindPopup('<div class="pop-title">Posisi Anda</div>').addTo(map);else gpsMarker.setLatLng([lat,lng]);gpsMarker.getPopup().setContent(`<div class="pop-title">Posisi Saat Ini</div>${lat.toFixed(5)}, ${lng.toFixed(5)}<br>±${accuracy.toFixed(0)}m`);if(gpsCircle)map.removeLayer(gpsCircle);gpsCircle=L.circle([lat,lng],{radius:accuracy,color:"#7b2d8b",weight:1.5,fillOpacity:.07}).addTo(map);gpsPts.push([lat,lng]);if(gpsPoly)map.removeLayer(gpsPoly);if(gpsPts.length>1)gpsPoly=L.polyline(gpsPts,{color:"#4361ee",weight:4,opacity:.8,lineCap:"round"}).addTo(map);map.panTo([lat,lng],{animate:true,duration:.5});api("telemetry/gps",{device_id:_v("gps-dev")||"web-01",ts:now.toISOString(),lat,lng,accuracy_m:accuracy})},err=>{showAlert("gps-alert","GPS error: "+err.message);setTrackDot(false)},{enableHighAccuracy:true,timeout:15000,maximumAge:0})}
-function stopGPS(){if(gpsWatcher!==null){navigator.geolocation.clearWatch(gpsWatcher);gpsWatcher=null}setTrackDot(false);$("gps-status-txt").textContent="Tidak aktif";$("gps-acc-badge").style.display="none"}
-async function fetchGpsHistory(){const dev=_v("gps-q-dev");if(!dev)return;const r=await api("telemetry/gps/history",{device_id:dev,limit:200});if(!r.ok)return showAlert("gps-alert",r.error);const items=r.data.items||[];$("gps-hist-tbody").innerHTML=items.length===0?'<tr><td colspan="6" class="empty">Tidak ada data</td></tr>':items.map((g,i)=>`<tr><td>${i+1}</td><td style="font-size:.8rem">${fmtDt(g.ts)}</td><td style="font-family:var(--mono)">${g.lat.toFixed(5)}</td><td style="font-family:var(--mono)">${g.lng.toFixed(5)}</td><td>${g.accuracy_m?`±${g.accuracy_m.toFixed(0)}m`:"-"}</td><td><a class="maps-link" href="https://maps.google.com/?q=${g.lat},${g.lng}" target="_blank">🗺️</a></td></tr>`).join("");if(items.length===0){$("history-map-wrap").style.display="none";return}$("history-map-wrap").style.display="block";setTimeout(()=>{const map=initMap("gps-history-map");if(histLayer)map.removeLayer(histLayer);histLayer=L.layerGroup().addTo(map);const coords=items.map(g=>[g.lat,g.lng]);if(coords.length>1)L.polyline(coords,{color:"#4361ee",weight:4,opacity:.85,lineCap:"round"}).addTo(histLayer);L.marker(coords[0],{icon:IC_GRN}).bindPopup(`<div class="pop-title">🟢 Titik Awal</div>${fmtDt(items[0].ts)}`).addTo(histLayer);if(coords.length>1)L.marker(coords[coords.length-1],{icon:IC_RED}).bindPopup(`<div class="pop-title">🔴 Terbaru</div>${fmtDt(items[items.length-1].ts)}`).addTo(histLayer);coords.slice(1,-1).forEach((c,i)=>L.marker(c,{icon:mkDot("#4361ee")}).bindPopup(`<div class="pop-title">Titik ${i+2}</div>${fmtDt(items[i+1].ts)}`).addTo(histLayer));try{map.fitBounds(coords,{padding:[40,40],maxZoom:17})}catch(e){}map.invalidateSize()},120)}
-</script>
-</body>
-</html>
