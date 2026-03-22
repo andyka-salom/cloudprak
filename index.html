@@ -660,6 +660,10 @@ code{font-family:var(--mono);font-size:.81rem;color:var(--ind);background:rgba(6
                 <button class="btn btn-red" id="btn-ac-stop" style="display:none" onclick="stopAccel()">⏹ Stop</button>
               </div>
             </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <p style="font-size:.82rem;color:var(--txt2);font-weight:600">Data Sensor Realtime</p>
+              <span id="ac-src" style="font-family:var(--mono);font-size:.68rem;padding:2px 8px;border-radius:20px;background:var(--bg2);color:var(--txt3)">menunggu…</span>
+            </div>
             <div class="accel-display">
               <div class="accel-axis ax-x">
                 <div class="axis-label">X-Axis</div>
@@ -677,6 +681,9 @@ code{font-family:var(--mono);font-size:.81rem;color:var(--ind);background:rgba(6
                 <div class="axis-unit">m/s²</div>
               </div>
             </div>
+            <p style="font-size:.75rem;color:var(--txt3);margin-top:6px;text-align:center">
+              📱 Buka via HTTPS atau localhost agar sensor HP bisa diakses browser
+            </p>
             <div class="alert" id="ac-alert"></div>
             <hr class="divider">
             <p style="font-size:.88rem;font-weight:700;margin-bottom:10px;color:var(--txt2)">📊 Data Terbaru Server</p>
@@ -1091,28 +1098,60 @@ function startAccelGate(){
     if(gateAccumMove>=GATE_NEEDED) onGateVerified();
   }
 
-  // Coba DeviceMotion real
-  if(window.DeviceMotionEvent && typeof DeviceMotionEvent.requestPermission==="function"){
-    DeviceMotionEvent.requestPermission().then(s=>{
-      if(s==="granted") attachMotionGate(processMotion);
-      else startGateSimulation(processMotion);
-    }).catch(()=>startGateSimulation(processMotion));
-  } else if(window.DeviceMotionEvent){
-    attachMotionGate(processMotion);
-  } else {
-    // Desktop: simulasi
-    showAlert("gate-alert","Sensor tidak tersedia — menggunakan simulasi desktop","info");
+  // Aktifkan DeviceMotion
+  if(!window.DeviceMotionEvent){
+    // Desktop: simulasi otomatis
+    showAlert("gate-alert","📱 Sensor tidak tersedia (desktop) — simulasi aktif","info");
     startGateSimulation(processMotion);
+    return;
+  }
+
+  if(typeof DeviceMotionEvent.requestPermission==="function"){
+    // iOS 13+ — request permission (HARUS dari user gesture, sudah oke karena dari onclick)
+    DeviceMotionEvent.requestPermission()
+      .then(state=>{
+        if(state==="granted"){
+          attachMotionGate(processMotion);
+          showAlert("gate-alert","✅ Sensor aktif — gerakkan HP Anda!","info");
+        } else {
+          showAlert("gate-alert","⚠️ Izin sensor ditolak. Buka: Pengaturan → Safari → Motion & Orientation Access","err");
+          startGateSimulation(processMotion);
+        }
+      })
+      .catch(err=>{
+        showAlert("gate-alert","⚠️ Error izin: "+err.message+" — pakai simulasi","info");
+        startGateSimulation(processMotion);
+      });
+  } else {
+    // Android & browser non-iOS — langsung attach
+    attachMotionGate(processMotion);
+    showAlert("gate-alert","✅ Sensor aktif — gerakkan HP Anda!","info");
   }
 }
 
 function attachMotionGate(cb){
+  let lastT=0;
   gateMotionHandler=e=>{
-    if(!gateActive||!e.accelerationIncludingGravity)return;
-    const{x,y,z}=e.accelerationIncludingGravity;
-    cb(x||0,y||0,z||9.81);
+    if(!gateActive)return;
+    // Throttle ke ~30fps
+    const now=Date.now();
+    if(now-lastT < 33) return;
+    lastT=now;
+
+    let x=0,y=0,z=9.81;
+    // Coba acceleration (tanpa gravity) dulu
+    if(e.acceleration && e.acceleration.x!==null && e.acceleration.x!==undefined){
+      x=e.acceleration.x||0; y=e.acceleration.y||0; z=e.acceleration.z||0;
+    } else if(e.accelerationIncludingGravity && e.accelerationIncludingGravity.x!==null){
+      x=e.accelerationIncludingGravity.x||0;
+      y=e.accelerationIncludingGravity.y||0;
+      z=e.accelerationIncludingGravity.z||9.81;
+    } else {
+      return; // tidak ada data sensor sama sekali
+    }
+    cb(x,y,z);
   };
-  window.addEventListener("devicemotion",gateMotionHandler);
+  window.addEventListener("devicemotion",gateMotionHandler,{passive:true});
 }
 
 function startGateSimulation(cb){
@@ -1311,10 +1350,85 @@ function updateManMark(lat,lng){const map=MAPS["manual-map"];if(!map)return;if(m
 async function doCheckinManual(){const qt=_v("mt").toUpperCase(),cid=_v("mc"),sid=_v("ms");if(!qt||!cid||!sid)return showAlert("man-alert","Isi semua field.");const payload={device_id:"web-manual-"+(S.user_id||"01"),course_id:cid,session_id:sid,qr_token:qt,ts:new Date().toISOString()};if(manLat&&manLng){payload.lat=manLat;payload.lng=manLng}setSpin("mans",true);const r=await api("presence/checkin",payload);setSpin("mans",false);if(!r.ok)return showAlert("man-alert",r.error);showAlert("man-alert",`✅ Absen berhasil! ID: ${r.data.presence_id}`,"ok");$("mt").value="";manLat=null;manLng=null;$("loc-status-m").textContent="";$("manual-map-wrap").style.display="none";manMapVis=false}
 let mhsLayer=null;
 async function loadHistoryMhs(){const cid=_v("mh-cid");if(!cid)return;const r=await api("presence/history",{course_id:cid});if(!r.ok){$("mh-tbody").innerHTML=`<tr><td colspan="6" class="empty">${r.error}</td></tr>`;return}const items=r.data.items||[];$("mh-total").textContent=items.length;$("mh-tbody").innerHTML=items.length===0?'<tr><td colspan="6" class="empty">Belum ada data</td></tr>':items.map(p=>`<tr><td>${p.no}</td><td><strong>${p.pertemuan}</strong></td><td style="color:var(--txt2)">${p.tanggal||"-"}</td><td style="font-size:.82rem">${fmtTime(p.jam_checkin)}</td><td>${p.maps_url?`<a class="maps-link" href="${p.maps_url}" target="_blank">📍 ${p.lokasi.lat.toFixed(4)},${p.lokasi.lng.toFixed(4)}</a>`:"<span style='color:var(--txt4)'>-</span>"}</td><td><span class="badge b-ok">${p.status}</span></td></tr>`).join("");const wl=items.filter(p=>p.lokasi&&p.lokasi.lat);if(wl.length>0){$("mhs-map-wrap").style.display="block";const map=initMap("mhs-map");if(mhsLayer)map.removeLayer(mhsLayer);mhsLayer=L.layerGroup().addTo(map);const bounds=[];wl.forEach((p,i)=>{const{lat,lng}=p.lokasi;bounds.push([lat,lng]);const icon=i===0?IC_GRN:i===wl.length-1?IC_RED:IC_IND;L.marker([lat,lng],{icon}).bindPopup(`<div class="pop-title">${p.pertemuan}</div>${p.tanggal}<br>${fmtTime(p.jam_checkin)}`).addTo(mhsLayer)});if(bounds.length>1)L.polyline(bounds,{color:"#4361ee",weight:2.5,dashArray:"5 7",opacity:.6}).addTo(mhsLayer);try{map.fitBounds(bounds,{padding:[40,40],maxZoom:17})}catch(e){}setTimeout(()=>map.invalidateSize(),150)}else{$("mhs-map-wrap").style.display="none"}}
-function startAccel(){accelActive=true;$("btn-ac-start").style.display="none";$("btn-ac-stop").style.display="inline-flex";function sendBatch(){if(!accelActive||accelBatch.length===0)return;const samples=[...accelBatch];accelBatch=[];api("telemetry/accel",{device_id:_v("ac-dev")||"web-01",ts:new Date().toISOString(),samples}).then(r=>{if(!r.ok)showAlert("ac-alert","Accel error: "+r.error)})}if(window.DeviceMotionEvent&&typeof DeviceMotionEvent.requestPermission==="function"){DeviceMotionEvent.requestPermission().then(s=>{if(s==="granted")listenMotion()})}else if(window.DeviceMotionEvent){listenMotion()}else{showAlert("ac-alert","Menggunakan simulasi sensor.","info");accelTimer=setInterval(()=>{const x=(Math.random()-.5)*2,y=(Math.random()-.5)*2,z=9.5+Math.random()*.8;updateAccelUI(x,y,z);accelBatch.push({t:new Date().toISOString(),x:+x.toFixed(3),y:+y.toFixed(3),z:+z.toFixed(3)});if(accelBatch.length>=5)sendBatch()},300)}setInterval(sendBatch,3000)}
-function listenMotion(){window.addEventListener("devicemotion",e=>{if(!accelActive||!e.acceleration)return;const{x,y,z}=e.acceleration;updateAccelUI(x,y,z);accelBatch.push({t:new Date().toISOString(),x:+x.toFixed(3),y:+y.toFixed(3),z:+(z||9.81).toFixed(3)})})}
-function updateAccelUI(x,y,z){$("av-x").textContent=x.toFixed(3);$("av-y").textContent=y.toFixed(3);$("av-z").textContent=z.toFixed(3)}
-function stopAccel(){accelActive=false;if(accelTimer){clearInterval(accelTimer);accelTimer=null}$("btn-ac-start").style.display="inline-flex";$("btn-ac-stop").style.display="none"}
+function startAccel(){
+  accelActive=true; accelBatch=[];
+  $("btn-ac-start").style.display="none";
+  $("btn-ac-stop").style.display="inline-flex";
+
+  function sendBatch(){
+    if(!accelActive||accelBatch.length===0)return;
+    const samples=[...accelBatch]; accelBatch=[];
+    api("telemetry/accel",{device_id:_v("ac-dev")||"web-01",ts:new Date().toISOString(),samples})
+      .then(r=>{if(!r.ok)showAlert("ac-alert","Accel error: "+r.error);});
+  }
+
+  function doListen(){
+    listenMotion();
+    showAlert("ac-alert","✅ Sensor aktif — gerakkan HP","info");
+  }
+
+  if(window.DeviceMotionEvent){
+    if(typeof DeviceMotionEvent.requestPermission==="function"){
+      // iOS 13+ — WAJIB dipanggil dari user gesture (ini sudah dari onclick)
+      DeviceMotionEvent.requestPermission()
+        .then(state=>{
+          if(state==="granted"){ doListen(); }
+          else {
+            showAlert("ac-alert","⚠️ Izin sensor ditolak. Buka Pengaturan → Safari → Izinkan Sensor Gerak","err");
+            startAccelSimulation();
+          }
+        })
+        .catch(err=>{
+          showAlert("ac-alert","⚠️ Tidak bisa minta izin: "+err.message+". Menggunakan simulasi.","info");
+          startAccelSimulation();
+        });
+    } else {
+      // Android & browser lain — langsung listen
+      doListen();
+    }
+  } else {
+    // Desktop — simulasi
+    showAlert("ac-alert","📱 DeviceMotion tidak tersedia (desktop). Menggunakan simulasi.","info");
+    startAccelSimulation();
+  }
+
+  setInterval(sendBatch, 2000);
+}
+
+function startAccelSimulation(){
+  // Simulasi data sensor untuk desktop / saat izin ditolak
+  accelTimer=setInterval(()=>{
+    const t=Date.now()/1000;
+    const x=Math.sin(t*2.3)*1.2+(Math.random()-.5)*.4;
+    const y=Math.cos(t*1.7)*0.9+(Math.random()-.5)*.4;
+    const z=9.81+Math.sin(t*3.1)*.3+(Math.random()-.5)*.2;
+    updateAccelUI(x,y,z,"sim");
+    accelBatch.push({t:new Date().toISOString(),x:+x.toFixed(3),y:+y.toFixed(3),z:+z.toFixed(3)});
+  },150);
+}
+
+function updateAccelUI(x,y,z,src){
+  const ex=$("av-x"),ey=$("av-y"),ez=$("av-z");
+  if(ex) ex.textContent=x.toFixed(3);
+  if(ey) ey.textContent=y.toFixed(3);
+  if(ez) ez.textContent=z.toFixed(3);
+  const srcEl=$("ac-src");
+  if(srcEl){
+    const labels={"sim":"simulasi","acc":"tanpa gravity","incl":"incl. gravity"};
+    srcEl.textContent=labels[src]||src||"sensor";
+  }
+}
+function stopAccel(){
+  accelActive=false;
+  if(accelTimer){clearInterval(accelTimer);accelTimer=null;}
+  // Hapus event listener devicemotion untuk panel sensor
+  // (menggunakan removeEventListener dengan fungsi anonim tidak bisa,
+  //  jadi kita set flag accelActive=false yang dicek di handler)
+  $("btn-ac-start").style.display="inline-flex";
+  $("btn-ac-stop").style.display="none";
+  const srcEl=$("ac-src");
+  if(srcEl) srcEl.textContent="berhenti";
+}
 async function fetchAccelLatest(){const dev=_v("ac-q-dev");if(!dev)return;const r=await api("telemetry/accel/latest",{device_id:dev});if(!r.ok)return $("accel-latest").textContent=r.error;const d=r.data;$("accel-latest").innerHTML=`<strong>${d.device_id}</strong> — t:${fmtDt(d.t)} | X:<strong>${d.x}</strong> Y:<strong>${d.y}</strong> Z:<strong>${d.z}</strong>`}
 let gpsMarker=null,gpsCircle=null,gpsPts=[],gpsPoly=null,histLayer=null;
 function initGpsPanel(){setTimeout(()=>{initMap("gps-map",DEF_C,15).invalidateSize()},120)}
