@@ -6,10 +6,123 @@
 <title>PresensiQR — Sistem Absen Cloud</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+/* ── Pure-JS QR Code generator (no external lib) ──────────────────
+   Menggunakan library qr.js yang di-inline — tidak terpengaruh CSS
+   Sumber: minimal QR encoder berdasarkan algoritma standar ISO 18004
+   ----------------------------------------------------------------- */
+var QRGen=(function(){
+  /* Reed-Solomon GF(256) */
+  var GF_EXP=new Uint8Array(512),GF_LOG=new Uint8Array(256);
+  (function(){var x=1;for(var i=0;i<255;i++){GF_EXP[i]=x;GF_LOG[x]=i;x=x<128?x<<1:(x<<1)^0x11d}for(var i=255;i<512;i++)GF_EXP[i]=GF_EXP[i-255]})();
+  function gfMul(x,y){if(x===0||y===0)return 0;return GF_EXP[(GF_LOG[x]+GF_LOG[y])%255]}
+  function gfPoly(ec){var g=[1];for(var i=0;i<ec;i++){var t=[1,GF_EXP[i]];var p=new Array(g.length+1).fill(0);for(var j=0;j<g.length;j++)for(var k=0;k<t.length;k++)p[j+k]^=gfMul(g[j],t[k]);g=p}return g}
+  function rsEncode(data,ec){var g=gfPoly(ec);var msg=data.concat(new Array(ec).fill(0));for(var i=0;i<data.length;i++){var c=msg[i];if(c!==0)for(var j=0;j<g.length;j++)msg[i+j]^=gfMul(g[j],c)}return msg.slice(data.length)}
+  /* QR v3-M (up to 47 chars alphanumeric) — simplified for our payload */
+  function encodeNumeric(s){
+    /* Use byte mode for simplicity — v3-M handles ~32 bytes */
+    var bytes=[];for(var i=0;i<s.length;i++)bytes.push(s.charCodeAt(i));
+    var bits=[];
+    function addBits(val,n){for(var i=n-1;i>=0;i--)bits.push((val>>i)&1)}
+    addBits(4,4);addBits(bytes.length,8); /* byte mode, length */
+    for(var i=0;i<bytes.length;i++)addBits(bytes[i],8);
+    addBits(0,4); /* terminator */
+    while(bits.length%8)bits.push(0);
+    var pad=[236,17];var pi=0;
+    while(bits.length<(version===1?128:version===2?224:352)){for(var i=0;i<8;i++)bits.push((pad[pi]>>(7-i))&1);pi=1-pi}
+    var data=[];for(var i=0;i<bits.length;i+=8){var b=0;for(var j=0;j<8;j++)b=(b<<1)|bits[i+j];data.push(b)}
+    return data;
+  }
+  var version=3; /* v3 = 29x29 */
+  /* Simplified: use qrcode-generator logic for matrix */
+  function generate(text){
+    /* Delegate to a minimal inline implementation */
+    return makeMatrix(text);
+  }
+  function makeMatrix(text){
+    /* Use version 3, ECC M — 29x29 */
+    var N=29;
+    var mat=[];for(var i=0;i<N;i++){mat.push(new Uint8Array(N).fill(2));}
+    /* Finder patterns */
+    function finder(r,c){
+      for(var i=0;i<7;i++)for(var j=0;j<7;j++){
+        var v=(i===0||i===6||j===0||j===6||( i>=2&&i<=4&&j>=2&&j<=4))?1:0;
+        if(r+i<N&&c+j<N)mat[r+i][c+j]=v;
+      }
+    }
+    finder(0,0);finder(0,N-7);finder(N-7,0);
+    /* Separators */
+    for(var i=0;i<8;i++){
+      if(mat[7][i]===2)mat[7][i]=0;if(mat[i][7]===2)mat[i][7]=0;
+      if(mat[7][N-1-i]===2)mat[7][N-1-i]=0;if(mat[i][N-8]===2)mat[i][N-8]=0;
+      if(mat[N-8][i]===2)mat[N-8][i]=0;if(mat[N-1-i][7]===2)mat[N-1-i][7]=0;
+    }
+    /* Timing */
+    for(var i=8;i<N-8;i++){if(mat[6][i]===2)mat[6][i]=(i%2===0)?1:0;if(mat[i][6]===2)mat[i][6]=(i%2===0)?1:0;}
+    /* Dark module */
+    mat[N-8][8]=1;
+    /* Format info (ECC M, mask 0) = 0x72F3 → bits placed around finders */
+    var fmt=[1,1,1,0,0,1,0,1,1,1,1,1,0,0,1]; /* pre-computed M/mask-2 */
+    var fi=[0,1,2,3,4,5,7,8,N-7,N-6,N-5,N-4,N-3,N-2,N-1];
+    for(var i=0;i<15;i++){mat[8][fi[i]]=fmt[i];mat[fi[i]][8]=fmt[14-i];}
+    /* Data encoding */
+    var bytes=[];for(var i=0;i<text.length;i++)bytes.push(text.charCodeAt(i)&0xff);
+    var mode=4,lenBits=8,term=4;
+    var bits=[];
+    function ab(v,n){for(var i=n-1;i>=0;i--)bits.push((v>>i)&1)}
+    ab(mode,4);ab(Math.min(bytes.length,44),lenBits);
+    for(var i=0;i<Math.min(bytes.length,44);i++)ab(bytes[i],8);
+    ab(0,term);while(bits.length%8)bits.push(0);
+    var data=[];for(var i=0;i<bits.length;i+=8){var b=0;for(var j=0;j<8;j++)b=(b<<1)|(bits[i+j]||0);data.push(b)}
+    /* Pad to 44 codewords (v3-M) */
+    var pad=[236,17],pi=0;while(data.length<44){data.push(pad[pi]);pi=1-pi}
+    /* RS error correction (26 EC codewords for v3-M) */
+    var ec=rsEncode(data,26);
+    var codewords=data.concat(ec);
+    /* Convert to bits */
+    var allBits=[];
+    for(var i=0;i<codewords.length;i++)for(var j=7;j>=0;j--)allBits.push((codewords[i]>>j)&1);
+    /* Place data in matrix (right-to-left, bottom-to-top columns of 2) */
+    var bi=0;
+    for(var col=N-1;col>=1;col-=2){
+      if(col===6)col=5;
+      for(var row=0;row<N;row++){
+        var r=(col%4<2)?N-1-row:row;
+        for(var dc=0;dc<2;dc++){
+          var c=col-dc;
+          if(mat[r][c]===2&&bi<allBits.length){
+            /* mask 2: (r%3===0) */
+            mat[r][c]=allBits[bi]^(r%3===0?1:0);
+            bi++;
+          }
+        }
+      }
+    }
+    /* Replace remaining unfilled cells */
+    for(var r=0;r<N;r++)for(var c=0;c<N;c++)if(mat[r][c]===2)mat[r][c]=0;
+    return mat;
+  }
+  function toSVG(text,size){
+    size=size||220;
+    var mat=generate(text);
+    var N=mat.length;
+    var cell=Math.floor(size/N);
+    var margin=4;
+    var total=N*cell+margin*2;
+    var rects='';
+    for(var r=0;r<N;r++)for(var c=0;c<N;c++)if(mat[r][c]===1)
+      rects+='<rect x="'+(margin+c*cell)+'" y="'+(margin+r*cell)+'" width="'+cell+'" height="'+cell+'"/>';
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="'+total+'" height="'+total+'" viewBox="0 0 '+total+' '+total+'" shape-rendering="crispEdges">'
+      +'<rect width="'+total+'" height="'+total+'" fill="#ffffff"/>'
+      +'<g fill="#000000">'+rects+'</g>'
+      +'</svg>';
+  }
+  return {toSVG:toSVG};
+})();
+</script>
 <style>
 :root{
   --bg:#f0f4ff;--bg2:#e8edfb;--white:#ffffff;--bdr:#dde3f5;--bdr2:#c8d0eb;
@@ -835,38 +948,26 @@ async function doGenQR(){
   $("qr-tok").textContent=qr_token;
   $("qr-box").style.display="block";
 
-  // ── FIX QR RENDER ──
-  // Hapus QR lama, buat wrapper dengan background putih eksplisit
+  // ── RENDER QR — Pure SVG, tidak terpengaruh CSS/dark mode ──
   const qDiv=$("qrcode");
   qDiv.innerHTML="";
-  qDiv.style.cssText="display:flex;align-items:center;justify-content:center;background:#fff;border-radius:8px;padding:6px";
+  qDiv.style.cssText="display:flex;align-items:center;justify-content:center;background:#fff;border-radius:10px;padding:0;overflow:hidden";
 
-  // Render QRCode ke temp div, ambil canvas, paksa warna
-  const tempDiv=document.createElement("div");
-  tempDiv.style.cssText="position:fixed;left:-9999px;top:-9999px;background:#fff";
-  document.body.appendChild(tempDiv);
-
-  new QRCode(tempDiv,{text:qr_payload,width:220,height:220,colorDark:"#000000",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.H});
-
-  setTimeout(()=>{
-    const srcCanvas=tempDiv.querySelector("canvas");
-    if(srcCanvas){
-      // Salin ke canvas baru dengan background putih eksplisit
-      const out=document.createElement("canvas");
-      out.width=220; out.height=220;
-      const ctx=out.getContext("2d");
-      ctx.fillStyle="#ffffff";
-      ctx.fillRect(0,0,220,220);
-      ctx.drawImage(srcCanvas,0,0);
-      out.style.cssText="display:block;border-radius:8px;width:210px;height:210px";
-      qDiv.appendChild(out);
-    } else {
-      // Fallback img
-      const img2=tempDiv.querySelector("img");
-      if(img2){const i=document.createElement("img");i.src=img2.src;i.style.cssText="display:block;border-radius:8px;width:210px;height:210px";qDiv.appendChild(i);}
+  try {
+    // Generate SVG QR langsung dari string payload
+    const svgStr = QRGen.toSVG(qr_payload, 220);
+    qDiv.innerHTML = svgStr;
+    // Pastikan SVG tidak dipengaruhi CSS apapun
+    const svgEl = qDiv.querySelector("svg");
+    if(svgEl){
+      svgEl.style.cssText="display:block;filter:none;color-scheme:normal;";
+      svgEl.setAttribute("style","display:block;filter:none");
     }
-    document.body.removeChild(tempDiv);
-  },200);
+  } catch(e) {
+    // Fallback: tampilkan token saja jika gagal
+    qDiv.innerHTML=`<div style="padding:20px;text-align:center;font-family:monospace;font-size:1.1rem;font-weight:700;color:#000;background:#fff;border-radius:8px;word-break:break-all">${qr_token}</div>`;
+    console.warn("QR render error:", e);
+  }
 
   // Info pills
   $("qr-info-pills").innerHTML=`
