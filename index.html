@@ -3,622 +3,314 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Presensi QR — Cloud Computing v3.1</title>
-
+<title>PresensiQR — Sistem Absen Cloud</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-
 <style>
-/* ═══════════════════════════════════════════
-   DESIGN: Industrial Precision — dark navy +
-   electric accent. Monospace x geometric.
-═══════════════════════════════════════════ */
-:root {
-  --bg:    #0d1117;
-  --bg2:   #161b22;
-  --bg3:   #21262d;
-  --card:  #1c2128;
-  --bdr:   #30363d;
-  --blue:  #2f81f7;
-  --blue2: #58a6ff;
-  --green: #3fb950;
-  --red:   #f85149;
-  --amber: #d29922;
-  --pur:   #a371f7;
-  --txt:   #e6edf3;
-  --txt2:  #8b949e;
-  --txt3:  #484f58;
-  --r:     8px;
-  --mono:  'Space Mono', monospace;
-  --sans:  'DM Sans', sans-serif;
-  --sh:    0 8px 32px rgba(0,0,0,.4);
+:root{
+  --bg:#f0f4ff;--bg2:#e8edfb;--white:#ffffff;--bdr:#dde3f5;--bdr2:#c8d0eb;
+  --ind:#4361ee;--ind2:#3a0ca3;--vio:#7b2d8b;--sky:#4cc9f0;
+  --grn:#06d6a0;--grn2:#059669;--red:#ef233c;--amb:#f4a261;--amb2:#e76f51;
+  --txt:#0f1729;--txt2:#4a5578;--txt3:#8891ab;--txt4:#bec4d6;
+  --grad:linear-gradient(135deg,#4361ee,#7b2d8b);
+  --grad2:linear-gradient(135deg,#4cc9f0,#4361ee);
+  --gradg:linear-gradient(135deg,#06d6a0,#059669);
+  --r:14px;--r2:10px;
+  --sh:0 2px 16px rgba(67,97,238,.1);
+  --sh2:0 8px 40px rgba(67,97,238,.18);
+  --sh3:0 1px 4px rgba(15,23,41,.06);
+  --sans:'Bricolage Grotesque',system-ui,sans-serif;
+  --mono:'JetBrains Mono',monospace;
 }
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--txt);min-height:100vh;-webkit-font-smoothing:antialiased;
+  background-image:radial-gradient(circle at 15% 0%,rgba(67,97,238,.07) 0%,transparent 50%),radial-gradient(circle at 85% 100%,rgba(76,201,240,.07) 0%,transparent 50%)}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:3px}
 
-body {
-  font-family: var(--sans);
-  background: var(--bg);
-  color: var(--txt);
-  min-height: 100vh;
-  -webkit-font-smoothing: antialiased;
-}
+/* NAV */
+nav{background:rgba(255,255,255,.9);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--bdr);height:58px;display:flex;align-items:center;
+  justify-content:space-between;padding:0 20px;position:sticky;top:0;z-index:300;
+  box-shadow:0 1px 12px rgba(67,97,238,.07)}
+.nav-brand{display:flex;align-items:center;gap:10px}
+.nav-logo{width:34px;height:34px;background:var(--grad);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;box-shadow:0 3px 10px rgba(67,97,238,.35)}
+.nav-title{font-size:.95rem;font-weight:800;color:var(--txt);letter-spacing:-.3px}
+.nav-title span{color:var(--ind)}
+.nav-sub{font-size:.68rem;color:var(--txt3);font-family:var(--mono)}
+.nav-r{display:flex;align-items:center;gap:10px}
+.nav-name{font-size:.84rem;font-weight:600;color:var(--txt2)}
+.role-pill{font-family:var(--mono);font-size:.65rem;font-weight:700;padding:4px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:.5px}
+.rp-admin{background:rgba(239,35,60,.1);color:var(--red)}
+.rp-dosen{background:rgba(244,162,97,.15);color:#c05621}
+.rp-mahasiswa{background:rgba(6,214,160,.12);color:var(--grn2)}
+.btn-nav{background:var(--white);border:1.5px solid var(--bdr2);color:var(--txt2);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:.82rem;font-family:var(--sans);font-weight:600;transition:all .15s}
+.btn-nav:hover{border-color:var(--ind);color:var(--ind)}
 
-/* ── SCROLLBAR ── */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--bg); }
-::-webkit-scrollbar-thumb { background: var(--bdr); border-radius: 3px; }
+/* LAYOUT */
+.wrap{max-width:980px;margin:0 auto;padding:20px 14px}
+.page{display:none}.page.active{display:block}
+.layout{display:grid;grid-template-columns:210px 1fr;gap:16px;align-items:start}
 
-/* ── NAV ── */
-nav {
-  background: var(--bg2);
-  border-bottom: 1px solid var(--bdr);
-  padding: 0 20px;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  position: sticky;
-  top: 0;
-  z-index: 300;
-}
-.nav-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-family: var(--mono);
-  font-size: .82rem;
-  color: var(--txt2);
-}
-.nav-brand .dot {
-  width: 8px; height: 8px;
-  background: var(--green);
-  border-radius: 50%;
-  animation: pulse-g 2s ease-in-out infinite;
-}
-@keyframes pulse-g {
-  0%,100% { box-shadow: 0 0 0 0 rgba(63,185,80,.5); }
-  50%      { box-shadow: 0 0 0 5px rgba(63,185,80,0); }
-}
-.nav-brand strong { color: var(--txt); }
-.nav-r { display: flex; align-items: center; gap: 10px; }
-.role-chip {
-  font-family: var(--mono);
-  font-size: .68rem;
-  font-weight: 700;
-  padding: 3px 10px;
-  border-radius: 20px;
-  border: 1px solid;
-  text-transform: uppercase;
-  letter-spacing: .5px;
-}
-.rc-admin     { color: var(--red);   border-color: var(--red);   background: rgba(248,81,73,.08); }
-.rc-dosen     { color: var(--amber); border-color: var(--amber); background: rgba(210,153,34,.08); }
-.rc-mahasiswa { color: var(--green); border-color: var(--green); background: rgba(63,185,80,.08); }
-.btn-nav {
-  background: transparent;
-  border: 1px solid var(--bdr);
-  color: var(--txt2);
-  padding: 5px 12px;
-  border-radius: var(--r);
-  cursor: pointer;
-  font-size: .8rem;
-  font-family: var(--sans);
-  transition: all .15s;
-}
-.btn-nav:hover { border-color: var(--blue); color: var(--blue2); }
+/* SIDEBAR */
+.sidebar{background:var(--white);border:1px solid var(--bdr);border-radius:var(--r);padding:12px;position:sticky;top:72px;box-shadow:var(--sh3)}
+.sb-sep{font-family:var(--mono);font-size:.62rem;color:var(--txt4);text-transform:uppercase;letter-spacing:.8px;padding:10px 10px 4px;font-weight:600}
+.sb-btn{display:flex;align-items:center;gap:8px;width:100%;padding:9px 11px;border:none;border-radius:9px;background:transparent;color:var(--txt2);font-size:.85rem;font-family:var(--sans);font-weight:600;cursor:pointer;text-align:left;transition:all .14s;margin-bottom:2px}
+.sb-btn:hover{background:var(--bg);color:var(--ind)}
+.sb-btn.active{background:linear-gradient(135deg,rgba(67,97,238,.12),rgba(123,45,139,.08));color:var(--ind);border:1px solid rgba(67,97,238,.2)}
+.sb-icon{width:26px;height:26px;background:var(--bg2);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0;transition:background .14s}
+.sb-btn.active .sb-icon{background:linear-gradient(135deg,rgba(67,97,238,.18),rgba(123,45,139,.12))}
 
-/* ── LAYOUT ── */
-.wrap { max-width: 960px; margin: 0 auto; padding: 20px 14px; }
-.page { display: none; }
-.page.active { display: block; }
+/* PANEL */
+.tab-panel{display:none}.tab-panel.active{display:block}
 
-.layout {
-  display: grid;
-  grid-template-columns: 196px 1fr;
-  gap: 14px;
-}
+/* CARD */
+.card{background:var(--white);border:1px solid var(--bdr);border-radius:var(--r);padding:22px;margin-bottom:14px;box-shadow:var(--sh3);animation:card-in .25s ease both}
+@keyframes card-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.card-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--bdr)}
+.card-hd h2{font-size:1rem;font-weight:800;color:var(--txt);letter-spacing:-.3px;display:flex;align-items:center;gap:8px}
+.hd-icon{width:30px;height:30px;background:var(--grad);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.85rem;box-shadow:0 3px 8px rgba(67,97,238,.25)}
+.card-badge{font-family:var(--mono);font-size:.68rem;font-weight:700;padding:4px 10px;border-radius:20px;background:rgba(6,214,160,.1);color:var(--grn2);border:1px solid rgba(6,214,160,.25)}
 
-/* ── SIDEBAR ── */
-.sidebar {
-  background: var(--card);
-  border: 1px solid var(--bdr);
-  border-radius: var(--r);
-  padding: 10px;
-  position: sticky;
-  top: 70px;
-  height: fit-content;
-}
-.sb-sep {
-  font-family: var(--mono);
-  font-size: .64rem;
-  color: var(--txt3);
-  text-transform: uppercase;
-  letter-spacing: .8px;
-  padding: 10px 10px 4px;
-  margin-top: 4px;
-}
-.sb-sep:first-child { margin-top: 0; }
-.sb-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 8px 10px;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--txt2);
-  font-size: .83rem;
-  font-family: var(--sans);
-  font-weight: 500;
-  cursor: pointer;
-  text-align: left;
-  transition: all .12s;
-  margin-bottom: 2px;
-}
-.sb-btn:hover { background: var(--bg3); color: var(--txt); }
-.sb-btn.active {
-  background: rgba(47,129,247,.15);
-  color: var(--blue2);
-  border: 1px solid rgba(47,129,247,.3);
-}
+/* FORM */
+.fg{margin-bottom:14px}
+label{display:block;font-size:.74rem;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+input,select,textarea{width:100%;padding:9px 13px;background:var(--bg);border:1.5px solid var(--bdr);border-radius:9px;color:var(--txt);font-size:.9rem;font-family:var(--sans);transition:border .15s,box-shadow .15s}
+input:focus,select:focus{outline:none;border-color:var(--ind);box-shadow:0 0 0 3px rgba(67,97,238,.1);background:var(--white)}
+select option{background:var(--white)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
 
-/* ── PANEL ── */
-.tab-panel { display: none; }
-.tab-panel.active { display: block; }
+/* BTN */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:10px 20px;border:none;border-radius:10px;font-size:.88rem;font-weight:700;font-family:var(--sans);cursor:pointer;transition:all .16s;white-space:nowrap}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-full{width:100%}.btn-sm{padding:6px 13px;font-size:.8rem;border-radius:8px}
+.btn-primary{background:var(--grad);color:#fff;box-shadow:0 4px 14px rgba(67,97,238,.35)}
+.btn-primary:not(:disabled):hover{box-shadow:0 6px 20px rgba(67,97,238,.45);transform:translateY(-1px)}
+.btn-green{background:var(--gradg);color:#fff;box-shadow:0 4px 12px rgba(6,214,160,.3)}
+.btn-green:not(:disabled):hover{box-shadow:0 6px 16px rgba(6,214,160,.4);transform:translateY(-1px)}
+.btn-red{background:linear-gradient(135deg,#ef233c,#c0152a);color:#fff;box-shadow:0 4px 12px rgba(239,35,60,.25)}
+.btn-red:not(:disabled):hover{transform:translateY(-1px)}
+.btn-outline{background:var(--white);border:1.5px solid var(--bdr2);color:var(--txt2)}
+.btn-outline:hover{border-color:var(--ind);color:var(--ind)}
+.btn-amber{background:linear-gradient(135deg,var(--amb),var(--amb2));color:#fff;box-shadow:0 4px 12px rgba(244,162,97,.3)}
 
-/* ── CARD ── */
-.card {
-  background: var(--card);
-  border: 1px solid var(--bdr);
-  border-radius: var(--r);
-  padding: 20px;
-  margin-bottom: 14px;
-}
-.card-hd {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--bdr);
-}
-.card-hd h2 {
-  font-size: .95rem;
-  font-weight: 700;
-  color: var(--txt);
-  font-family: var(--mono);
-  letter-spacing: -.3px;
-}
-.card-hd-r { margin-left: auto; }
+/* ALERT */
+.alert{padding:11px 15px;border-radius:9px;font-size:.85rem;display:none;margin-top:10px;font-weight:500}
+.alert.show{display:block;animation:pop-in .2s ease}
+.a-ok{background:rgba(6,214,160,.1);color:#065f46;border:1px solid rgba(6,214,160,.3)}
+.a-err{background:rgba(239,35,60,.08);color:#9b1c1c;border:1px solid rgba(239,35,60,.2)}
+.a-info{background:rgba(67,97,238,.08);color:#1e3a8a;border:1px solid rgba(67,97,238,.2)}
 
-/* ── FORM ── */
-.fg { margin-bottom: 12px; }
-label {
-  display: block;
-  font-family: var(--mono);
-  font-size: .68rem;
-  color: var(--txt3);
-  text-transform: uppercase;
-  letter-spacing: .6px;
-  margin-bottom: 5px;
-}
-input, select, textarea {
-  width: 100%;
-  padding: 8px 11px;
-  background: var(--bg2);
-  border: 1px solid var(--bdr);
-  border-radius: 6px;
-  color: var(--txt);
-  font-size: .88rem;
-  font-family: var(--sans);
-  transition: border .15s;
-}
-input:focus, select:focus { outline: none; border-color: var(--blue); }
-select option { background: var(--bg2); }
-.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+/* TABLE */
+.tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--bdr)}
+table{width:100%;border-collapse:collapse;font-size:.84rem}
+thead th{background:var(--bg2);color:var(--txt3);padding:10px 13px;text-align:left;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--bdr);white-space:nowrap}
+tbody td{padding:10px 13px;border-bottom:1px solid var(--bdr);color:var(--txt);vertical-align:middle}
+tbody tr:last-child td{border:none}
+tbody tr:hover{background:var(--bg)}
+.empty{text-align:center;padding:28px;color:var(--txt4);font-family:var(--mono);font-size:.8rem}
 
-/* ── BUTTON ── */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 18px;
-  border: none;
-  border-radius: 6px;
-  font-size: .85rem;
-  font-weight: 600;
-  font-family: var(--sans);
-  cursor: pointer;
-  transition: all .15s;
-  white-space: nowrap;
-}
-.btn:disabled { opacity: .45; cursor: not-allowed; }
-.btn-full { width: 100%; justify-content: center; }
-.btn-sm { padding: 5px 11px; font-size: .78rem; }
+/* BADGE */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:.71rem;font-weight:700}
+.b-ok{background:rgba(6,214,160,.1);color:var(--grn2);border:1px solid rgba(6,214,160,.25)}
+.b-adm{background:rgba(239,35,60,.1);color:var(--red);border:1px solid rgba(239,35,60,.2)}
+.b-dos{background:rgba(244,162,97,.12);color:#c05621;border:1px solid rgba(244,162,97,.3)}
+.b-mhs{background:rgba(67,97,238,.1);color:var(--ind);border:1px solid rgba(67,97,238,.2)}
 
-.btn-blue  { background: var(--blue);  color: #fff; }
-.btn-blue:not(:disabled):hover  { background: var(--blue2); }
-.btn-green { background: rgba(63,185,80,.15); color: var(--green); border: 1px solid rgba(63,185,80,.35); }
-.btn-green:not(:disabled):hover { background: rgba(63,185,80,.25); }
-.btn-red   { background: rgba(248,81,73,.15); color: var(--red);   border: 1px solid rgba(248,81,73,.35); }
-.btn-red:not(:disabled):hover   { background: rgba(248,81,73,.25); }
-.btn-pur   { background: rgba(163,113,247,.15); color: var(--pur); border: 1px solid rgba(163,113,247,.35); }
-.btn-pur:not(:disabled):hover   { background: rgba(163,113,247,.25); }
-.btn-amber { background: rgba(210,153,34,.15); color: var(--amber); border: 1px solid rgba(210,153,34,.35); }
-.btn-amber:not(:disabled):hover { background: rgba(210,153,34,.25); }
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.stat{background:var(--white);border:1px solid var(--bdr);border-radius:var(--r2);padding:16px;text-align:center;position:relative;overflow:hidden}
+.stat::before{content:"";position:absolute;top:0;left:0;right:0;height:3px}
+.stat.s-ind::before{background:var(--grad)}
+.stat.s-grn::before{background:var(--gradg)}
+.stat.s-amb::before{background:linear-gradient(90deg,var(--amb),var(--amb2))}
+.stat-n{font-size:1.8rem;font-weight:800;color:var(--txt);letter-spacing:-1px}
+.stat-l{font-size:.7rem;color:var(--txt3);margin-top:3px;text-transform:uppercase;letter-spacing:.5px;font-weight:700}
 
-/* ── ALERT ── */
-.alert { padding: 10px 14px; border-radius: 6px; font-size: .84rem; display: none; margin-top: 10px; }
-.alert.show { display: block; }
-.a-ok   { background: rgba(63,185,80,.1);  color: var(--green); border: 1px solid rgba(63,185,80,.3); }
-.a-err  { background: rgba(248,81,73,.1);  color: var(--red);   border: 1px solid rgba(248,81,73,.3); }
-.a-info { background: rgba(47,129,247,.1); color: var(--blue2); border: 1px solid rgba(47,129,247,.3); }
+/* QR SECTION */
+.qr-section{display:flex;gap:24px;align-items:flex-start;margin-top:18px}
+.qr-left{flex:0 0 auto}
+.qr-right{flex:1;display:flex;flex-direction:column;gap:12px;min-width:0}
 
-/* ── TABLE ── */
-.tbl-wrap { overflow-x: auto; border-radius: 6px; border: 1px solid var(--bdr); }
-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
-thead th {
-  background: var(--bg3);
-  color: var(--txt2);
-  padding: 9px 11px;
-  text-align: left;
-  font-family: var(--mono);
-  font-size: .7rem;
-  text-transform: uppercase;
-  letter-spacing: .5px;
-  white-space: nowrap;
-  border-bottom: 1px solid var(--bdr);
+/* QR FRAME */
+.qr-frame{
+  background:#fff;
+  border-radius:18px;
+  padding:14px;
+  position:relative;
+  display:inline-block;
+  box-shadow:0 8px 40px rgba(67,97,238,.2),0 0 0 1px rgba(67,97,238,.12);
 }
-tbody td { padding: 9px 11px; border-bottom: 1px solid var(--bdr); vertical-align: middle; color: var(--txt); }
-tbody tr:last-child td { border: none; }
-tbody tr:hover { background: var(--bg3); }
-.empty { text-align: center; padding: 24px; color: var(--txt3); font-family: var(--mono); font-size: .8rem; }
+/* Corner decorators */
+.qr-frame .corner{position:absolute;width:22px;height:22px;border-color:var(--ind);border-style:solid}
+.qr-frame .corner.tl{top:8px;left:8px;border-width:3px 0 0 3px;border-radius:5px 0 0 0}
+.qr-frame .corner.tr{top:8px;right:8px;border-width:3px 3px 0 0;border-radius:0 5px 0 0}
+.qr-frame .corner.bl{bottom:8px;left:8px;border-width:0 0 3px 3px;border-radius:0 0 0 5px}
+.qr-frame .corner.br{bottom:8px;right:8px;border-width:0 3px 3px 0;border-radius:0 0 5px 0}
 
-/* ── BADGE ── */
-.badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 20px;
-  font-size: .7rem;
-  font-weight: 700;
-  font-family: var(--mono);
-}
-.b-ok  { color: var(--green); background: rgba(63,185,80,.1);  border: 1px solid rgba(63,185,80,.25); }
-.b-no  { color: var(--red);   background: rgba(248,81,73,.1);  border: 1px solid rgba(248,81,73,.25); }
-.b-adm { color: var(--red);   background: rgba(248,81,73,.1);  border: 1px solid rgba(248,81,73,.25); }
-.b-dos { color: var(--amber); background: rgba(210,153,34,.1); border: 1px solid rgba(210,153,34,.25); }
-.b-mhs { color: var(--blue2); background: rgba(47,129,247,.1); border: 1px solid rgba(47,129,247,.25); }
+/* Force QR canvas/img visible */
+#qrcode{display:flex;align-items:center;justify-content:center;min-width:210px;min-height:210px}
+#qrcode > canvas{display:block !important;visibility:visible !important;opacity:1 !important;border-radius:8px}
+#qrcode > img{display:block !important;visibility:visible !important;opacity:1 !important;border-radius:8px}
 
-/* ── QR BOX ── */
-.qr-box {
-  text-align: center;
-  padding: 24px;
-  background: linear-gradient(135deg, var(--bg2), var(--bg3));
-  border: 1px solid var(--bdr);
-  border-radius: var(--r);
-  margin-top: 14px;
-}
-.qr-box canvas, .qr-box img {
-  margin: 0 auto;
-  display: block;
-  border: 6px solid #fff;
-  border-radius: 8px;
-  box-shadow: 0 8px 32px rgba(0,0,0,.5);
-}
-.token-pill {
-  display: inline-block;
-  background: var(--bg);
-  border: 1px solid var(--bdr);
-  color: var(--blue2);
-  font-family: var(--mono);
-  font-size: 1.3rem;
-  font-weight: 700;
-  padding: 8px 24px;
-  border-radius: 40px;
-  margin: 12px 0 6px;
-  letter-spacing: 3px;
-}
-.qr-timer {
-  font-family: var(--mono);
-  font-size: 1.1rem;
-  font-weight: 700;
-  margin-top: 6px;
-  transition: color .3s;
-}
-.qr-hint {
-  font-size: .75rem;
-  color: var(--txt3);
-  margin-top: 8px;
-  font-family: var(--mono);
-}
+/* Scan line animation */
+.qr-scan-line{position:absolute;left:14px;right:14px;height:2px;
+  background:linear-gradient(90deg,transparent,var(--ind),transparent);
+  animation:scan 2.5s ease-in-out infinite;pointer-events:none;z-index:2}
+@keyframes scan{0%{top:14px}50%{top:calc(100% - 14px)}100%{top:14px}}
 
-/* ── AUTO CHECKIN MODAL ── */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.75);
-  backdrop-filter: blur(6px);
-  z-index: 1000;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
-.modal-overlay.open { display: flex; }
-.modal {
-  background: var(--card);
-  border: 1px solid var(--bdr);
-  border-radius: 12px;
-  padding: 28px;
-  width: 100%;
-  max-width: 400px;
-  box-shadow: var(--sh);
-  animation: modal-in .25s ease;
-}
-@keyframes modal-in {
-  from { opacity: 0; transform: scale(.92) translateY(16px); }
-  to   { opacity: 1; transform: none; }
-}
-.modal-icon {
-  font-size: 2.5rem;
-  text-align: center;
-  margin-bottom: 14px;
-}
-.modal h3 {
-  font-family: var(--mono);
-  font-size: .95rem;
-  text-align: center;
-  margin-bottom: 6px;
-}
-.modal-sub {
-  text-align: center;
-  color: var(--txt2);
-  font-size: .83rem;
-  margin-bottom: 18px;
-}
-.modal-info {
-  background: var(--bg2);
-  border: 1px solid var(--bdr);
-  border-radius: 6px;
-  padding: 12px;
-  margin-bottom: 16px;
-  font-size: .82rem;
-}
-.modal-info-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 3px 0;
-  border-bottom: 1px solid var(--bdr);
-}
-.modal-info-row:last-child { border: none; }
-.modal-info-row .k { color: var(--txt3); font-family: var(--mono); font-size: .7rem; }
-.modal-info-row .v { color: var(--txt);  font-family: var(--mono); font-size: .78rem; font-weight: 700; }
-.gps-status-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: var(--bg2);
-  border: 1px solid var(--bdr);
-  border-radius: 6px;
-  margin-bottom: 14px;
-  font-size: .8rem;
-}
-.gps-dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--amber);
-  flex-shrink: 0;
-  transition: background .3s;
-}
-.gps-dot.ok { background: var(--green); animation: pulse-g 1.5s infinite; }
-.gps-dot.err { background: var(--red); }
+/* TOKEN */
+.token-display{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,rgba(67,97,238,.06),rgba(123,45,139,.04));border:1.5px solid rgba(67,97,238,.2);border-radius:12px;padding:12px 16px}
+.token-label{font-size:.65rem;color:var(--txt3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+.token-val{font-family:var(--mono);font-size:1.15rem;font-weight:700;color:var(--ind);letter-spacing:2px;flex:1;text-align:center}
 
-/* ── SCAN VIEW ── */
-#qr-reader {
-  width: 100%;
-  max-width: 380px;
-  margin: 0 auto;
-  border-radius: var(--r);
-  overflow: hidden;
-  border: 1px solid var(--bdr);
-}
+/* TIMER */
+.qr-timer-box{display:flex;align-items:center;gap:14px;background:var(--bg);border:1.5px solid var(--bdr);border-radius:12px;padding:12px 16px}
+.timer-ring{position:relative;width:48px;height:48px;flex-shrink:0}
+.timer-ring svg{transform:rotate(-90deg)}
+.timer-ring circle{transition:stroke-dashoffset 1s linear}
+.timer-val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:.65rem;font-weight:700;color:var(--txt2)}
+.timer-info{flex:1}
+.timer-countdown{font-family:var(--mono);font-size:1.7rem;font-weight:700;color:var(--txt);line-height:1}
+.timer-countdown.danger{color:var(--red);animation:blink .8s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.5}}
+.timer-sub{font-size:.72rem;color:var(--txt3);margin-top:2px}
 
-/* ── STATS ── */
-.stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 14px; }
-.stat {
-  background: var(--bg2);
-  border: 1px solid var(--bdr);
-  border-radius: var(--r);
-  padding: 14px;
-  text-align: center;
-}
-.stat-n { font-family: var(--mono); font-size: 1.7rem; font-weight: 700; color: var(--blue2); }
-.stat-n.g { color: var(--green); }
-.stat-n.p { color: var(--pur); }
-.stat-n.a { color: var(--amber); }
-.stat-l   { font-size: .68rem; color: var(--txt3); margin-top: 2px; text-transform: uppercase; letter-spacing: .4px; font-family: var(--mono); }
+/* INFO PILLS */
+.info-pill{display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--bdr);border-radius:9px;padding:9px 13px}
+.ip-icon{width:26px;height:26px;background:var(--grad);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.75rem;flex-shrink:0}
+.ip-key{font-size:.66rem;color:var(--txt3);font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+.ip-val{font-weight:700;color:var(--txt);font-family:var(--mono);font-size:.82rem}
 
-/* ── MAP ── */
-.map-wrap {
-  border-radius: var(--r);
-  overflow: hidden;
-  border: 1px solid var(--bdr);
-  margin-top: 12px;
-  position: relative;
-}
-.map-bar {
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  background: rgba(13,17,23,.88);
-  backdrop-filter: blur(8px);
-  border-top: 1px solid var(--bdr);
-  padding: 7px 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: .76rem;
-  z-index: 400;
-  color: var(--txt2);
-}
-.map-bar a { color: var(--blue2); text-decoration: none; font-family: var(--mono); font-size: .72rem; }
-.map-bar a:hover { text-decoration: underline; }
+.auto-tag{display:flex;align-items:center;gap:8px;padding:9px 13px;background:linear-gradient(135deg,rgba(6,214,160,.08),rgba(67,97,238,.05));border:1px solid rgba(6,214,160,.25);border-radius:9px;font-size:.8rem;color:var(--grn2);font-weight:600}
+.dot-pulse{width:8px;height:8px;background:var(--grn);border-radius:50%;animation:pulse-g 1.6s ease-in-out infinite;flex-shrink:0}
+@keyframes pulse-g{0%,100%{box-shadow:0 0 0 0 rgba(6,214,160,.5)}50%{box-shadow:0 0 0 6px rgba(6,214,160,0)}}
 
-/* ── TRACK DOT ── */
-.track-dot {
-  display: inline-block;
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--txt3);
-  margin-right: 5px;
-  vertical-align: middle;
-}
-.track-dot.active { background: var(--green); animation: pulse-g 1.4s infinite; }
+/* AUTH */
+.auth-wrap{max-width:420px;margin:44px auto}
+.auth-hero{text-align:center;margin-bottom:28px}
+.auth-hero-logo{width:76px;height:76px;background:var(--grad);border-radius:24px;display:flex;align-items:center;justify-content:center;font-size:2.3rem;margin:0 auto 16px;box-shadow:0 8px 32px rgba(67,97,238,.35);animation:bounce-in .5s cubic-bezier(.175,.885,.32,1.275)}
+@keyframes bounce-in{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:none}}
+.auth-hero h1{font-size:1.6rem;font-weight:800;letter-spacing:-1px}
+.auth-hero h1 span{background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.auth-hero p{color:var(--txt2);font-size:.88rem;margin-top:5px}
+.auth-tabs{display:flex;background:var(--bg2);border:1.5px solid var(--bdr);border-radius:11px;padding:4px;gap:4px;margin-bottom:20px}
+.auth-tab{flex:1;padding:8px;border:none;border-radius:8px;cursor:pointer;font-family:var(--sans);font-size:.85rem;font-weight:700;transition:all .15s;background:transparent;color:var(--txt3)}
+.auth-tab.active{background:var(--white);color:var(--ind);box-shadow:0 2px 8px rgba(67,97,238,.12)}
 
-/* ── ACCEL BARS ── */
-.accel-bars { display: flex; gap: 8px; margin-top: 12px; height: 70px; align-items: flex-end; }
-.bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
-.bar { width: 100%; border-radius: 3px 3px 0 0; transition: height .25s; min-height: 2px; }
-.bar.bx { background: var(--blue2); }
-.bar.by { background: var(--green); }
-.bar.bz { background: var(--pur); }
-.bar-lbl { font-family: var(--mono); font-size: .65rem; color: var(--txt3); }
-.accel-vals { display: flex; gap: 14px; margin-top: 8px; font-family: var(--mono); font-size: .82rem; }
-.accel-vals span { color: var(--txt3); }
-.accel-vals strong { color: var(--txt); }
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(15,23,41,.5);backdrop-filter:blur(8px);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--white);border-radius:20px;padding:28px;width:100%;max-width:380px;box-shadow:0 24px 80px rgba(15,23,41,.2);animation:modal-pop .3s cubic-bezier(.175,.885,.32,1.275);border:1px solid var(--bdr)}
+@keyframes modal-pop{from{opacity:0;transform:scale(.85) translateY(20px)}to{opacity:1;transform:none}}
+.modal-strip{height:5px;border-radius:4px;margin-bottom:22px}
+.ms-ind{background:var(--grad)}.ms-grn{background:var(--gradg)}.ms-red{background:linear-gradient(90deg,var(--red),#c0152a)}
+.modal-icon{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:2rem;margin:0 auto 14px}
+.mi-ind{background:linear-gradient(135deg,rgba(67,97,238,.15),rgba(123,45,139,.1))}
+.mi-grn{background:rgba(6,214,160,.12)}.mi-red{background:rgba(239,35,60,.1)}
+.modal h3{font-size:1.05rem;font-weight:800;text-align:center;margin-bottom:5px}
+.modal-sub{font-size:.83rem;color:var(--txt2);text-align:center;margin-bottom:18px}
+.modal-data{background:var(--bg);border:1px solid var(--bdr);border-radius:10px;overflow:hidden;margin-bottom:14px}
+.mdr{display:flex;align-items:center;gap:10px;padding:9px 13px;border-bottom:1px solid var(--bdr)}
+.mdr:last-child{border:none}
+.mdr-key{font-size:.68rem;color:var(--txt3);font-weight:700;text-transform:uppercase;width:55px;flex-shrink:0}
+.mdr-val{font-family:var(--mono);font-size:.83rem;font-weight:600;color:var(--txt);flex:1}
+.gps-row{display:flex;align-items:center;gap:10px;padding:10px 13px;background:var(--bg);border:1px solid var(--bdr);border-radius:10px;margin-bottom:14px;font-size:.82rem}
+.gps-spin{width:10px;height:10px;border:2px solid var(--bdr2);border-top-color:var(--ind);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;transition:all .3s}
+.gps-spin.ok{animation:none;background:var(--grn);border:none;border-radius:50%}
+.gps-spin.err{animation:none;background:var(--red);border:none;border-radius:50%}
 
-/* ── AUTH PAGE ── */
-.auth-wrap { max-width: 400px; margin: 40px auto; }
-.auth-logo { text-align: center; margin-bottom: 24px; }
-.auth-logo-icon { font-size: 3rem; }
-.auth-logo h1 { font-family: var(--mono); font-size: 1rem; color: var(--txt); margin-top: 8px; }
-.auth-logo p  { font-size: .83rem; color: var(--txt2); margin-top: 3px; }
-.auth-tabs {
-  display: flex;
-  background: var(--bg2);
-  border: 1px solid var(--bdr);
-  border-radius: 6px;
-  padding: 4px;
-  gap: 4px;
-  margin-bottom: 18px;
-}
-.auth-tab {
-  flex: 1;
-  padding: 7px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-family: var(--mono);
-  font-size: .78rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .4px;
-  transition: all .15s;
-  background: transparent;
-  color: var(--txt3);
-}
-.auth-tab.active { background: var(--bg3); color: var(--blue2); border: 1px solid var(--bdr); }
+/* MAP */
+.map-wrap{border-radius:10px;overflow:hidden;border:1px solid var(--bdr);margin-top:12px;position:relative;box-shadow:var(--sh3)}
+.map-bar{position:absolute;bottom:0;left:0;right:0;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-top:1px solid var(--bdr);padding:7px 12px;display:flex;align-items:center;justify-content:space-between;font-size:.76rem;z-index:400;color:var(--txt2)}
+.map-bar a{color:var(--ind);text-decoration:none;font-family:var(--mono);font-size:.72rem;font-weight:600}
 
-/* ── MISC ── */
-.divider { border: none; border-top: 1px solid var(--bdr); margin: 14px 0; }
-.mut  { color: var(--txt2); font-size: .82rem; }
-.mono { font-family: var(--mono); }
-code  { font-family: var(--mono); font-size: .82rem; color: var(--blue2); background: rgba(47,129,247,.1); padding: 1px 5px; border-radius: 3px; }
-.spinner {
-  display: inline-block;
-  width: 12px; height: 12px;
-  border: 2px solid rgba(255,255,255,.3);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: spin .65s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-.mt1 { margin-top: 6px; }
-.mt2 { margin-top: 10px; }
-.mt3 { margin-top: 16px; }
-.maps-link { color: var(--blue2); text-decoration: none; font-family: var(--mono); font-size: .75rem; }
-.maps-link:hover { text-decoration: underline; }
-.map-controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+/* GPS */
+.gps-srow{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg);border:1px solid var(--bdr);border-radius:10px;margin-bottom:12px;font-size:.84rem}
+.track-dot{width:9px;height:9px;border-radius:50%;background:var(--txt4);flex-shrink:0;transition:background .3s}
+.track-dot.active{background:var(--grn);animation:pulse-g 1.4s infinite}
 
-/* ── SUCCESS ANIMATION ── */
-.checkin-success {
-  text-align: center;
-  padding: 20px;
-  animation: pop-in .4s cubic-bezier(.175,.885,.32,1.275);
-}
-@keyframes pop-in {
-  from { opacity: 0; transform: scale(.7); }
-  to   { opacity: 1; transform: none; }
-}
+/* ACCEL */
+.accel-display{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:14px 0}
+.accel-axis{background:var(--bg);border:1px solid var(--bdr);border-radius:10px;padding:14px;text-align:center;position:relative;overflow:hidden}
+.accel-axis::after{content:"";position:absolute;bottom:0;left:0;right:0;height:3px}
+.ax-x::after{background:linear-gradient(90deg,var(--ind),var(--sky))}
+.ax-y::after{background:linear-gradient(90deg,var(--grn),#059669)}
+.ax-z::after{background:linear-gradient(90deg,var(--amb),var(--amb2))}
+.axis-label{font-family:var(--mono);font-size:.65rem;font-weight:700;color:var(--txt3);text-transform:uppercase}
+.axis-val{font-family:var(--mono);font-size:1.2rem;font-weight:700;color:var(--txt);margin-top:3px}
+.axis-unit{font-size:.65rem;color:var(--txt3)}
 
-/* ── LEAFLET overrides ── */
-.leaflet-popup-content-wrapper {
-  background: var(--card);
-  border: 1px solid var(--bdr);
-  border-radius: 8px;
-  color: var(--txt);
-  box-shadow: var(--sh);
-}
-.leaflet-popup-tip { background: var(--card); }
-.pop-title { font-family: var(--mono); font-size: .78rem; font-weight: 700; color: var(--blue2); margin-bottom: 4px; }
-.leaflet-popup-content { font-size: .8rem; line-height: 1.5; }
+/* MISC */
+.divider{border:none;border-top:1px solid var(--bdr);margin:16px 0}
+.mt2{margin-top:10px}.mt3{margin-top:16px}
+.mut{color:var(--txt2);font-size:.84rem}
+code{font-family:var(--mono);font-size:.81rem;color:var(--ind);background:rgba(67,97,238,.08);padding:2px 6px;border-radius:4px}
+.maps-link{color:var(--ind);text-decoration:none;font-size:.78rem;font-weight:600}
+.maps-link:hover{text-decoration:underline}
+.map-controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.spinner{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .65s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pop-in{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
+.success-check{text-align:center;animation:pop-in .4s cubic-bezier(.175,.885,.32,1.275)}
+#qr-reader{width:100%;max-width:360px;margin:0 auto;border-radius:12px;overflow:hidden;border:1.5px solid var(--bdr)}
+.leaflet-popup-content-wrapper{border-radius:12px !important;box-shadow:0 8px 24px rgba(15,23,41,.15) !important;border:1px solid var(--bdr) !important}
+.pop-title{font-weight:800;color:var(--ind);font-size:.84rem;margin-bottom:4px}
+.leaflet-popup-content{font-size:.81rem;line-height:1.55;color:var(--txt2)}
 
-@media (max-width:680px) {
-  .layout { grid-template-columns: 1fr; }
-  .sidebar { position: static; display: flex; flex-wrap: wrap; gap: 4px; padding: 8px; border-radius: var(--r); }
-  .sb-btn  { flex: 1; min-width: 100px; justify-content: center; font-size: .78rem; }
-  .sb-sep  { width: 100%; padding: 6px 4px 2px; }
-  .stats   { grid-template-columns: 1fr 1fr; }
-  .row2, .row3 { grid-template-columns: 1fr; }
+@media(max-width:700px){
+  .layout{grid-template-columns:1fr}
+  .sidebar{position:static;display:flex;flex-wrap:wrap;gap:4px;padding:8px}
+  .sb-btn{flex:1;min-width:110px;font-size:.78rem;justify-content:center}
+  .sb-sep{width:100%}
+  .stats{grid-template-columns:1fr 1fr}
+  .row2,.row3{grid-template-columns:1fr}
+  .qr-section{flex-direction:column}
+  .qr-left{width:100%;display:flex;justify-content:center}
+  .auth-wrap{margin:20px auto}
 }
 </style>
 </head>
 <body>
 
-<!-- ══════════════════════════════════════════
-     NAVBAR
-══════════════════════════════════════════ -->
 <nav>
   <div class="nav-brand">
-    <div class="dot"></div>
-    <span><strong>PresensiQR</strong> / Cloud Computing v3.1</span>
+    <div class="nav-logo">🎓</div>
+    <div>
+      <div class="nav-title">Presensi<span>QR</span></div>
+      <div class="nav-sub">Cloud Computing / Versi A</div>
+    </div>
   </div>
   <div class="nav-r" id="nav-user" style="display:none">
-    <span style="font-size:.82rem;color:var(--txt2)" id="nav-name"></span>
-    <span class="role-chip" id="nav-chip"></span>
+    <span class="nav-name" id="nav-name"></span>
+    <span class="role-pill" id="nav-chip"></span>
     <button class="btn-nav" onclick="logout()">Keluar</button>
   </div>
 </nav>
 
-<!-- ══════════════════════════════════════════
-     PAGE: AUTH
-══════════════════════════════════════════ -->
+<!-- ════ PAGE AUTH ════ -->
 <div class="page active" id="page-auth">
   <div class="wrap auth-wrap">
-    <div class="auth-logo">
-      <div class="auth-logo-icon">🎓</div>
-      <h1>SISTEM PRESENSI QR</h1>
-      <p>Praktik Komputasi Awan — Versi A</p>
+    <div class="auth-hero">
+      <div class="auth-hero-logo">🎓</div>
+      <h1>Selamat Datang di <span>PresensiQR</span></h1>
+      <p>Sistem absensi cerdas berbasis QR Code dinamis</p>
     </div>
     <div class="card">
       <div class="auth-tabs">
-        <button class="auth-tab active" id="tab-login" onclick="authTab('login')">MASUK</button>
-        <button class="auth-tab" id="tab-reg" onclick="authTab('reg')">DAFTAR</button>
+        <button class="auth-tab active" id="tab-login" onclick="authTab('login')">Masuk</button>
+        <button class="auth-tab" id="tab-reg" onclick="authTab('reg')">Daftar</button>
       </div>
-      <!-- LOGIN -->
       <div id="auth-login">
         <div class="fg"><label>Email</label><input id="l-email" type="email" placeholder="email@kampus.ac.id"></div>
         <div class="fg"><label>Password</label><input id="l-pw" type="password" placeholder="••••••••"></div>
-        <button class="btn btn-blue btn-full" onclick="doLogin()"><span class="ls"></span>Masuk</button>
+        <button class="btn btn-primary btn-full" onclick="doLogin()"><span class="ls"></span>Masuk ke Sistem</button>
         <div class="alert" id="l-alert"></div>
       </div>
-      <!-- REGISTER -->
       <div id="auth-reg" style="display:none">
         <div class="fg"><label>Nama Lengkap</label><input id="r-name" placeholder="Nama sesuai KTP"></div>
         <div class="fg"><label>Email</label><input id="r-email" type="email" placeholder="email@kampus.ac.id"></div>
@@ -626,82 +318,71 @@ code  { font-family: var(--mono); font-size: .82rem; color: var(--blue2); backgr
         <div class="fg">
           <label>Role</label>
           <select id="r-role" onchange="$('nim-wrap').style.display=this.value==='mahasiswa'?'block':'none'">
-            <option value="">-- Pilih Role --</option>
+            <option value="">— Pilih Role —</option>
             <option value="mahasiswa">Mahasiswa</option>
             <option value="dosen">Dosen</option>
           </select>
         </div>
-        <div id="nim-wrap" class="fg" style="display:none">
-          <label>NIM</label><input id="r-nim" placeholder="Nomor Induk Mahasiswa">
-        </div>
-        <button class="btn btn-blue btn-full" onclick="doRegister()"><span class="rs"></span>Daftar</button>
+        <div id="nim-wrap" class="fg" style="display:none"><label>NIM</label><input id="r-nim" placeholder="Nomor Induk Mahasiswa"></div>
+        <button class="btn btn-primary btn-full" onclick="doRegister()"><span class="rs"></span>Buat Akun</button>
         <div class="alert" id="r-alert"></div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════
-     PAGE: APP
-══════════════════════════════════════════ -->
+<!-- ════ PAGE APP ════ -->
 <div class="page" id="page-app">
   <div class="wrap">
     <div class="layout">
-
       <div class="sidebar" id="sidebar"></div>
-
       <div id="content">
 
         <!-- DASHBOARD -->
         <div class="tab-panel active" id="panel-dash">
           <div class="card">
-            <div class="card-hd"><h2>// DASHBOARD</h2></div>
+            <div class="card-hd"><h2><div class="hd-icon">🏠</div>Dashboard</h2></div>
             <p class="mut" id="dash-greeting"></p>
             <hr class="divider">
             <div class="stats" id="dash-stats"></div>
+            <p class="mut" style="font-size:.8rem;text-align:center;color:var(--txt4)">Pilih menu di sidebar untuk memulai</p>
           </div>
         </div>
 
-        <!-- ADMIN: KELOLA USER -->
+        <!-- ADMIN USERS -->
         <div class="tab-panel" id="panel-admin-users">
           <div class="card">
-            <div class="card-hd"><h2>// KELOLA USER</h2></div>
+            <div class="card-hd"><h2><div class="hd-icon">👤</div>Kelola User</h2></div>
             <div class="row2">
               <div>
+                <p style="font-size:.8rem;font-weight:700;color:var(--txt2);margin-bottom:12px">➕ Tambah User Baru</p>
                 <div class="fg"><label>Nama</label><input id="au-name" placeholder="Nama lengkap"></div>
                 <div class="fg"><label>Email</label><input id="au-email" type="email"></div>
                 <div class="fg"><label>Password</label><input id="au-pw" type="password"></div>
-                <div class="fg">
-                  <label>Role</label>
+                <div class="fg"><label>Role</label>
                   <select id="au-role" onchange="$('au-nim-wrap').style.display=this.value==='mahasiswa'?'block':'none'">
-                    <option value="">-- Pilih --</option>
-                    <option value="mahasiswa">Mahasiswa</option>
-                    <option value="dosen">Dosen</option>
-                    <option value="admin">Admin</option>
+                    <option value="">— Pilih —</option><option value="mahasiswa">Mahasiswa</option>
+                    <option value="dosen">Dosen</option><option value="admin">Admin</option>
                   </select>
                 </div>
-                <div id="au-nim-wrap" class="fg" style="display:none">
-                  <label>NIM</label><input id="au-nim">
-                </div>
-                <button class="btn btn-blue btn-full" onclick="doAddUser()"><span class="aus"></span>Tambah User</button>
+                <div id="au-nim-wrap" class="fg" style="display:none"><label>NIM</label><input id="au-nim"></div>
+                <button class="btn btn-primary btn-full" onclick="doAddUser()"><span class="aus"></span>Tambah User</button>
                 <div class="alert" id="au-alert"></div>
               </div>
               <div>
-                <div class="fg"><label>Reset Password — Email Target</label><input id="rp-email"></div>
+                <p style="font-size:.8rem;font-weight:700;color:var(--txt2);margin-bottom:12px">🔐 Reset Password</p>
+                <div class="fg"><label>Email Target</label><input id="rp-email"></div>
                 <div class="fg"><label>Password Baru</label><input id="rp-pw" type="password"></div>
                 <button class="btn btn-amber btn-full" onclick="doResetPw()"><span class="rps"></span>Reset Password</button>
                 <div class="alert" id="rp-alert"></div>
                 <hr class="divider">
-                <div class="fg">
-                  <label>Filter Role</label>
+                <div class="fg"><label>Filter Role</label>
                   <select id="ul-filter" onchange="loadUserList()">
-                    <option value="">Semua Role</option>
-                    <option value="admin">Admin</option>
-                    <option value="dosen">Dosen</option>
-                    <option value="mahasiswa">Mahasiswa</option>
+                    <option value="">Semua Role</option><option value="admin">Admin</option>
+                    <option value="dosen">Dosen</option><option value="mahasiswa">Mahasiswa</option>
                   </select>
                 </div>
-                <button class="btn btn-green btn-full" onclick="loadUserList()">⟳ Refresh</button>
+                <button class="btn btn-outline btn-full" onclick="loadUserList()">⟳ Refresh</button>
               </div>
             </div>
             <hr class="divider">
@@ -714,26 +395,24 @@ code  { font-family: var(--mono); font-size: .82rem; color: var(--blue2); backgr
           </div>
         </div>
 
-        <!-- SETUP KELAS -->
+        <!-- SETUP -->
         <div class="tab-panel" id="panel-setup">
           <div class="row2">
             <div class="card">
-              <div class="card-hd"><h2>// MATA KULIAH</h2></div>
+              <div class="card-hd"><h2><div class="hd-icon">📚</div>Mata Kuliah</h2></div>
               <div class="fg"><label>Course ID</label><input id="ci-id" placeholder="cloud-101"></div>
               <div class="fg"><label>Nama</label><input id="ci-name" placeholder="Praktik Komputasi Awan"></div>
-              <button class="btn btn-blue btn-full" onclick="doCreateCourse()"><span class="ccs"></span>Buat</button>
+              <button class="btn btn-primary btn-full" onclick="doCreateCourse()"><span class="ccs"></span>Buat</button>
               <div class="alert" id="cc-alert"></div>
               <hr class="divider">
               <div class="tbl-wrap">
-                <table>
-                  <thead><tr><th>ID</th><th>Nama</th></tr></thead>
-                  <tbody id="course-tbl"><tr><td colspan="2" class="empty">Memuat…</td></tr></tbody>
-                </table>
+                <table><thead><tr><th>ID</th><th>Nama</th></tr></thead>
+                <tbody id="course-tbl"><tr><td colspan="2" class="empty">Memuat…</td></tr></tbody></table>
               </div>
             </div>
             <div class="card">
-              <div class="card-hd"><h2>// SESI</h2></div>
-              <div class="fg"><label>Mata Kuliah</label><select id="ses-csel"><option value="">-- Pilih --</option></select></div>
+              <div class="card-hd"><h2><div class="hd-icon">📅</div>Sesi</h2></div>
+              <div class="fg"><label>Mata Kuliah</label><select id="ses-csel"><option value="">— Pilih —</option></select></div>
               <div class="fg"><label>Tanggal</label><input id="ses-date" type="date"></div>
               <div class="fg"><label>Label</label><input id="ses-label" placeholder="Pertemuan 1"></div>
               <button class="btn btn-green btn-full" onclick="doCreateSession()"><span class="css2"></span>Buat Sesi</button>
@@ -746,53 +425,79 @@ code  { font-family: var(--mono); font-size: .82rem; color: var(--blue2); backgr
         <div class="tab-panel" id="panel-qr">
           <div class="card">
             <div class="card-hd">
-              <h2>// GENERATE QR TOKEN</h2>
-              <div class="card-hd-r" style="font-family:var(--mono);font-size:.7rem;color:var(--txt3)">QR expires 2 menit</div>
+              <h2><div class="hd-icon">🔲</div>Generate QR Token</h2>
+              <span class="card-badge">AUTO CHECKIN ✓</span>
             </div>
             <div class="row2">
-              <div class="fg">
-                <label>Mata Kuliah</label>
-                <select id="qr-csel" onchange="loadQrSessions()"><option value="">-- Pilih --</option></select>
-              </div>
-              <div class="fg">
-                <label>Sesi</label>
-                <select id="qr-ssel"><option value="">-- Pilih --</option></select>
-              </div>
+              <div class="fg"><label>Mata Kuliah</label>
+                <select id="qr-csel" onchange="loadQrSessions()"><option value="">— Pilih —</option></select></div>
+              <div class="fg"><label>Sesi</label>
+                <select id="qr-ssel"><option value="">— Pilih —</option></select></div>
             </div>
-            <button class="btn btn-green btn-full" onclick="doGenQR()"><span class="gens"></span>⚡ Generate QR</button>
+            <button class="btn btn-primary btn-full" onclick="doGenQR()"><span class="gens"></span>⚡ Generate QR Sekarang</button>
             <div class="alert" id="gen-alert"></div>
-            <div class="qr-box" id="qr-box" style="display:none">
-              <p class="qr-hint" style="margin-bottom:12px">Tampilkan di proyektor — mahasiswa scan QR ini</p>
-              <div id="qrcode"></div>
-              <div class="token-pill" id="qr-tok"></div>
-              <div class="qr-timer" id="qr-timer">⏱ 02:00</div>
-              <p class="qr-hint">QR berisi course + session info — scan langsung auto checkin ✓</p>
+
+            <div id="qr-box" style="display:none;margin-top:20px">
+              <div class="qr-section">
+                <div class="qr-left">
+                  <div class="qr-frame">
+                    <div class="corner tl"></div><div class="corner tr"></div>
+                    <div class="corner bl"></div><div class="corner br"></div>
+                    <div id="qrcode"></div>
+                    <div class="qr-scan-line" id="qr-scan-line"></div>
+                  </div>
+                </div>
+                <div class="qr-right">
+                  <div class="token-display">
+                    <div class="token-label">Token</div>
+                    <div class="token-val" id="qr-tok">—</div>
+                  </div>
+                  <div class="qr-timer-box">
+                    <div class="timer-ring">
+                      <svg width="48" height="48" viewBox="0 0 48 48">
+                        <circle cx="24" cy="24" r="19" fill="none" stroke="#dde3f5" stroke-width="4"/>
+                        <circle id="timer-arc" cx="24" cy="24" r="19" fill="none"
+                          stroke="url(#tg)" stroke-width="4"
+                          stroke-dasharray="119.38" stroke-dashoffset="0" stroke-linecap="round"/>
+                        <defs><linearGradient id="tg" x1="0%" y1="0%" x2="100%" y2="0%">
+                          <stop offset="0%" stop-color="#4361ee"/>
+                          <stop offset="100%" stop-color="#7b2d8b"/>
+                        </linearGradient></defs>
+                      </svg>
+                      <div class="timer-val" id="timer-pct">100%</div>
+                    </div>
+                    <div class="timer-info">
+                      <div class="timer-countdown" id="qr-timer">02:00</div>
+                      <div class="timer-sub">sisa waktu token aktif</div>
+                    </div>
+                  </div>
+                  <div id="qr-info-pills" style="display:flex;flex-direction:column;gap:8px"></div>
+                  <div class="auto-tag">
+                    <div class="dot-pulse"></div>
+                    Scan langsung auto checkin — tanpa input manual
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- REKAP DOSEN/ADMIN -->
+        <!-- REKAP -->
         <div class="tab-panel" id="panel-history-all">
           <div class="card">
-            <div class="card-hd"><h2>// REKAP ABSEN</h2></div>
+            <div class="card-hd"><h2><div class="hd-icon">📋</div>Rekap Absen</h2></div>
             <div class="row2">
-              <div class="fg">
-                <label>Mata Kuliah</label>
-                <select id="ha-csel" onchange="loadHaSessions()"><option value="">-- Pilih --</option></select>
-              </div>
-              <div class="fg">
-                <label>Sesi</label>
-                <select id="ha-ssel"><option value="">-- Pilih --</option></select>
-              </div>
+              <div class="fg"><label>Mata Kuliah</label><select id="ha-csel" onchange="loadHaSessions()"><option value="">— Pilih —</option></select></div>
+              <div class="fg"><label>Sesi</label><select id="ha-ssel"><option value="">— Pilih —</option></select></div>
             </div>
-            <button class="btn btn-blue btn-full" onclick="loadHistoryAll()">🔍 Tampilkan</button>
+            <button class="btn btn-primary btn-full" onclick="loadHistoryAll()">🔍 Tampilkan Rekap</button>
             <div class="stats mt3" id="ha-stats" style="display:none">
-              <div class="stat"><div class="stat-n g" id="ha-n">0</div><div class="stat-l">Hadir</div></div>
-              <div class="stat"><div class="stat-n" id="ha-sesi">-</div><div class="stat-l">Sesi</div></div>
-              <div class="stat"><div class="stat-n a" id="ha-tgl">-</div><div class="stat-l">Tanggal</div></div>
+              <div class="stat s-grn"><div class="stat-n" id="ha-n">0</div><div class="stat-l">Total Hadir</div></div>
+              <div class="stat s-ind"><div class="stat-n" id="ha-sesi">-</div><div class="stat-l">Sesi</div></div>
+              <div class="stat s-amb"><div class="stat-n" id="ha-tgl">-</div><div class="stat-l">Tanggal</div></div>
             </div>
             <div id="recap-map-wrap" style="display:none">
-              <p class="mut" style="margin:10px 0 4px;font-family:var(--mono);font-size:.7rem">📍 PETA LOKASI ABSEN</p>
+              <p style="font-size:.78rem;font-weight:700;color:var(--txt3);margin:10px 0 4px;text-transform:uppercase;letter-spacing:.4px">📍 Peta Lokasi Absen</p>
               <div class="map-wrap"><div id="recap-map" style="height:260px"></div></div>
             </div>
             <div class="tbl-wrap mt3">
@@ -804,17 +509,12 @@ code  { font-family: var(--mono); font-size: .82rem; color: var(--blue2); backgr
           </div>
         </div>
 
-        <!-- SCAN QR — MAHASISWA -->
+        <!-- SCAN QR -->
         <div class="tab-panel" id="panel-scan">
           <div class="card">
-            <div class="card-hd">
-              <h2>// SCAN QR ABSEN</h2>
-              <div class="card-hd-r" style="font-size:.75rem;color:var(--green);font-family:var(--mono)">AUTO CHECKIN ✓</div>
-            </div>
-            <p class="mut" style="margin-bottom:14px">
-              Scan QR yang dosen tampilkan → sistem otomatis mendeteksi kelas dan melakukan absen.
-            </p>
-            <div style="display:flex;gap:8px;justify-content:center;margin-bottom:14px">
+            <div class="card-hd"><h2><div class="hd-icon">📷</div>Scan QR Absen</h2><span class="card-badge">AUTO GPS ✓</span></div>
+            <p class="mut" style="margin-bottom:16px">Scan QR yang dosen tampilkan — sistem otomatis mendeteksi kelas dan GPS Anda.</p>
+            <div style="display:flex;gap:10px;justify-content:center;margin-bottom:16px">
               <button class="btn btn-green" id="btn-cam" onclick="startScan()">📷 Buka Kamera</button>
               <button class="btn btn-red" id="btn-stop" style="display:none" onclick="stopScan()">⏹ Stop</button>
             </div>
@@ -823,49 +523,48 @@ code  { font-family: var(--mono); font-size: .82rem; color: var(--blue2); backgr
           </div>
         </div>
 
-        <!-- TOKEN MANUAL -->
+        <!-- MANUAL -->
         <div class="tab-panel" id="panel-manual">
           <div class="card">
-            <div class="card-hd"><h2>// TOKEN MANUAL</h2></div>
-            <p class="mut" style="margin-bottom:14px">Ketik token jika kamera tidak tersedia.</p>
-            <div class="fg">
-              <label>QR Token</label>
-              <input id="mt" placeholder="TKN-XXXXXX" style="font-family:var(--mono);font-size:1rem;text-transform:uppercase;letter-spacing:2px">
+            <div class="card-hd"><h2><div class="hd-icon">⌨️</div>Token Manual</h2></div>
+            <p class="mut" style="margin-bottom:16px">Ketik token yang tertera di layar dosen jika kamera tidak tersedia.</p>
+            <div class="fg"><label>QR Token</label>
+              <input id="mt" placeholder="TKN-XXXXXX" style="font-family:var(--mono);font-size:1.1rem;text-transform:uppercase;letter-spacing:2px;text-align:center">
             </div>
             <div class="row2">
               <div class="fg"><label>Course ID</label><input id="mc" placeholder="cloud-101"></div>
               <div class="fg"><label>Session ID</label><input id="ms" placeholder="SES-XXXXXX"></div>
             </div>
             <div class="fg">
-              <label>Lokasi (opsional)</label>
+              <label>Lokasi (Opsional)</label>
               <div class="map-controls">
                 <button class="btn btn-green btn-sm" onclick="getMyLocationManual()">📍 Deteksi GPS</button>
-                <button class="btn btn-pur btn-sm" onclick="toggleManualMap()">🗺️ Pilih di Peta</button>
+                <button class="btn btn-outline btn-sm" onclick="toggleManualMap()">🗺️ Pilih di Peta</button>
               </div>
               <small class="mut" id="loc-status-m"></small>
               <div id="manual-map-wrap" style="display:none;margin-top:8px">
                 <div class="map-wrap"><div id="manual-map" style="height:220px"></div>
-                <div class="map-bar" id="manual-map-info">Klik peta untuk pilih lokasi</div></div>
+                <div class="map-bar" id="manual-map-info">Klik peta untuk memilih lokasi</div></div>
               </div>
             </div>
-            <button class="btn btn-blue btn-full mt2" onclick="doCheckinManual()"><span class="mans"></span>✅ Absen</button>
+            <button class="btn btn-primary btn-full mt2" onclick="doCheckinManual()"><span class="mans"></span>✅ Absen Sekarang</button>
             <div class="alert" id="man-alert"></div>
           </div>
         </div>
 
-        <!-- HISTORY MAHASISWA -->
+        <!-- HISTORY MHS -->
         <div class="tab-panel" id="panel-history-mhs">
           <div class="card">
-            <div class="card-hd"><h2>// HISTORY ABSEN SAYA</h2></div>
+            <div class="card-hd"><h2><div class="hd-icon">📋</div>History Absen Saya</h2></div>
             <div class="row2">
               <div class="fg"><label>Course ID</label><input id="mh-cid" placeholder="cloud-101"></div>
-              <div style="display:flex;align-items:flex-end;padding-bottom:12px">
-                <button class="btn btn-blue btn-full" onclick="loadHistoryMhs()">🔍 Cari</button>
+              <div style="display:flex;align-items:flex-end;padding-bottom:14px">
+                <button class="btn btn-primary btn-full" onclick="loadHistoryMhs()">🔍 Cari</button>
               </div>
             </div>
-            <p class="mut">Total Hadir: <strong id="mh-total" style="color:var(--green)">0</strong></p>
+            <p class="mut">Total Hadir: <strong id="mh-total" style="color:var(--grn2)">0</strong> pertemuan</p>
             <div id="mhs-map-wrap" style="display:none;margin-top:10px">
-              <p class="mut" style="font-family:var(--mono);font-size:.7rem;margin-bottom:4px">📍 PETA LOKASI ABSEN</p>
+              <p style="font-size:.78rem;font-weight:700;color:var(--txt3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">📍 Peta Riwayat</p>
               <div class="map-wrap"><div id="mhs-map" style="height:200px"></div></div>
             </div>
             <div class="tbl-wrap mt2">
@@ -880,78 +579,81 @@ code  { font-family: var(--mono); font-size: .82rem; color: var(--blue2); backgr
         <!-- ACCELEROMETER -->
         <div class="tab-panel" id="panel-accel">
           <div class="card">
-            <div class="card-hd"><h2>// ACCELEROMETER</h2></div>
+            <div class="card-hd"><h2><div class="hd-icon">📈</div>Accelerometer</h2></div>
             <div class="row2">
               <div class="fg"><label>Device ID</label><input id="ac-dev" value="web-browser-01"></div>
-              <div style="display:flex;align-items:flex-end;padding-bottom:12px;gap:8px">
+              <div style="display:flex;align-items:flex-end;padding-bottom:14px;gap:8px">
                 <button class="btn btn-green" id="btn-ac-start" onclick="startAccel()">▶ Mulai</button>
                 <button class="btn btn-red" id="btn-ac-stop" style="display:none" onclick="stopAccel()">⏹ Stop</button>
               </div>
             </div>
-            <div class="accel-vals">
-              <div><span>X: </span><strong id="av-x">0.000</strong> m/s²</div>
-              <div><span>Y: </span><strong id="av-y">0.000</strong> m/s²</div>
-              <div><span>Z: </span><strong id="av-z">9.810</strong> m/s²</div>
-            </div>
-            <div class="accel-bars">
-              <div class="bar-wrap"><div class="bar bx" id="bar-x" style="height:20px"></div><div class="bar-lbl">X</div></div>
-              <div class="bar-wrap"><div class="bar by" id="bar-y" style="height:20px"></div><div class="bar-lbl">Y</div></div>
-              <div class="bar-wrap"><div class="bar bz" id="bar-z" style="height:55px"></div><div class="bar-lbl">Z</div></div>
+            <div class="accel-display">
+              <div class="accel-axis ax-x">
+                <div class="axis-label">X-Axis</div>
+                <div class="axis-val" id="av-x">0.000</div>
+                <div class="axis-unit">m/s²</div>
+              </div>
+              <div class="accel-axis ax-y">
+                <div class="axis-label">Y-Axis</div>
+                <div class="axis-val" id="av-y">0.000</div>
+                <div class="axis-unit">m/s²</div>
+              </div>
+              <div class="accel-axis ax-z">
+                <div class="axis-label">Z-Axis</div>
+                <div class="axis-val" id="av-z">9.810</div>
+                <div class="axis-unit">m/s²</div>
+              </div>
             </div>
             <div class="alert" id="ac-alert"></div>
             <hr class="divider">
-            <div class="card-hd" style="margin-bottom:10px"><h2>// DATA TERBARU SERVER</h2></div>
+            <p style="font-size:.88rem;font-weight:700;margin-bottom:10px;color:var(--txt2)">📊 Data Terbaru Server</p>
             <div class="fg">
               <label>Device ID</label>
               <div style="display:flex;gap:8px">
                 <input id="ac-q-dev" placeholder="web-browser-01">
-                <button class="btn btn-blue btn-sm" onclick="fetchAccelLatest()">Ambil</button>
+                <button class="btn btn-primary btn-sm" onclick="fetchAccelLatest()">Ambil</button>
               </div>
             </div>
-            <div id="accel-latest" class="mut mono" style="margin-top:6px">—</div>
+            <div id="accel-latest" class="mut" style="font-family:var(--mono);font-size:.83rem;margin-top:6px">—</div>
           </div>
         </div>
 
         <!-- GPS -->
         <div class="tab-panel" id="panel-gps">
           <div class="card">
-            <div class="card-hd"><h2>// GPS TRACKING</h2></div>
+            <div class="card-hd"><h2><div class="hd-icon">🗺️</div>GPS Tracking</h2></div>
             <div class="row2" style="margin-bottom:8px">
               <div class="fg"><label>Device ID</label><input id="gps-dev" value="web-browser-01"></div>
-              <div style="display:flex;align-items:flex-end;padding-bottom:12px;gap:8px">
+              <div style="display:flex;align-items:flex-end;padding-bottom:14px;gap:8px">
                 <button class="btn btn-green" id="btn-gps-start" onclick="startGPS()">▶ Track</button>
                 <button class="btn btn-red" id="btn-gps-stop" style="display:none" onclick="stopGPS()">⏹ Stop</button>
               </div>
             </div>
-            <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:6px;padding:9px 12px;margin-bottom:10px;font-size:.83rem;display:flex;align-items:center;justify-content:space-between;gap:8px">
-              <div>
-                <span class="track-dot" id="track-dot"></span>
-                <span id="gps-status-txt" class="mono" style="font-size:.8rem">Tidak aktif</span>
-              </div>
-              <span id="gps-acc-badge" style="display:none;font-family:var(--mono);font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(63,185,80,.15);color:var(--green);border:1px solid rgba(63,185,80,.3)"></span>
+            <div class="gps-srow">
+              <div class="track-dot" id="track-dot"></div>
+              <span id="gps-status-txt" style="font-family:var(--mono);font-size:.82rem;flex:1">Tidak aktif</span>
+              <span id="gps-acc-badge" style="display:none;font-family:var(--mono);font-size:.7rem;padding:3px 9px;border-radius:20px"></span>
             </div>
             <div class="map-wrap">
               <div id="gps-map" style="height:340px"></div>
               <div class="map-bar" id="gps-map-bar" style="display:none">
-                <div>
-                  <span id="gps-coords" class="mono" style="font-size:.76rem">—</span><br>
-                  <span id="gps-time" style="opacity:.6;font-size:.72rem"></span>
-                </div>
+                <div><span id="gps-coords" style="font-family:var(--mono);font-size:.76rem">—</span><br>
+                <span id="gps-time" style="opacity:.6;font-size:.72rem"></span></div>
                 <a id="gps-gmaps" href="#" target="_blank">🌐 Google Maps</a>
               </div>
             </div>
             <div class="alert" id="gps-alert"></div>
             <hr class="divider">
-            <div class="card-hd" style="margin-bottom:10px"><h2>// RIWAYAT GPS SERVER</h2></div>
+            <p style="font-size:.88rem;font-weight:700;margin-bottom:10px;color:var(--txt2)">📍 Riwayat GPS Server</p>
             <div class="fg">
               <label>Device ID</label>
               <div style="display:flex;gap:8px">
                 <input id="gps-q-dev" placeholder="web-browser-01">
-                <button class="btn btn-blue btn-sm" onclick="fetchGpsHistory()">Ambil & Tampilkan</button>
+                <button class="btn btn-primary btn-sm" onclick="fetchGpsHistory()">Ambil & Tampilkan</button>
               </div>
             </div>
             <div id="history-map-wrap" style="display:none;margin-bottom:12px">
-              <p class="mut" style="font-family:var(--mono);font-size:.7rem;margin:6px 0 4px">🔵 Polyline  •  🟢 Awal  •  🔴 Akhir</p>
+              <p class="mut" style="font-size:.78rem;margin:6px 0 4px">🔵 Polyline &nbsp;•&nbsp; 🟢 Awal &nbsp;•&nbsp; 🔴 Akhir</p>
               <div class="map-wrap"><div id="gps-history-map" style="height:260px"></div></div>
             </div>
             <div class="tbl-wrap mt2">
@@ -963,949 +665,173 @@ code  { font-family: var(--mono); font-size: .82rem; color: var(--blue2); backgr
           </div>
         </div>
 
-      </div><!-- /content -->
-    </div><!-- /layout -->
-  </div>
-</div>
-
-<!-- ══════════════════════════════════════════
-     AUTO CHECKIN MODAL
-══════════════════════════════════════════ -->
-<div class="modal-overlay" id="modal-checkin">
-  <div class="modal">
-    <div id="modal-body-wrap">
-      <!-- State: loading GPS -->
-      <div id="modal-state-gps">
-        <div class="modal-icon">📍</div>
-        <h3>QR TERDETEKSI</h3>
-        <p class="modal-sub">Mengambil lokasi GPS Anda…</p>
-        <div class="modal-info" id="modal-qr-info"></div>
-        <div class="gps-status-bar">
-          <div class="gps-dot" id="modal-gps-dot"></div>
-          <span id="modal-gps-txt" style="font-family:var(--mono);font-size:.78rem">Mendeteksi GPS…</span>
-        </div>
-        <div style="display:flex;gap:8px">
-          <button class="btn btn-green btn-full" id="btn-modal-checkin" onclick="confirmCheckin()" disabled>
-            <span class="cins"></span>✅ Absen Sekarang
-          </button>
-          <button class="btn btn-red" style="padding:8px 14px" onclick="closeModal()">✕</button>
-        </div>
-        <p class="mut" style="margin-top:8px;font-size:.75rem;text-align:center">GPS opsional — bisa absen tanpa lokasi</p>
-      </div>
-      <!-- State: success -->
-      <div id="modal-state-ok" style="display:none">
-        <div class="checkin-success">
-          <div style="font-size:3.5rem">✅</div>
-          <h3 style="margin:10px 0 5px;font-family:var(--mono)">ABSEN BERHASIL!</h3>
-          <p class="mut" id="modal-ok-detail"></p>
-          <p class="mut" id="modal-ok-id" style="font-family:var(--mono);font-size:.75rem;margin-top:4px"></p>
-          <button class="btn btn-green" style="margin-top:16px" onclick="closeModal()">Tutup</button>
-        </div>
-      </div>
-      <!-- State: error -->
-      <div id="modal-state-err" style="display:none">
-        <div class="modal-icon">❌</div>
-        <h3>GAGAL</h3>
-        <p class="modal-sub" id="modal-err-txt"></p>
-        <button class="btn btn-red btn-full" onclick="closeModal()">Tutup</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════
-     JAVASCRIPT
-══════════════════════════════════════════ -->
+<!-- ════ MODAL AUTO CHECKIN ════ -->
+<div class="modal-overlay" id="modal-checkin">
+  <div class="modal">
+    <div id="modal-state-gps">
+      <div class="modal-strip ms-ind"></div>
+      <div class="modal-icon mi-ind">📡</div>
+      <h3>QR Terdeteksi!</h3>
+      <p class="modal-sub">Konfirmasi absen untuk sesi berikut</p>
+      <div class="modal-data" id="modal-qr-info"></div>
+      <div class="gps-row">
+        <div class="gps-spin" id="modal-gps-dot"></div>
+        <span id="modal-gps-txt" style="font-size:.82rem;color:var(--txt2)">Mendeteksi lokasi GPS…</span>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-primary" style="flex:1" id="btn-modal-checkin" onclick="confirmCheckin()"><span class="cins"></span>✅ Absen Sekarang</button>
+        <button class="btn btn-outline" style="padding:10px 14px" onclick="closeModal()">✕</button>
+      </div>
+      <p class="mut" style="font-size:.74rem;text-align:center;margin-top:8px">GPS opsional — bisa absen tanpa lokasi</p>
+    </div>
+    <div id="modal-state-ok" style="display:none">
+      <div class="modal-strip ms-grn"></div>
+      <div class="success-check">
+        <div style="font-size:3.5rem;margin-bottom:10px">✅</div>
+        <h3 style="font-size:1.2rem">Absen Berhasil!</h3>
+        <p class="modal-sub" id="modal-ok-detail"></p>
+        <p style="font-family:var(--mono);font-size:.75rem;color:var(--txt3);margin-bottom:18px" id="modal-ok-id"></p>
+        <button class="btn btn-green" onclick="closeModal()">Tutup</button>
+      </div>
+    </div>
+    <div id="modal-state-err" style="display:none">
+      <div class="modal-strip ms-red"></div>
+      <div class="modal-icon mi-red">❌</div>
+      <h3>Gagal Absen</h3>
+      <p class="modal-sub" id="modal-err-txt"></p>
+      <button class="btn btn-red btn-full" onclick="closeModal()">Tutup</button>
+    </div>
+  </div>
+</div>
+
 <script>
-// ════════════════════════════════════════════
-//  ⚠️  GANTI BASE_URL DENGAN URL DEPLOYMENT GAS
-// ════════════════════════════════════════════
-const BASE_URL = "https://script.google.com/macros/s/AKfycbx85Sb45S4bQ4b_NQVxdizFIWJdah8A-Rqs8nrasFN_6PvLW7lcu7gqzDlSaVzpEC4mjw/exec";
-
-// ── STATE ────────────────────────────────────
-let S = {};           // session
-let qrTimer = null;
-let scanner  = null;
-let accelTimer = null, accelActive = false, accelBatch = [];
-let gpsWatcher = null;
-
-// Modal state
-let pendingCheckin = null;  // { qr_token, course_id, session_id }
-let pendingGps     = null;  // { lat, lng, accuracy_m } | null
-
-// ── MAP INSTANCES ────────────────────────────
-const MAPS = {};
-const TILE = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
-const ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
-const DEF_CENTER = [-7.2575, 112.7521]; // Surabaya
-const DEF_ZOOM   = 15;
-
-function mkIcon(color, size = 28) {
-  return L.divIcon({
-    className: "",
-    html: `<div style="background:${color};width:${size}px;height:${size}px;border-radius:50%;border:3px solid rgba(255,255,255,.9);box-shadow:0 2px 12px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;font-size:${size*.38}px">📍</div>`,
-    iconSize: [size, size],
-    iconAnchor: [size/2, size/2],
-    popupAnchor: [0, -size/2]
-  });
-}
-function mkDot(color) {
-  return L.divIcon({
-    className: "",
-    html: `<div style="background:${color};width:10px;height:10px;border-radius:50%;border:2px solid rgba(255,255,255,.8);box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>`,
-    iconSize: [10,10], iconAnchor: [5,5]
-  });
-}
-const IC_BLUE  = mkIcon("#2f81f7");
-const IC_GREEN = mkIcon("#3fb950", 26);
-const IC_RED   = mkIcon("#f85149", 26);
-const IC_PUR   = mkIcon("#a371f7");
-
-function initMap(id, center = DEF_CENTER, zoom = DEF_ZOOM) {
-  if (MAPS[id]) { MAPS[id].invalidateSize(); return MAPS[id]; }
-  const m = L.map(id, { zoomControl: true }).setView(center, zoom);
-  L.tileLayer(TILE, { attribution: ATTR, maxZoom: 19 }).addTo(m);
-  MAPS[id] = m;
-  return m;
-}
-
-// ── MENUS ────────────────────────────────────
-const MENUS = {
-  admin: [
-    { icon:"🏠", lbl:"Dashboard",   panel:"dash" },
-    { sep:"Administrasi" },
-    { icon:"👤", lbl:"Kelola User", panel:"admin-users", fn: loadUserList },
-    { sep:"Akademik" },
-    { icon:"⚙️", lbl:"Setup Kelas", panel:"setup",       fn: loadSetup },
-    { icon:"🔲", lbl:"Generate QR", panel:"qr",          fn: loadQrCourses },
-    { icon:"📋", lbl:"Rekap Absen", panel:"history-all", fn: loadHaCourses },
-    { sep:"Sensor" },
-    { icon:"📈", lbl:"Accelerometer", panel:"accel" },
-    { icon:"🗺️", lbl:"GPS Tracking",  panel:"gps", fn: initGpsPanel },
-  ],
-  dosen: [
-    { icon:"🏠", lbl:"Dashboard",   panel:"dash" },
-    { sep:"Akademik" },
-    { icon:"⚙️", lbl:"Setup Kelas", panel:"setup",       fn: loadSetup },
-    { icon:"🔲", lbl:"Generate QR", panel:"qr",          fn: loadQrCourses },
-    { icon:"📋", lbl:"Rekap Absen", panel:"history-all", fn: loadHaCourses },
-    { sep:"Sensor" },
-    { icon:"🗺️", lbl:"GPS Tracking", panel:"gps", fn: initGpsPanel },
-  ],
-  mahasiswa: [
-    { icon:"🏠", lbl:"Dashboard",     panel:"dash" },
-    { sep:"Presensi" },
-    { icon:"📷", lbl:"Scan QR",       panel:"scan" },
-    { icon:"⌨️", lbl:"Token Manual",  panel:"manual" },
-    { icon:"📋", lbl:"History Saya",  panel:"history-mhs" },
-    { sep:"Sensor" },
-    { icon:"📈", lbl:"Accelerometer", panel:"accel" },
-    { icon:"🗺️", lbl:"GPS Tracking",  panel:"gps", fn: initGpsPanel },
-  ]
+const BASE_URL="https://script.google.com/macros/s/AKfycbx85Sb45S4bQ4b_NQVxdizFIWJdah8A-Rqs8nrasFN_6PvLW7lcu7gqzDlSaVzpEC4mjw/exec";
+let S={},qrTimer=null,scanner=null,accelTimer=null,accelActive=false,accelBatch=[];
+let gpsWatcher=null,pendingCheckin=null,pendingGps=null,gpsTimeoutId=null;
+const MAPS={},TILE="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",ATTR='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',DEF_C=[-7.2575,112.7521];
+function mkIcon(c,s=28){return L.divIcon({className:"",html:`<div style="background:${c};width:${s}px;height:${s}px;border-radius:50%;border:3px solid #fff;box-shadow:0 3px 12px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;font-size:${s*.36}px">📍</div>`,iconSize:[s,s],iconAnchor:[s/2,s/2],popupAnchor:[0,-s/2]})}
+function mkDot(c){return L.divIcon({className:"",html:`<div style="background:${c};width:9px;height:9px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.2)"></div>`,iconSize:[9,9],iconAnchor:[4,4]})}
+const IC_IND=mkIcon("#4361ee"),IC_GRN=mkIcon("#06d6a0",26),IC_RED=mkIcon("#ef233c",26),IC_PUR=mkIcon("#7b2d8b");
+function initMap(id,c=DEF_C,z=15){if(MAPS[id]){MAPS[id].invalidateSize();return MAPS[id]}const m=L.map(id).setView(c,z);L.tileLayer(TILE,{attribution:ATTR,maxZoom:19}).addTo(m);MAPS[id]=m;return m}
+const MENUS={
+  admin:[{icon:"🏠",lbl:"Dashboard",panel:"dash"},{sep:"Admin"},{icon:"👤",lbl:"Kelola User",panel:"admin-users",fn:loadUserList},{sep:"Akademik"},{icon:"⚙️",lbl:"Setup Kelas",panel:"setup",fn:loadSetup},{icon:"🔲",lbl:"Generate QR",panel:"qr",fn:loadQrCourses},{icon:"📋",lbl:"Rekap Absen",panel:"history-all",fn:loadHaCourses},{sep:"Sensor"},{icon:"📈",lbl:"Accelerometer",panel:"accel"},{icon:"🗺️",lbl:"GPS Tracking",panel:"gps",fn:initGpsPanel}],
+  dosen:[{icon:"🏠",lbl:"Dashboard",panel:"dash"},{sep:"Akademik"},{icon:"⚙️",lbl:"Setup Kelas",panel:"setup",fn:loadSetup},{icon:"🔲",lbl:"Generate QR",panel:"qr",fn:loadQrCourses},{icon:"📋",lbl:"Rekap Absen",panel:"history-all",fn:loadHaCourses},{sep:"Sensor"},{icon:"🗺️",lbl:"GPS Tracking",panel:"gps",fn:initGpsPanel}],
+  mahasiswa:[{icon:"🏠",lbl:"Dashboard",panel:"dash"},{sep:"Presensi"},{icon:"📷",lbl:"Scan QR",panel:"scan"},{icon:"⌨️",lbl:"Token Manual",panel:"manual"},{icon:"📋",lbl:"History Saya",panel:"history-mhs"},{sep:"Sensor"},{icon:"📈",lbl:"Accelerometer",panel:"accel"},{icon:"🗺️",lbl:"GPS Tracking",panel:"gps",fn:initGpsPanel}]
 };
+async function api(path,data={}){const body={path,...data};if(S.token)body.auth_token=S.token;try{const r=await fetch(BASE_URL,{method:"POST",body:JSON.stringify(body)});return JSON.parse(await r.text())}catch(e){return{ok:false,error:"Network error: "+e.message}}}
+const $=id=>document.getElementById(id),_v=id=>$(id)?$(id).value.trim():"";
+function showAlert(id,msg,type="err"){const el=$(id);el.textContent=msg;el.className=`alert show a-${type}`;if(type!=="info")setTimeout(()=>el.className="alert",6000)}
+function setSpin(id,on){const el=$(id);if(el)el.innerHTML=on?'<span class="spinner"></span>&nbsp;':""}
+function fmtDt(ts){if(!ts)return"-";try{return new Date(ts).toLocaleString("id-ID",{dateStyle:"short",timeStyle:"short"})}catch{return ts}}
+function fmtTime(ts){if(!ts)return"-";try{return new Date(ts).toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit",second:"2-digit"})}catch{return ts}}
+function authTab(t){$("auth-login").style.display=t==="login"?"block":"none";$("auth-reg").style.display=t==="reg"?"block":"none";$("tab-login").className="auth-tab"+(t==="login"?" active":"");$("tab-reg").className="auth-tab"+(t==="reg"?" active":"")}
+async function doRegister(){const name=_v("r-name"),email=_v("r-email"),password=_v("r-pw"),role=$("r-role").value,nim=_v("r-nim");if(!name||!email||!password||!role)return showAlert("r-alert","Semua field wajib diisi.");setSpin("rs",true);const r=await api("auth/register",{name,email,password,role,nim});setSpin("rs",false);if(!r.ok)return showAlert("r-alert",r.error);showAlert("r-alert","✅ Registrasi berhasil! Silakan login.","ok")}
+async function doLogin(){const email=_v("l-email"),password=_v("l-pw");if(!email||!password)return showAlert("l-alert","Isi email dan password.");setSpin("ls",true);const r=await api("auth/login",{email,password});setSpin("ls",false);if(!r.ok)return showAlert("l-alert",r.error);S={token:r.data.token,user_id:r.data.user_id,name:r.data.name,role:r.data.role,nim:r.data.nim};sessionStorage.setItem("ps",JSON.stringify(S));afterLogin()}
+function afterLogin(){$("nav-user").style.display="flex";$("nav-name").textContent=S.name;const chip=$("nav-chip");chip.textContent=S.role==="admin"?"Admin":S.role==="dosen"?"Dosen":"Mahasiswa";chip.className="role-pill rp-"+S.role;buildSidebar();showPage("page-app");showPanel("dash");buildDash()}
+function logout(){S={};sessionStorage.removeItem("ps");$("nav-user").style.display="none";stopScan();stopAccel();stopGPS();Object.values(MAPS).forEach(m=>{try{m.remove()}catch(e){}});for(const k in MAPS)delete MAPS[k];showPage("page-auth")}
+(function(){try{const s=sessionStorage.getItem("ps");if(s){S=JSON.parse(s);if(S.token)afterLogin()}}catch(e){}})();
+function showPage(id){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));$(id).classList.add("active")}
+function showPanel(id,fn){document.querySelectorAll(".tab-panel").forEach(p=>p.classList.remove("active"));document.querySelectorAll(".sb-btn").forEach(b=>b.classList.remove("active"));const p=$("panel-"+id);if(p)p.classList.add("active");const b=$("sb-"+id);if(b)b.classList.add("active");if(fn)fn();setTimeout(()=>Object.values(MAPS).forEach(m=>{try{m.invalidateSize()}catch(e){}}),120)}
+function buildSidebar(){const sb=$("sidebar");sb.innerHTML="";(MENUS[S.role]||[]).forEach(m=>{if(m.sep){const l=document.createElement("div");l.className="sb-sep";l.textContent=m.sep;sb.appendChild(l)}else{const b=document.createElement("button");b.className="sb-btn";b.id="sb-"+m.panel;b.innerHTML=`<div class="sb-icon">${m.icon}</div>${m.lbl}`;b.onclick=()=>showPanel(m.panel,m.fn||null);sb.appendChild(b)}})}
+function buildDash(){$("dash-greeting").innerHTML=`Halo, <strong>${S.name}</strong>! Role: <span class="badge b-${S.role}">${S.role}</span>`+(S.nim?` &nbsp; NIM: <code>${S.nim}</code>`:"");$("dash-stats").innerHTML=S.role==="mahasiswa"?`<div class="stat s-grn"><div class="stat-n">—</div><div class="stat-l">Total Hadir</div></div><div class="stat s-ind"><div class="stat-n">—</div><div class="stat-l">Mata Kuliah</div></div><div class="stat s-amb"><div class="stat-n">—</div><div class="stat-l">Device</div></div>`:`<div class="stat s-grn"><div class="stat-n">—</div><div class="stat-l">Matkul</div></div><div class="stat s-ind"><div class="stat-n">—</div><div class="stat-l">Sesi</div></div><div class="stat s-amb"><div class="stat-n">—</div><div class="stat-l">Mahasiswa</div></div>`}
+async function doAddUser(){const name=_v("au-name"),email=_v("au-email"),password=_v("au-pw"),role=$("au-role").value,nim=_v("au-nim");if(!name||!email||!password||!role)return showAlert("au-alert","Semua field wajib.");setSpin("aus",true);const r=await api("admin/add-user",{name,email,password,role,nim});setSpin("aus",false);if(!r.ok)return showAlert("au-alert",r.error);showAlert("au-alert",`✅ ${r.data.name} (${r.data.role}) ditambahkan.`,"ok");["au-name","au-email","au-pw","au-nim"].forEach(id=>$(id).value="");$("au-role").value="";loadUserList()}
+async function doResetPw(){const te=_v("rp-email"),np=_v("rp-pw");if(!te||!np)return showAlert("rp-alert","Isi email dan password baru.");setSpin("rps",true);const r=await api("admin/reset-password",{target_email:te,new_password:np});setSpin("rps",false);if(!r.ok)return showAlert("rp-alert",r.error);showAlert("rp-alert","✅ Password direset.","ok")}
+async function loadUserList(){const role=$("ul-filter").value;const r=await api("admin/list-users",role?{role}:{});if(!r.ok)return;const items=r.data.items||[];const rc={admin:"b-adm",dosen:"b-dos",mahasiswa:"b-mhs"};$("user-list-tbody").innerHTML=items.length===0?'<tr><td colspan="6" class="empty">Tidak ada user</td></tr>':items.map((u,i)=>`<tr><td>${i+1}</td><td><strong>${u.name}</strong></td><td style="font-size:.8rem;color:var(--txt2)">${u.email}</td><td><span class="badge ${rc[u.role]||""}">${u.role}</span></td><td><code>${u.nim||"-"}</code></td><td style="color:var(--txt3);font-size:.8rem">${fmtDt(u.created_at)}</td></tr>`).join("")}
+async function loadSetup(){const r=await api("courses");if(!r.ok)return;const items=r.data.items||[];["ses-csel","qr-csel","ha-csel"].forEach(id=>{const el=$(id);if(!el)return;el.innerHTML='<option value="">— Pilih —</option>';items.forEach(c=>el.innerHTML+=`<option value="${c.course_id}">${c.course_name} (${c.course_id})</option>`)});$("course-tbl").innerHTML=items.length===0?'<tr><td colspan="2" class="empty">Belum ada matkul</td></tr>':items.map(c=>`<tr><td><code>${c.course_id}</code></td><td><strong>${c.course_name}</strong></td></tr>`).join("")}
+async function doCreateCourse(){const cid=_v("ci-id"),cn=_v("ci-name");if(!cid||!cn)return showAlert("cc-alert","Isi semua field.");setSpin("ccs",true);const r=await api("courses/create",{course_id:cid,course_name:cn});setSpin("ccs",false);if(!r.ok)return showAlert("cc-alert",r.error);showAlert("cc-alert","✅ Mata kuliah dibuat!","ok");$("ci-id").value=$("ci-name").value="";loadSetup()}
+async function doCreateSession(){const cid=$("ses-csel").value,date=_v("ses-date"),label=_v("ses-label");if(!cid||!date||!label)return showAlert("cs-alert","Isi semua field.");setSpin("css2",true);const r=await api("sessions/create",{course_id:cid,date,label});setSpin("css2",false);if(!r.ok)return showAlert("cs-alert",r.error);showAlert("cs-alert","✅ Sesi dibuat! ID: "+r.data.session_id,"ok");$("ses-date").value=$("ses-label").value=""}
+async function loadQrCourses(){await loadSetup()}
+async function loadQrSessions(){const cid=$("qr-csel").value;if(!cid)return;const r=await api("sessions",{course_id:cid});const el=$("qr-ssel");el.innerHTML='<option value="">— Pilih —</option>';if(r.ok)r.data.items.forEach(s=>el.innerHTML+=`<option value="${s.session_id}">${s.label} — ${s.date} (${s.session_id})</option>`)}
+const QR_TOTAL=120;
+async function doGenQR(){
+  const cid=$("qr-csel").value,sid=$("qr-ssel").value;
+  if(!cid||!sid)return showAlert("gen-alert","Pilih mata kuliah dan sesi.");
+  setSpin("gens",true);
+  const r=await api("presence/qr/generate",{course_id:cid,session_id:sid,ts:new Date().toISOString()});
+  setSpin("gens",false);
+  if(!r.ok)return showAlert("gen-alert",r.error);
+  const{qr_token,qr_payload,expires_at}=r.data;
+  $("qr-tok").textContent=qr_token;
+  $("qr-box").style.display="block";
 
-// ── API ──────────────────────────────────────
-async function api(path, data = {}) {
-  const body = { path, ...data };
-  if (S.token) body.auth_token = S.token;
-  try {
-    const r = await fetch(BASE_URL, { method: "POST", body: JSON.stringify(body) });
-    return JSON.parse(await r.text());
-  } catch(e) {
-    return { ok: false, error: "Network error: " + e.message };
-  }
-}
+  // ── FIX QR RENDER ──
+  // Generate QR via Google Charts API (server-side, no CSS issues)
+  const qDiv=$("qrcode");
+  qDiv.innerHTML="";
+  qDiv.style.cssText="display:flex;align-items:center;justify-content:center;min-width:210px;min-height:210px";
 
-// ── HELPERS ──────────────────────────────────
-const $  = id => document.getElementById(id);
-const _v = id => $(id) ? $(id).value.trim() : "";
-
-function showAlert(id, msg, type = "err") {
-  const el = $(id);
-  el.textContent = msg;
-  el.className = `alert show a-${type}`;
-  if (type !== "info") setTimeout(() => el.className = "alert", 6000);
-}
-function setSpin(id, on) {
-  const el = $(id);
-  if (el) el.innerHTML = on ? '<span class="spinner"></span>&nbsp;' : "";
-}
-function fmtDt(ts) {
-  if (!ts) return "-";
-  try { return new Date(ts).toLocaleString("id-ID", { dateStyle:"short", timeStyle:"short" }); } catch { return ts; }
-}
-function fmtTime(ts) {
-  if (!ts) return "-";
-  try { return new Date(ts).toLocaleTimeString("id-ID", { hour:"2-digit", minute:"2-digit", second:"2-digit" }); } catch { return ts; }
-}
-
-// ── AUTH TABS ────────────────────────────────
-function authTab(t) {
-  $("auth-login").style.display = t === "login" ? "block" : "none";
-  $("auth-reg").style.display   = t === "reg"   ? "block" : "none";
-  $("tab-login").className = "auth-tab" + (t === "login" ? " active" : "");
-  $("tab-reg").className   = "auth-tab" + (t === "reg"   ? " active" : "");
-}
-
-async function doRegister() {
-  const name = _v("r-name"), email = _v("r-email"), password = _v("r-pw"),
-        role = $("r-role").value, nim = _v("r-nim");
-  if (!name || !email || !password || !role) return showAlert("r-alert","Semua field wajib diisi.");
-  setSpin("rs", true);
-  const r = await api("auth/register", { name, email, password, role, nim });
-  setSpin("rs", false);
-  if (!r.ok) return showAlert("r-alert", r.error);
-  showAlert("r-alert", "✅ Registrasi berhasil! Silakan login.", "ok");
-}
-
-async function doLogin() {
-  const email = _v("l-email"), password = _v("l-pw");
-  if (!email || !password) return showAlert("l-alert","Isi email dan password.");
-  setSpin("ls", true);
-  const r = await api("auth/login", { email, password });
-  setSpin("ls", false);
-  if (!r.ok) return showAlert("l-alert", r.error);
-  const d = r.data;
-  S = { token: d.token, user_id: d.user_id, name: d.name, role: d.role, nim: d.nim };
-  sessionStorage.setItem("ps", JSON.stringify(S));
-  afterLogin();
-}
-
-function afterLogin() {
-  $("nav-user").style.display = "flex";
-  $("nav-name").textContent = S.name;
-  const chip = $("nav-chip");
-  chip.textContent = S.role === "admin" ? "ADMIN" : S.role === "dosen" ? "DOSEN" : "MAHASISWA";
-  chip.className = "role-chip rc-" + S.role;
-  buildSidebar();
-  showPage("page-app");
-  showPanel("dash");
-  buildDash();
-}
-
-function logout() {
-  S = {};
-  sessionStorage.removeItem("ps");
-  $("nav-user").style.display = "none";
-  stopScan(); stopAccel(); stopGPS();
-  Object.values(MAPS).forEach(m => { try { m.remove(); } catch(e){} });
-  for (const k in MAPS) delete MAPS[k];
-  showPage("page-auth");
-}
-
-// Auto-restore session
-(function() {
-  try {
-    const s = sessionStorage.getItem("ps");
-    if (s) { S = JSON.parse(s); if (S.token) afterLogin(); }
-  } catch(e) {}
-})();
-
-// ── PAGE / PANEL ─────────────────────────────
-function showPage(id) {
-  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
-  $(id).classList.add("active");
-}
-function showPanel(id, fn) {
-  document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
-  document.querySelectorAll(".sb-btn").forEach(b => b.classList.remove("active"));
-  const panel = $("panel-" + id);
-  if (panel) panel.classList.add("active");
-  const btn = $("sb-" + id);
-  if (btn) btn.classList.add("active");
-  if (fn) fn();
-  setTimeout(() => Object.values(MAPS).forEach(m => { try { m.invalidateSize(); } catch(e){} }), 120);
-}
-
-function buildSidebar() {
-  const menus = MENUS[S.role] || [];
-  const sb = $("sidebar"); sb.innerHTML = "";
-  menus.forEach(m => {
-    if (m.sep) {
-      const l = document.createElement("div");
-      l.className = "sb-sep"; l.textContent = m.sep; sb.appendChild(l);
-    } else {
-      const b = document.createElement("button");
-      b.className = "sb-btn"; b.id = "sb-" + m.panel;
-      b.innerHTML = `${m.icon} ${m.lbl}`;
-      b.onclick = () => showPanel(m.panel, m.fn || null);
-      sb.appendChild(b);
-    }
-  });
-}
-
-// ── DASHBOARD ────────────────────────────────
-function buildDash() {
-  const roleMap = { admin:"ADMIN", dosen:"DOSEN", mahasiswa:"MAHASISWA" };
-  $("dash-greeting").innerHTML =
-    `Halo, <strong>${S.name}</strong> — Role: <span class="badge b-${S.role}">${roleMap[S.role]}</span>` +
-    (S.nim ? ` &nbsp; NIM: <code>${S.nim}</code>` : "");
-  $("dash-stats").innerHTML = S.role === "mahasiswa"
-    ? `<div class="stat"><div class="stat-n g">—</div><div class="stat-l">Total Hadir</div></div>
-       <div class="stat"><div class="stat-n">—</div><div class="stat-l">Mata Kuliah</div></div>
-       <div class="stat"><div class="stat-n p">—</div><div class="stat-l">Device</div></div>`
-    : `<div class="stat"><div class="stat-n g">—</div><div class="stat-l">Matkul</div></div>
-       <div class="stat"><div class="stat-n">—</div><div class="stat-l">Sesi</div></div>
-       <div class="stat"><div class="stat-n a">—</div><div class="stat-l">Mahasiswa</div></div>`;
-}
-
-// ── ADMIN: USER ──────────────────────────────
-async function doAddUser() {
-  const name = _v("au-name"), email = _v("au-email"), password = _v("au-pw"),
-        role = $("au-role").value, nim = _v("au-nim");
-  if (!name || !email || !password || !role) return showAlert("au-alert","Semua field wajib.");
-  setSpin("aus", true);
-  const r = await api("admin/add-user", { name, email, password, role, nim });
-  setSpin("aus", false);
-  if (!r.ok) return showAlert("au-alert", r.error);
-  showAlert("au-alert", `✅ User ${r.data.name} (${r.data.role}) ditambahkan.`, "ok");
-  ["au-name","au-email","au-pw","au-nim"].forEach(id => $(id).value = "");
-  $("au-role").value = "";
-  loadUserList();
-}
-
-async function doResetPw() {
-  const target_email = _v("rp-email"), new_password = _v("rp-pw");
-  if (!target_email || !new_password) return showAlert("rp-alert","Isi email dan password baru.");
-  setSpin("rps", true);
-  const r = await api("admin/reset-password", { target_email, new_password });
-  setSpin("rps", false);
-  if (!r.ok) return showAlert("rp-alert", r.error);
-  showAlert("rp-alert", "✅ Password berhasil direset.", "ok");
-}
-
-async function loadUserList() {
-  const role = $("ul-filter").value;
-  const r = await api("admin/list-users", role ? { role } : {});
-  if (!r.ok) return;
-  const items = r.data.items || [];
-  const rc = { admin:"b-adm", dosen:"b-dos", mahasiswa:"b-mhs" };
-  $("user-list-tbody").innerHTML = items.length === 0
-    ? '<tr><td colspan="6" class="empty">Tidak ada user</td></tr>'
-    : items.map((u,i) => `<tr>
-        <td class="mono">${i+1}</td>
-        <td><strong>${u.name}</strong></td>
-        <td class="mono" style="font-size:.78rem">${u.email}</td>
-        <td><span class="badge ${rc[u.role]||""}">${u.role}</span></td>
-        <td class="mono">${u.nim||"-"}</td>
-        <td class="mut">${fmtDt(u.created_at)}</td>
-      </tr>`).join("");
-}
-
-// ── COURSES & SESSIONS ───────────────────────
-async function loadSetup() {
-  const r = await api("courses");
-  if (!r.ok) return;
-  const items = r.data.items || [];
-  ["ses-csel","qr-csel","ha-csel"].forEach(id => {
-    const el = $(id); if (!el) return;
-    el.innerHTML = '<option value="">-- Pilih --</option>';
-    items.forEach(c => el.innerHTML += `<option value="${c.course_id}">${c.course_name} (${c.course_id})</option>`);
-  });
-  $("course-tbl").innerHTML = items.length === 0
-    ? '<tr><td colspan="2" class="empty">Belum ada matkul</td></tr>'
-    : items.map(c => `<tr><td><code>${c.course_id}</code></td><td>${c.course_name}</td></tr>`).join("");
-}
-
-async function doCreateCourse() {
-  const course_id = _v("ci-id"), course_name = _v("ci-name");
-  if (!course_id || !course_name) return showAlert("cc-alert","Isi semua field.");
-  setSpin("ccs", true);
-  const r = await api("courses/create", { course_id, course_name });
-  setSpin("ccs", false);
-  if (!r.ok) return showAlert("cc-alert", r.error);
-  showAlert("cc-alert","✅ Mata kuliah dibuat!","ok");
-  $("ci-id").value = $("ci-name").value = "";
-  loadSetup();
-}
-
-async function doCreateSession() {
-  const course_id = $("ses-csel").value, date = _v("ses-date"), label = _v("ses-label");
-  if (!course_id || !date || !label) return showAlert("cs-alert","Isi semua field.");
-  setSpin("css2", true);
-  const r = await api("sessions/create", { course_id, date, label });
-  setSpin("css2", false);
-  if (!r.ok) return showAlert("cs-alert", r.error);
-  showAlert("cs-alert","✅ Sesi dibuat! ID: " + r.data.session_id,"ok");
-  $("ses-date").value = $("ses-label").value = "";
-}
-
-// ── QR GENERATE ──────────────────────────────
-async function loadQrCourses() { await loadSetup(); }
-async function loadQrSessions() {
-  const cid = $("qr-csel").value; if (!cid) return;
-  const r = await api("sessions", { course_id: cid });
-  const el = $("qr-ssel");
-  el.innerHTML = '<option value="">-- Pilih --</option>';
-  if (r.ok) r.data.items.forEach(s =>
-    el.innerHTML += `<option value="${s.session_id}">${s.label} — ${s.date} (${s.session_id})</option>`
-  );
-}
-
-async function doGenQR() {
-  const course_id = $("qr-csel").value, session_id = $("qr-ssel").value;
-  if (!course_id || !session_id) return showAlert("gen-alert","Pilih matkul dan sesi.");
-  setSpin("gens", true);
-  const r = await api("presence/qr/generate", {
-    course_id, session_id, ts: new Date().toISOString()
-  });
-  setSpin("gens", false);
-  if (!r.ok) return showAlert("gen-alert", r.error);
-
-  const { qr_token, qr_payload, expires_at } = r.data;
-
-  $("qr-box").style.display = "block";
-  $("qr-tok").textContent = qr_token;
-  $("qrcode").innerHTML = "";
-
-  // QR berisi JSON payload — client parse otomatis
-  new QRCode($("qrcode"), {
-    text: qr_payload,           // ← full JSON payload
-    width: 230, height: 230,
-    colorDark: "#0d1117",
-    colorLight: "#ffffff",
-    correctLevel: QRCode.CorrectLevel.H
-  });
-
-  if (qrTimer) clearInterval(qrTimer);
-  const exp = new Date(expires_at).getTime();
-  function tick() {
-    const rem = Math.max(0, Math.floor((exp - Date.now()) / 1000));
-    const m = String(Math.floor(rem / 60)).padStart(2,"0");
-    const s = String(rem % 60).padStart(2,"0");
-    $("qr-timer").textContent = rem > 0 ? `⏱ ${m}:${s}` : "⛔ Expired — Generate lagi";
-    $("qr-timer").style.color = rem <= 30 ? "var(--red)" : "var(--green)";
-    if (!rem) clearInterval(qrTimer);
-  }
-  tick(); qrTimer = setInterval(tick, 1000);
-}
-
-// ── REKAP DOSEN/ADMIN ────────────────────────
-async function loadHaCourses() { await loadSetup(); }
-async function loadHaSessions() {
-  const cid = $("ha-csel").value; if (!cid) return;
-  const r = await api("sessions", { course_id: cid });
-  const el = $("ha-ssel");
-  el.innerHTML = '<option value="">-- Pilih --</option>';
-  if (r.ok) r.data.items.forEach(s =>
-    el.innerHTML += `<option value="${s.session_id}">${s.label} — ${s.date} (${s.session_id})</option>`
-  );
-}
-
-let recapLayer = null;
-async function loadHistoryAll() {
-  const sid = $("ha-ssel").value; if (!sid) return;
-  const r = await api("presence/history/all", { session_id: sid });
-  if (!r.ok) return;
-  const d = r.data, items = d.items || [];
-  $("ha-n").textContent    = d.total_hadir;
-  $("ha-sesi").textContent = d.pertemuan || sid;
-  $("ha-tgl").textContent  = d.tanggal || "-";
-  $("ha-stats").style.display = "grid";
-
-  $("ha-tbody").innerHTML = items.length === 0
-    ? '<tr><td colspan="7" class="empty">Belum ada yang absen</td></tr>'
-    : items.map(p => `<tr>
-        <td class="mono">${p.no}</td>
-        <td><code>${p.nim||"-"}</code></td>
-        <td><strong>${p.nama}</strong></td>
-        <td class="mono">${fmtTime(p.jam_checkin)}</td>
-        <td>${p.maps_url ? `<a class="maps-link" href="${p.maps_url}" target="_blank">📍 Lihat</a>` : "<span class='mut'>-</span>"}</td>
-        <td><span class="badge b-ok">${p.status}</span></td>
-        <td class="mono" style="font-size:.75rem">${p.device_id}</td>
-      </tr>`).join("");
-
-  const withLoc = items.filter(p => p.lokasi && p.lokasi.lat);
-  if (withLoc.length > 0) {
-    $("recap-map-wrap").style.display = "block";
-    const map = initMap("recap-map");
-    if (recapLayer) map.removeLayer(recapLayer);
-    recapLayer = L.layerGroup().addTo(map);
-    const bounds = [];
-    withLoc.forEach(p => {
-      const { lat, lng } = p.lokasi;
-      bounds.push([lat, lng]);
-      L.marker([lat,lng], { icon: IC_BLUE })
-        .bindPopup(`<div class="pop-title">${p.nama}</div>NIM: ${p.nim||"-"}<br>Jam: ${fmtTime(p.jam_checkin)}<br>±${p.lokasi.accuracy_m||"?"}m`)
-        .addTo(recapLayer);
-      if (p.lokasi.accuracy_m)
-        L.circle([lat,lng], { radius: p.lokasi.accuracy_m, color:"#2f81f7", weight:1, fillOpacity:.06 }).addTo(recapLayer);
-    });
-    if (bounds.length) try { map.fitBounds(bounds, { padding:[40,40], maxZoom:17 }); } catch(e){}
-    setTimeout(() => map.invalidateSize(), 150);
-  } else {
-    $("recap-map-wrap").style.display = "none";
-  }
-}
-
-// ══════════════════════════════════════════════
-//  AUTO CHECKIN FLOW
-//
-//  QR berisi JSON: { qr_token, course_id, session_id }
-//  Client parse → tampil modal → ambil GPS → kirim checkin
-// ══════════════════════════════════════════════
-
-let gpsTimeoutId = null;
-
-function openCheckinModal(qrData) {
-  // qrData: { qr_token, course_id, session_id }
-  pendingCheckin = qrData;
-  pendingGps = null;
-
-  // Reset modal state
-  $("modal-state-gps").style.display = "block";
-  $("modal-state-ok").style.display  = "none";
-  $("modal-state-err").style.display = "none";
-
-  // Fill info
-  $("modal-qr-info").innerHTML = `
-    <div class="modal-info-row"><span class="k">TOKEN</span><span class="v">${qrData.qr_token}</span></div>
-    <div class="modal-info-row"><span class="k">KELAS</span><span class="v">${qrData.course_id}</span></div>
-    <div class="modal-info-row"><span class="k">SESI</span><span class="v">${qrData.session_id}</span></div>
-  `;
-
-  $("modal-gps-dot").className = "gps-dot";
-  $("modal-gps-txt").textContent = "Mendeteksi GPS…";
-  $("btn-modal-checkin").disabled = false; // bisa absen tanpa GPS
-
-  $("modal-checkin").classList.add("open");
-
-  // Mulai ambil GPS (non-blocking)
-  if (navigator.geolocation) {
-    // Beri timeout 8 detik, kalau gagal tetap bisa checkin
-    gpsTimeoutId = setTimeout(() => {
-      $("modal-gps-dot").className = "gps-dot err";
-      $("modal-gps-txt").textContent = "GPS tidak tersedia — absen tanpa lokasi";
-    }, 8000);
-
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        clearTimeout(gpsTimeoutId);
-        const { latitude: lat, longitude: lng, accuracy } = pos.coords;
-        pendingGps = { lat, lng, accuracy_m: accuracy };
-        $("modal-gps-dot").className = "gps-dot ok";
-        $("modal-gps-txt").textContent = `📍 ${lat.toFixed(5)}, ${lng.toFixed(5)} (±${accuracy.toFixed(0)}m)`;
-      },
-      () => {
-        clearTimeout(gpsTimeoutId);
-        $("modal-gps-dot").className = "gps-dot err";
-        $("modal-gps-txt").textContent = "Gagal mendapat GPS — absen tanpa lokasi";
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
-  } else {
-    $("modal-gps-dot").className = "gps-dot err";
-    $("modal-gps-txt").textContent = "Geolocation tidak didukung";
-  }
-}
-
-async function confirmCheckin() {
-  if (!pendingCheckin) return;
-  setSpin("cins", true);
-  $("btn-modal-checkin").disabled = true;
-
-  const payload = {
-    device_id : "web-scan-" + (S.user_id || "01"),
-    course_id : pendingCheckin.course_id,
-    session_id: pendingCheckin.session_id,
-    qr_token  : pendingCheckin.qr_token,
-    ts        : new Date().toISOString()
+  // Use Google Charts QR API — always renders correctly regardless of CSS
+  const encodedPayload=encodeURIComponent(qr_payload);
+  const img=document.createElement("img");
+  img.src=`https://chart.googleapis.com/chart?chs=210x210&cht=qr&chl=${encodedPayload}&chco=0f1729|ffffff&chld=H|2`;
+  img.width=210; img.height=210;
+  img.alt="QR Code Presensi";
+  img.style.cssText="display:block;border-radius:10px;box-shadow:0 4px 20px rgba(67,97,238,.15)";
+  img.onerror=()=>{
+    // Fallback: use qrcodejs if Google Charts fails (CORS/offline)
+    qDiv.innerHTML="";
+    new QRCode(qDiv,{text:qr_payload,width:210,height:210,colorDark:"#0f1729",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.H});
+    setTimeout(()=>{
+      const c=qDiv.querySelector("canvas"),im2=qDiv.querySelector("img");
+      if(c)c.style.cssText="display:block !important;border-radius:8px";
+      if(im2)im2.style.cssText="display:block !important;border-radius:8px";
+    },150);
   };
+  qDiv.appendChild(img);
 
-  // Lampirkan GPS jika tersedia
-  if (pendingGps) {
-    payload.lat        = pendingGps.lat;
-    payload.lng        = pendingGps.lng;
-    payload.accuracy_m = pendingGps.accuracy_m;
+  // Info pills
+  $("qr-info-pills").innerHTML=`
+    <div class="info-pill"><div class="ip-icon">📚</div><div><div class="ip-key">Mata Kuliah</div><div class="ip-val">${cid}</div></div></div>
+    <div class="info-pill"><div class="ip-icon">📅</div><div><div class="ip-key">Sesi</div><div class="ip-val">${sid}</div></div></div>`;
+
+  // Timer
+  if(qrTimer)clearInterval(qrTimer);
+  const exp=new Date(expires_at).getTime(),arc=$("timer-arc"),CIRC=119.38;
+  function tick(){
+    const rem=Math.max(0,Math.floor((exp-Date.now())/1000));
+    const m=String(Math.floor(rem/60)).padStart(2,"0"),s=String(rem%60).padStart(2,"0"),pct=rem/QR_TOTAL;
+    $("qr-timer").textContent=rem>0?`${m}:${s}`:"Expired!";
+    $("qr-timer").className="timer-countdown"+(rem<=30?" danger":"");
+    $("timer-pct").textContent=Math.round(pct*100)+"%";
+    arc.style.strokeDashoffset=CIRC*(1-pct);
+    arc.style.stroke=rem<=30?"#ef233c":"url(#tg)";
+    $("qr-scan-line").style.display=rem>0?"block":"none";
+    if(!rem)clearInterval(qrTimer);
   }
-
-  const r = await api("presence/checkin", payload);
-  setSpin("cins", false);
-
-  if (!r.ok) {
-    $("modal-state-gps").style.display = "none";
-    $("modal-state-err").style.display = "block";
-    $("modal-err-txt").textContent = r.error;
-    return;
-  }
-
-  $("modal-state-gps").style.display = "none";
-  $("modal-state-ok").style.display  = "block";
-  $("modal-ok-detail").textContent   = `${r.data.course_id} · ${r.data.session_id}`;
-  $("modal-ok-id").textContent       = "ID: " + r.data.presence_id;
-
-  // Auto-tutup 3 detik
-  setTimeout(closeModal, 3000);
+  tick();qrTimer=setInterval(tick,1000);
 }
-
-function closeModal() {
-  $("modal-checkin").classList.remove("open");
-  clearTimeout(gpsTimeoutId);
-  pendingCheckin = null;
-  pendingGps = null;
-}
-
-// ── SCAN QR ──────────────────────────────────
-function startScan() {
-  $("btn-cam").style.display  = "none";
-  $("btn-stop").style.display = "inline-flex";
-
-  scanner = new Html5Qrcode("qr-reader");
-  scanner.start(
-    { facingMode: "environment" },
-    { fps: 10, qrbox: { width: 260, height: 260 } },
-    (text) => {
-      // Stop scanner segera setelah scan
-      stopScan();
-
-      // Coba parse sebagai JSON payload
-      let qrData = null;
-      try {
-        const parsed = JSON.parse(text);
-        if (parsed.qr_token && parsed.course_id && parsed.session_id) {
-          qrData = parsed;
-        }
-      } catch(e) {
-        // Kalau bukan JSON, coba treat sebagai plain token
-        // (backward compatibility — token lama)
-        qrData = null;
-      }
-
-      if (qrData) {
-        // ✅ QR baru — auto checkin modal
-        openCheckinModal(qrData);
-      } else {
-        // QR lama atau plain token — tampilkan error saran
-        showAlert("cin-alert",
-          "QR tidak valid atau format lama. Gunakan QR yang di-generate oleh sistem ini.",
-          "err"
-        );
-        $("btn-cam").style.display = "inline-flex";
-      }
-    },
-    () => {}
-  ).catch(e => showAlert("cin-alert", "Kamera error: " + e));
-}
-
-function stopScan() {
-  if (scanner) {
-    try { scanner.stop().then(() => scanner.clear()); } catch(e) {}
-    scanner = null;
-  }
-  $("btn-cam").style.display  = "inline-flex";
-  $("btn-stop").style.display = "none";
-}
-
-// ── TOKEN MANUAL ─────────────────────────────
-let manLat = null, manLng = null, manMapVisible = false, manPickMarker = null;
-
-function getMyLocationManual() {
-  if (!navigator.geolocation) return;
-  $("loc-status-m").textContent = "Mendeteksi GPS…";
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      manLat = pos.coords.latitude;
-      manLng = pos.coords.longitude;
-      $("loc-status-m").textContent = `📍 ${manLat.toFixed(5)}, ${manLng.toFixed(5)} (±${pos.coords.accuracy.toFixed(0)}m)`;
-      if (manMapVisible) updateManualMarker(manLat, manLng);
-    },
-    () => $("loc-status-m").textContent = "Gagal mendapat GPS."
-  );
-}
-
-function toggleManualMap() {
-  const wrap = $("manual-map-wrap");
-  manMapVisible = !manMapVisible;
-  wrap.style.display = manMapVisible ? "block" : "none";
-  if (manMapVisible) {
-    setTimeout(() => {
-      const map = initMap("manual-map", DEF_CENTER, 14);
-      map.on("click", e => {
-        manLat = e.latlng.lat; manLng = e.latlng.lng;
-        $("loc-status-m").textContent = `📍 ${manLat.toFixed(5)}, ${manLng.toFixed(5)}`;
-        updateManualMarker(manLat, manLng);
-        $("manual-map-info").textContent = `Lokasi dipilih: ${manLat.toFixed(5)}, ${manLng.toFixed(5)}`;
-      });
-      if (manLat && manLng) { updateManualMarker(manLat, manLng); MAPS["manual-map"].setView([manLat, manLng], 16); }
-    }, 80);
-  }
-}
-
-function updateManualMarker(lat, lng) {
-  const map = MAPS["manual-map"]; if (!map) return;
-  if (manPickMarker) map.removeLayer(manPickMarker);
-  manPickMarker = L.marker([lat,lng], { icon: IC_PUR })
-    .bindPopup(`<div class="pop-title">Lokasi Dipilih</div>${lat.toFixed(5)}, ${lng.toFixed(5)}`)
-    .addTo(map).openPopup();
-  map.setView([lat,lng], 17);
-}
-
-async function doCheckinManual() {
-  const qr_token  = _v("mt").toUpperCase();
-  const course_id = _v("mc");
-  const session_id= _v("ms");
-  if (!qr_token || !course_id || !session_id) return showAlert("man-alert","Isi semua field.");
-
-  const payload = {
-    device_id: "web-manual-" + (S.user_id || "01"),
-    course_id, session_id, qr_token,
-    ts: new Date().toISOString()
-  };
-  if (manLat && manLng) { payload.lat = manLat; payload.lng = manLng; }
-
-  setSpin("mans", true);
-  const r = await api("presence/checkin", payload);
-  setSpin("mans", false);
-  if (!r.ok) return showAlert("man-alert", r.error);
-  showAlert("man-alert", `✅ Absen berhasil! ID: ${r.data.presence_id}`, "ok");
-  $("mt").value = ""; manLat = null; manLng = null;
-  $("loc-status-m").textContent = "";
-  $("manual-map-wrap").style.display = "none"; manMapVisible = false;
-}
-
-// ── HISTORY MAHASISWA ─────────────────────────
-let mhsLayer = null;
-async function loadHistoryMhs() {
-  const course_id = _v("mh-cid"); if (!course_id) return;
-  const r = await api("presence/history", { course_id });
-  if (!r.ok) { $("mh-tbody").innerHTML = `<tr><td colspan="6" class="empty">${r.error}</td></tr>`; return; }
-  const items = r.data.items || [];
-  $("mh-total").textContent = items.length;
-  $("mh-tbody").innerHTML = items.length === 0
-    ? '<tr><td colspan="6" class="empty">Belum ada data</td></tr>'
-    : items.map(p => `<tr>
-        <td class="mono">${p.no}</td>
-        <td><strong>${p.pertemuan}</strong></td>
-        <td class="mut">${p.tanggal||"-"}</td>
-        <td class="mono">${fmtTime(p.jam_checkin)}</td>
-        <td>${p.maps_url ? `<a class="maps-link" href="${p.maps_url}" target="_blank">📍 ${p.lokasi.lat.toFixed(4)},${p.lokasi.lng.toFixed(4)}</a>` : "<span class='mut'>-</span>"}</td>
-        <td><span class="badge b-ok">${p.status}</span></td>
-      </tr>`).join("");
-
-  const withLoc = items.filter(p => p.lokasi && p.lokasi.lat);
-  if (withLoc.length > 0) {
-    $("mhs-map-wrap").style.display = "block";
-    const map = initMap("mhs-map");
-    if (mhsLayer) map.removeLayer(mhsLayer);
-    mhsLayer = L.layerGroup().addTo(map);
-    const bounds = [];
-    withLoc.forEach((p, i) => {
-      const { lat, lng } = p.lokasi;
-      bounds.push([lat, lng]);
-      const icon = i === 0 ? IC_GREEN : (i === withLoc.length - 1 ? IC_RED : IC_BLUE);
-      L.marker([lat,lng], { icon })
-        .bindPopup(`<div class="pop-title">${p.pertemuan}</div>${p.tanggal}<br>${fmtTime(p.jam_checkin)}`)
-        .addTo(mhsLayer);
-    });
-    if (bounds.length > 1)
-      L.polyline(bounds, { color:"#2f81f7", weight:2.5, dashArray:"5 7", opacity:.6 }).addTo(mhsLayer);
-    try { map.fitBounds(bounds, { padding:[40,40], maxZoom:17 }); } catch(e){}
-    setTimeout(() => map.invalidateSize(), 150);
-  } else {
-    $("mhs-map-wrap").style.display = "none";
-  }
-}
-
-// ── ACCELEROMETER ────────────────────────────
-function startAccel() {
-  accelActive = true;
-  $("btn-ac-start").style.display = "none";
-  $("btn-ac-stop").style.display  = "inline-flex";
-
-  function sendBatch() {
-    if (!accelActive || accelBatch.length === 0) return;
-    const samples = [...accelBatch]; accelBatch = [];
-    api("telemetry/accel", {
-      device_id: _v("ac-dev") || "web-01",
-      ts: new Date().toISOString(),
-      samples
-    }).then(r => { if (!r.ok) showAlert("ac-alert","Accel error: " + r.error); });
-  }
-
-  if (window.DeviceMotionEvent && typeof DeviceMotionEvent.requestPermission === "function") {
-    DeviceMotionEvent.requestPermission().then(s => { if (s === "granted") listenMotion(); });
-  } else if (window.DeviceMotionEvent) {
-    listenMotion();
-  } else {
-    showAlert("ac-alert","DeviceMotion tidak tersedia — simulasi aktif.","info");
-    accelTimer = setInterval(() => {
-      const x = (Math.random()-.5)*2, y = (Math.random()-.5)*2, z = 9.5 + Math.random();
-      updateAccelUI(x, y, z);
-      accelBatch.push({ t: new Date().toISOString(), x:+x.toFixed(3), y:+y.toFixed(3), z:+z.toFixed(3) });
-      if (accelBatch.length >= 5) sendBatch();
-    }, 300);
-  }
-  setInterval(sendBatch, 3000);
-}
-
-function listenMotion() {
-  window.addEventListener("devicemotion", e => {
-    if (!accelActive || !e.acceleration) return;
-    const { x, y, z } = e.acceleration;
-    updateAccelUI(x, y, z);
-    accelBatch.push({ t: new Date().toISOString(), x:+x.toFixed(3), y:+y.toFixed(3), z:+(z||9.81).toFixed(3) });
-  });
-}
-
-function updateAccelUI(x, y, z) {
-  $("av-x").textContent = x.toFixed(3);
-  $("av-y").textContent = y.toFixed(3);
-  $("av-z").textContent = z.toFixed(3);
-  const norm = (v, max) => Math.min(68, Math.abs(v) / max * 68);
-  $("bar-x").style.height = norm(x, 20) + "px";
-  $("bar-y").style.height = norm(y, 20) + "px";
-  $("bar-z").style.height = norm(z, 15) + "px";
-}
-
-function stopAccel() {
-  accelActive = false;
-  if (accelTimer) { clearInterval(accelTimer); accelTimer = null; }
-  $("btn-ac-start").style.display = "inline-flex";
-  $("btn-ac-stop").style.display  = "none";
-}
-
-async function fetchAccelLatest() {
-  const device_id = _v("ac-q-dev"); if (!device_id) return;
-  const r = await api("telemetry/accel/latest", { device_id });
-  if (!r.ok) return $("accel-latest").textContent = r.error;
-  const d = r.data;
-  $("accel-latest").innerHTML =
-    `<strong>${d.device_id}</strong> — t: ${fmtDt(d.t)} &nbsp;|&nbsp; X:<strong>${d.x}</strong> Y:<strong>${d.y}</strong> Z:<strong>${d.z}</strong>`;
-}
-
-// ── GPS TRACKING ─────────────────────────────
-let gpsMarker = null, gpsAccCircle = null, gpsTrailPts = [], gpsPolyline = null, historyLayer = null;
-
-function initGpsPanel() {
-  setTimeout(() => {
-    const map = initMap("gps-map", DEF_CENTER, DEF_ZOOM);
-    map.invalidateSize();
-  }, 120);
-}
-
-function setTrackDot(active) {
-  $("track-dot").className = "track-dot" + (active ? " active" : "");
-  $("btn-gps-start").style.display = active ? "none"         : "inline-flex";
-  $("btn-gps-stop").style.display  = active ? "inline-flex"  : "none";
-}
-
-function startGPS() {
-  if (!navigator.geolocation) return showAlert("gps-alert","Geolocation tidak didukung.");
-  setTrackDot(true);
-  gpsTrailPts = [];
-  $("gps-status-txt").textContent = "Aktif — menunggu GPS…";
-  $("gps-map-bar").style.display  = "none";
-
-  const map = MAPS["gps-map"] || initMap("gps-map");
-
-  gpsWatcher = navigator.geolocation.watchPosition(pos => {
-    const { latitude: lat, longitude: lng, accuracy } = pos.coords;
-    const now = new Date();
-
-    // Status bar
-    $("gps-status-txt").textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-    const ab = $("gps-acc-badge");
-    ab.style.display = "inline";
-    ab.textContent = `±${accuracy.toFixed(0)}m`;
-    ab.style.background = accuracy < 20 ? "rgba(63,185,80,.15)" : accuracy < 60 ? "rgba(210,153,34,.15)" : "rgba(248,81,73,.15)";
-    ab.style.color = accuracy < 20 ? "var(--green)" : accuracy < 60 ? "var(--amber)" : "var(--red)";
-
-    // Map bar
-    $("gps-map-bar").style.display = "flex";
-    $("gps-coords").textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-    $("gps-time").textContent   = fmtDt(now);
-    $("gps-gmaps").href = `https://maps.google.com/?q=${lat},${lng}`;
-
-    // Marker
-    if (!gpsMarker) {
-      gpsMarker = L.marker([lat,lng], { icon: IC_PUR })
-        .bindPopup('<div class="pop-title">Posisi Anda</div>')
-        .addTo(map);
-    } else {
-      gpsMarker.setLatLng([lat,lng]);
-    }
-    gpsMarker.getPopup().setContent(
-      `<div class="pop-title">Posisi Saat Ini</div>${lat.toFixed(5)}, ${lng.toFixed(5)}<br>±${accuracy.toFixed(0)}m`
-    );
-
-    if (gpsAccCircle) map.removeLayer(gpsAccCircle);
-    gpsAccCircle = L.circle([lat,lng], { radius: accuracy, color:"#a371f7", weight:1.5, fillOpacity:.08 }).addTo(map);
-
-    gpsTrailPts.push([lat,lng]);
-    if (gpsPolyline) map.removeLayer(gpsPolyline);
-    if (gpsTrailPts.length > 1) {
-      gpsPolyline = L.polyline(gpsTrailPts, { color:"#2f81f7", weight:4, opacity:.8, lineCap:"round" }).addTo(map);
-    }
-    map.panTo([lat,lng], { animate: true, duration: .5 });
-
-    // Kirim ke server
-    api("telemetry/gps", {
-      device_id: _v("gps-dev") || "web-01",
-      ts: now.toISOString(), lat, lng, accuracy_m: accuracy
-    });
-
-  }, err => {
-    showAlert("gps-alert","GPS error: " + err.message);
-    setTrackDot(false);
-  }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
-}
-
-function stopGPS() {
-  if (gpsWatcher !== null) { navigator.geolocation.clearWatch(gpsWatcher); gpsWatcher = null; }
-  setTrackDot(false);
-  $("gps-status-txt").textContent = "Tidak aktif";
-  $("gps-acc-badge").style.display = "none";
-}
-
-async function fetchGpsHistory() {
-  const device_id = _v("gps-q-dev"); if (!device_id) return;
-  const r = await api("telemetry/gps/history", { device_id, limit: 200 });
-  if (!r.ok) return showAlert("gps-alert", r.error);
-  const items = r.data.items || [];
-
-  $("gps-hist-tbody").innerHTML = items.length === 0
-    ? '<tr><td colspan="6" class="empty">Tidak ada data</td></tr>'
-    : items.map((g,i) => `<tr>
-        <td class="mono">${i+1}</td>
-        <td class="mut">${fmtDt(g.ts)}</td>
-        <td class="mono">${g.lat.toFixed(5)}</td>
-        <td class="mono">${g.lng.toFixed(5)}</td>
-        <td class="mut">${g.accuracy_m ? `±${g.accuracy_m.toFixed(0)}m` : "-"}</td>
-        <td><a class="maps-link" href="https://maps.google.com/?q=${g.lat},${g.lng}" target="_blank">🗺️</a></td>
-      </tr>`).join("");
-
-  if (items.length === 0) { $("history-map-wrap").style.display = "none"; return; }
-
-  $("history-map-wrap").style.display = "block";
-  setTimeout(() => {
-    const map = initMap("gps-history-map");
-    if (historyLayer) map.removeLayer(historyLayer);
-    historyLayer = L.layerGroup().addTo(map);
-
-    const coords = items.map(g => [g.lat, g.lng]);
-
-    if (coords.length > 1)
-      L.polyline(coords, { color:"#2f81f7", weight:4, opacity:.85, lineCap:"round" }).addTo(historyLayer);
-
-    L.marker(coords[0], { icon: IC_GREEN })
-      .bindPopup(`<div class="pop-title">🟢 Awal</div>${fmtDt(items[0].ts)}`)
-      .addTo(historyLayer);
-
-    if (coords.length > 1)
-      L.marker(coords[coords.length-1], { icon: IC_RED })
-        .bindPopup(`<div class="pop-title">🔴 Terbaru</div>${fmtDt(items[items.length-1].ts)}`)
-        .addTo(historyLayer);
-
-    coords.slice(1,-1).forEach((c,i) => {
-      L.marker(c, { icon: mkDot("#2f81f7") })
-        .bindPopup(`<div class="pop-title">Titik ${i+2}</div>${fmtDt(items[i+1].ts)}<br>${c[0].toFixed(5)}, ${c[1].toFixed(5)}`)
-        .addTo(historyLayer);
-    });
-
-    try { map.fitBounds(coords, { padding:[40,40], maxZoom:17 }); } catch(e){}
-    map.invalidateSize();
-  }, 120);
-}
+async function loadHaCourses(){await loadSetup()}
+async function loadHaSessions(){const cid=$("ha-csel").value;if(!cid)return;const r=await api("sessions",{course_id:cid});const el=$("ha-ssel");el.innerHTML='<option value="">— Pilih —</option>';if(r.ok)r.data.items.forEach(s=>el.innerHTML+=`<option value="${s.session_id}">${s.label} — ${s.date} (${s.session_id})</option>`)}
+let recapLayer=null;
+async function loadHistoryAll(){const sid=$("ha-ssel").value;if(!sid)return;const r=await api("presence/history/all",{session_id:sid});if(!r.ok)return;const d=r.data,items=d.items||[];$("ha-n").textContent=d.total_hadir;$("ha-sesi").textContent=d.pertemuan||sid;$("ha-tgl").textContent=d.tanggal||"-";$("ha-stats").style.display="grid";$("ha-tbody").innerHTML=items.length===0?'<tr><td colspan="7" class="empty">Belum ada absen</td></tr>':items.map(p=>`<tr><td>${p.no}</td><td><code>${p.nim||"-"}</code></td><td><strong>${p.nama}</strong></td><td style="font-size:.82rem">${fmtTime(p.jam_checkin)}</td><td>${p.maps_url?`<a class="maps-link" href="${p.maps_url}" target="_blank">📍 Lihat</a>`:"<span style='color:var(--txt4)'>-</span>"}</td><td><span class="badge b-ok">${p.status}</span></td><td style="font-size:.78rem;color:var(--txt3)">${p.device_id}</td></tr>`).join("");const wl=items.filter(p=>p.lokasi&&p.lokasi.lat);if(wl.length>0){$("recap-map-wrap").style.display="block";const map=initMap("recap-map");if(recapLayer)map.removeLayer(recapLayer);recapLayer=L.layerGroup().addTo(map);const bounds=[];wl.forEach(p=>{const{lat,lng}=p.lokasi;bounds.push([lat,lng]);L.marker([lat,lng],{icon:IC_IND}).bindPopup(`<div class="pop-title">${p.nama}</div>NIM: ${p.nim||"-"}<br>Jam: ${fmtTime(p.jam_checkin)}`).addTo(recapLayer);if(p.lokasi.accuracy_m)L.circle([lat,lng],{radius:p.lokasi.accuracy_m,color:"#4361ee",weight:1,fillOpacity:.06}).addTo(recapLayer)});if(bounds.length)try{map.fitBounds(bounds,{padding:[40,40],maxZoom:17})}catch(e){}setTimeout(()=>map.invalidateSize(),150)}else{$("recap-map-wrap").style.display="none"}}
+function openCheckinModal(qrData){pendingCheckin=qrData;pendingGps=null;$("modal-state-gps").style.display="block";$("modal-state-ok").style.display="none";$("modal-state-err").style.display="none";$("modal-qr-info").innerHTML=`<div class="mdr"><span style="font-size:.9rem">🔑</span><span class="mdr-key">Token</span><span class="mdr-val">${qrData.qr_token}</span></div><div class="mdr"><span style="font-size:.9rem">📚</span><span class="mdr-key">Kelas</span><span class="mdr-val">${qrData.course_id}</span></div><div class="mdr"><span style="font-size:.9rem">📅</span><span class="mdr-key">Sesi</span><span class="mdr-val">${qrData.session_id}</span></div>`;const dot=$("modal-gps-dot");dot.className="gps-spin";$("modal-gps-txt").textContent="Mendeteksi lokasi GPS…";$("btn-modal-checkin").disabled=false;$("modal-checkin").classList.add("open");if(navigator.geolocation){gpsTimeoutId=setTimeout(()=>{dot.className="gps-spin err";$("modal-gps-txt").textContent="GPS tidak tersedia — absen tanpa lokasi"},8000);navigator.geolocation.getCurrentPosition(pos=>{clearTimeout(gpsTimeoutId);const{latitude:lat,longitude:lng,accuracy}=pos.coords;pendingGps={lat,lng,accuracy_m:accuracy};dot.className="gps-spin ok";$("modal-gps-txt").textContent=`📍 ${lat.toFixed(5)}, ${lng.toFixed(5)} (±${accuracy.toFixed(0)}m)`},()=>{clearTimeout(gpsTimeoutId);dot.className="gps-spin err";$("modal-gps-txt").textContent="Gagal mendapat GPS — absen tanpa lokasi"},{enableHighAccuracy:true,timeout:10000,maximumAge:0})}else{$("modal-gps-dot").className="gps-spin err";$("modal-gps-txt").textContent="Geolocation tidak didukung"}}
+async function confirmCheckin(){if(!pendingCheckin)return;setSpin("cins",true);$("btn-modal-checkin").disabled=true;const payload={device_id:"web-scan-"+(S.user_id||"01"),course_id:pendingCheckin.course_id,session_id:pendingCheckin.session_id,qr_token:pendingCheckin.qr_token,ts:new Date().toISOString()};if(pendingGps){payload.lat=pendingGps.lat;payload.lng=pendingGps.lng;payload.accuracy_m=pendingGps.accuracy_m}const r=await api("presence/checkin",payload);setSpin("cins",false);if(!r.ok){$("modal-state-gps").style.display="none";$("modal-state-err").style.display="block";$("modal-err-txt").textContent=r.error;return}$("modal-state-gps").style.display="none";$("modal-state-ok").style.display="block";$("modal-ok-detail").textContent=`${r.data.course_id} · ${r.data.session_id}`;$("modal-ok-id").textContent="ID: "+r.data.presence_id;setTimeout(closeModal,3000)}
+function closeModal(){$("modal-checkin").classList.remove("open");clearTimeout(gpsTimeoutId);pendingCheckin=null;pendingGps=null}
+function startScan(){$("btn-cam").style.display="none";$("btn-stop").style.display="inline-flex";scanner=new Html5Qrcode("qr-reader");scanner.start({facingMode:"environment"},{fps:10,qrbox:{width:250,height:250}},text=>{stopScan();let qrData=null;try{const p=JSON.parse(text);if(p.qr_token&&p.course_id&&p.session_id)qrData=p}catch(e){}if(qrData){openCheckinModal(qrData)}else{showAlert("cin-alert","QR tidak valid. Gunakan QR dari sistem ini.","err");$("btn-cam").style.display="inline-flex"}},()=>{}).catch(e=>showAlert("cin-alert","Kamera error: "+e))}
+function stopScan(){if(scanner){try{scanner.stop().then(()=>scanner.clear())}catch(e){}scanner=null}$("btn-cam").style.display="inline-flex";$("btn-stop").style.display="none"}
+let manLat=null,manLng=null,manMapVis=false,manMark=null;
+function getMyLocationManual(){if(!navigator.geolocation)return;$("loc-status-m").textContent="Mendeteksi GPS…";navigator.geolocation.getCurrentPosition(pos=>{manLat=pos.coords.latitude;manLng=pos.coords.longitude;$("loc-status-m").textContent=`📍 ${manLat.toFixed(5)}, ${manLng.toFixed(5)} (±${pos.coords.accuracy.toFixed(0)}m)`;if(manMapVis)updateManMark(manLat,manLng)},()=>$("loc-status-m").textContent="Gagal mendapat lokasi.")}
+function toggleManualMap(){const w=$("manual-map-wrap");manMapVis=!manMapVis;w.style.display=manMapVis?"block":"none";if(manMapVis)setTimeout(()=>{const map=initMap("manual-map",DEF_C,14);map.on("click",e=>{manLat=e.latlng.lat;manLng=e.latlng.lng;$("loc-status-m").textContent=`📍 ${manLat.toFixed(5)}, ${manLng.toFixed(5)}`;updateManMark(manLat,manLng);$("manual-map-info").textContent=`Dipilih: ${manLat.toFixed(5)}, ${manLng.toFixed(5)}`});if(manLat&&manLng){updateManMark(manLat,manLng);MAPS["manual-map"].setView([manLat,manLng],16)}},80)}
+function updateManMark(lat,lng){const map=MAPS["manual-map"];if(!map)return;if(manMark)map.removeLayer(manMark);manMark=L.marker([lat,lng],{icon:IC_PUR}).bindPopup(`<div class="pop-title">Lokasi Dipilih</div>${lat.toFixed(5)}, ${lng.toFixed(5)}`).addTo(map).openPopup();map.setView([lat,lng],17)}
+async function doCheckinManual(){const qt=_v("mt").toUpperCase(),cid=_v("mc"),sid=_v("ms");if(!qt||!cid||!sid)return showAlert("man-alert","Isi semua field.");const payload={device_id:"web-manual-"+(S.user_id||"01"),course_id:cid,session_id:sid,qr_token:qt,ts:new Date().toISOString()};if(manLat&&manLng){payload.lat=manLat;payload.lng=manLng}setSpin("mans",true);const r=await api("presence/checkin",payload);setSpin("mans",false);if(!r.ok)return showAlert("man-alert",r.error);showAlert("man-alert",`✅ Absen berhasil! ID: ${r.data.presence_id}`,"ok");$("mt").value="";manLat=null;manLng=null;$("loc-status-m").textContent="";$("manual-map-wrap").style.display="none";manMapVis=false}
+let mhsLayer=null;
+async function loadHistoryMhs(){const cid=_v("mh-cid");if(!cid)return;const r=await api("presence/history",{course_id:cid});if(!r.ok){$("mh-tbody").innerHTML=`<tr><td colspan="6" class="empty">${r.error}</td></tr>`;return}const items=r.data.items||[];$("mh-total").textContent=items.length;$("mh-tbody").innerHTML=items.length===0?'<tr><td colspan="6" class="empty">Belum ada data</td></tr>':items.map(p=>`<tr><td>${p.no}</td><td><strong>${p.pertemuan}</strong></td><td style="color:var(--txt2)">${p.tanggal||"-"}</td><td style="font-size:.82rem">${fmtTime(p.jam_checkin)}</td><td>${p.maps_url?`<a class="maps-link" href="${p.maps_url}" target="_blank">📍 ${p.lokasi.lat.toFixed(4)},${p.lokasi.lng.toFixed(4)}</a>`:"<span style='color:var(--txt4)'>-</span>"}</td><td><span class="badge b-ok">${p.status}</span></td></tr>`).join("");const wl=items.filter(p=>p.lokasi&&p.lokasi.lat);if(wl.length>0){$("mhs-map-wrap").style.display="block";const map=initMap("mhs-map");if(mhsLayer)map.removeLayer(mhsLayer);mhsLayer=L.layerGroup().addTo(map);const bounds=[];wl.forEach((p,i)=>{const{lat,lng}=p.lokasi;bounds.push([lat,lng]);const icon=i===0?IC_GRN:i===wl.length-1?IC_RED:IC_IND;L.marker([lat,lng],{icon}).bindPopup(`<div class="pop-title">${p.pertemuan}</div>${p.tanggal}<br>${fmtTime(p.jam_checkin)}`).addTo(mhsLayer)});if(bounds.length>1)L.polyline(bounds,{color:"#4361ee",weight:2.5,dashArray:"5 7",opacity:.6}).addTo(mhsLayer);try{map.fitBounds(bounds,{padding:[40,40],maxZoom:17})}catch(e){}setTimeout(()=>map.invalidateSize(),150)}else{$("mhs-map-wrap").style.display="none"}}
+function startAccel(){accelActive=true;$("btn-ac-start").style.display="none";$("btn-ac-stop").style.display="inline-flex";function sendBatch(){if(!accelActive||accelBatch.length===0)return;const samples=[...accelBatch];accelBatch=[];api("telemetry/accel",{device_id:_v("ac-dev")||"web-01",ts:new Date().toISOString(),samples}).then(r=>{if(!r.ok)showAlert("ac-alert","Accel error: "+r.error)})}if(window.DeviceMotionEvent&&typeof DeviceMotionEvent.requestPermission==="function"){DeviceMotionEvent.requestPermission().then(s=>{if(s==="granted")listenMotion()})}else if(window.DeviceMotionEvent){listenMotion()}else{showAlert("ac-alert","Menggunakan simulasi sensor.","info");accelTimer=setInterval(()=>{const x=(Math.random()-.5)*2,y=(Math.random()-.5)*2,z=9.5+Math.random()*.8;updateAccelUI(x,y,z);accelBatch.push({t:new Date().toISOString(),x:+x.toFixed(3),y:+y.toFixed(3),z:+z.toFixed(3)});if(accelBatch.length>=5)sendBatch()},300)}setInterval(sendBatch,3000)}
+function listenMotion(){window.addEventListener("devicemotion",e=>{if(!accelActive||!e.acceleration)return;const{x,y,z}=e.acceleration;updateAccelUI(x,y,z);accelBatch.push({t:new Date().toISOString(),x:+x.toFixed(3),y:+y.toFixed(3),z:+(z||9.81).toFixed(3)})})}
+function updateAccelUI(x,y,z){$("av-x").textContent=x.toFixed(3);$("av-y").textContent=y.toFixed(3);$("av-z").textContent=z.toFixed(3)}
+function stopAccel(){accelActive=false;if(accelTimer){clearInterval(accelTimer);accelTimer=null}$("btn-ac-start").style.display="inline-flex";$("btn-ac-stop").style.display="none"}
+async function fetchAccelLatest(){const dev=_v("ac-q-dev");if(!dev)return;const r=await api("telemetry/accel/latest",{device_id:dev});if(!r.ok)return $("accel-latest").textContent=r.error;const d=r.data;$("accel-latest").innerHTML=`<strong>${d.device_id}</strong> — t:${fmtDt(d.t)} | X:<strong>${d.x}</strong> Y:<strong>${d.y}</strong> Z:<strong>${d.z}</strong>`}
+let gpsMarker=null,gpsCircle=null,gpsPts=[],gpsPoly=null,histLayer=null;
+function initGpsPanel(){setTimeout(()=>{initMap("gps-map",DEF_C,15).invalidateSize()},120)}
+function setTrackDot(a){$("track-dot").className="track-dot"+(a?" active":"");$("btn-gps-start").style.display=a?"none":"inline-flex";$("btn-gps-stop").style.display=a?"inline-flex":"none"}
+function startGPS(){if(!navigator.geolocation)return showAlert("gps-alert","Geolocation tidak didukung.");setTrackDot(true);gpsPts=[];$("gps-status-txt").textContent="Aktif…";$("gps-map-bar").style.display="none";const map=MAPS["gps-map"]||initMap("gps-map");gpsWatcher=navigator.geolocation.watchPosition(pos=>{const{latitude:lat,longitude:lng,accuracy}=pos.coords,now=new Date();$("gps-status-txt").textContent=`${lat.toFixed(5)}, ${lng.toFixed(5)}`;const ab=$("gps-acc-badge");ab.style.display="inline";ab.textContent=`±${accuracy.toFixed(0)}m`;const isGood=accuracy<20,isMed=accuracy<60;ab.style.cssText=`display:inline;font-family:var(--mono);font-size:.7rem;padding:3px 9px;border-radius:20px;background:${isGood?"rgba(6,214,160,.12)":isMed?"rgba(244,162,97,.12)":"rgba(239,35,60,.1)"};color:${isGood?"var(--grn2)":isMed?"#c05621":"var(--red)"};border:1px solid ${isGood?"rgba(6,214,160,.3)":isMed?"rgba(244,162,97,.3)":"rgba(239,35,60,.2)"}`;$("gps-map-bar").style.display="flex";$("gps-coords").textContent=`${lat.toFixed(6)}, ${lng.toFixed(6)}`;$("gps-time").textContent=fmtDt(now);$("gps-gmaps").href=`https://maps.google.com/?q=${lat},${lng}`;if(!gpsMarker)gpsMarker=L.marker([lat,lng],{icon:IC_PUR}).bindPopup('<div class="pop-title">Posisi Anda</div>').addTo(map);else gpsMarker.setLatLng([lat,lng]);gpsMarker.getPopup().setContent(`<div class="pop-title">Posisi Saat Ini</div>${lat.toFixed(5)}, ${lng.toFixed(5)}<br>±${accuracy.toFixed(0)}m`);if(gpsCircle)map.removeLayer(gpsCircle);gpsCircle=L.circle([lat,lng],{radius:accuracy,color:"#7b2d8b",weight:1.5,fillOpacity:.07}).addTo(map);gpsPts.push([lat,lng]);if(gpsPoly)map.removeLayer(gpsPoly);if(gpsPts.length>1)gpsPoly=L.polyline(gpsPts,{color:"#4361ee",weight:4,opacity:.8,lineCap:"round"}).addTo(map);map.panTo([lat,lng],{animate:true,duration:.5});api("telemetry/gps",{device_id:_v("gps-dev")||"web-01",ts:now.toISOString(),lat,lng,accuracy_m:accuracy})},err=>{showAlert("gps-alert","GPS error: "+err.message);setTrackDot(false)},{enableHighAccuracy:true,timeout:15000,maximumAge:0})}
+function stopGPS(){if(gpsWatcher!==null){navigator.geolocation.clearWatch(gpsWatcher);gpsWatcher=null}setTrackDot(false);$("gps-status-txt").textContent="Tidak aktif";$("gps-acc-badge").style.display="none"}
+async function fetchGpsHistory(){const dev=_v("gps-q-dev");if(!dev)return;const r=await api("telemetry/gps/history",{device_id:dev,limit:200});if(!r.ok)return showAlert("gps-alert",r.error);const items=r.data.items||[];$("gps-hist-tbody").innerHTML=items.length===0?'<tr><td colspan="6" class="empty">Tidak ada data</td></tr>':items.map((g,i)=>`<tr><td>${i+1}</td><td style="font-size:.8rem">${fmtDt(g.ts)}</td><td style="font-family:var(--mono)">${g.lat.toFixed(5)}</td><td style="font-family:var(--mono)">${g.lng.toFixed(5)}</td><td>${g.accuracy_m?`±${g.accuracy_m.toFixed(0)}m`:"-"}</td><td><a class="maps-link" href="https://maps.google.com/?q=${g.lat},${g.lng}" target="_blank">🗺️</a></td></tr>`).join("");if(items.length===0){$("history-map-wrap").style.display="none";return}$("history-map-wrap").style.display="block";setTimeout(()=>{const map=initMap("gps-history-map");if(histLayer)map.removeLayer(histLayer);histLayer=L.layerGroup().addTo(map);const coords=items.map(g=>[g.lat,g.lng]);if(coords.length>1)L.polyline(coords,{color:"#4361ee",weight:4,opacity:.85,lineCap:"round"}).addTo(histLayer);L.marker(coords[0],{icon:IC_GRN}).bindPopup(`<div class="pop-title">🟢 Titik Awal</div>${fmtDt(items[0].ts)}`).addTo(histLayer);if(coords.length>1)L.marker(coords[coords.length-1],{icon:IC_RED}).bindPopup(`<div class="pop-title">🔴 Terbaru</div>${fmtDt(items[items.length-1].ts)}`).addTo(histLayer);coords.slice(1,-1).forEach((c,i)=>L.marker(c,{icon:mkDot("#4361ee")}).bindPopup(`<div class="pop-title">Titik ${i+2}</div>${fmtDt(items[i+1].ts)}`).addTo(histLayer));try{map.fitBounds(coords,{padding:[40,40],maxZoom:17})}catch(e){}map.invalidateSize()},120)}
 </script>
 </body>
 </html>
