@@ -1071,14 +1071,27 @@ async function confirmCheckin(){
   if(!pendingCheckin)return;
   setSpin("cins",true); $("btn-modal-checkin").disabled=true;
   const now=new Date().toISOString();
+
+  // Kirim gate accel ke server dulu (background, tidak block checkin)
+  if(gateSamples.length>0){
+    api("telemetry/accel/gate",{
+      device_id:"scan-gate-"+(S.user_id||"01"),
+      ts:now,
+      samples:gateSamples.slice(-20),
+      session_id:pendingCheckin.session_id,
+      duration_sec:GATE_NEEDED
+    });
+  }
+
   const payload={
     device_id:"web-scan-"+(S.user_id||"01"),
     course_id:pendingCheckin.course_id,
     session_id:pendingCheckin.session_id,
     qr_token:pendingCheckin.qr_token,
-    ts:now
+    ts:now,
+    accel_verified:gateVerified,
+    accel_samples:gateSamples.length
   };
-  // Lampirkan GPS jika ada
   if(pendingGps){
     payload.lat=pendingGps.lat;
     payload.lng=pendingGps.lng;
@@ -1092,8 +1105,9 @@ async function confirmCheckin(){
     $("modal-err-txt").textContent=r.error; return;
   }
 
-  // Simpan GPS ke telemetry GPS jika ada
-  if(pendingGps){
+  // GPS ke telemetry/gps sudah dilakukan server-side (double-write)
+  // Tapi jika server tidak simpan (gps_saved=false), kirim manual
+  if(pendingGps && !r.data.gps_saved){
     api("telemetry/gps",{
       device_id:"web-scan-"+(S.user_id||"01"),
       ts:now, lat:pendingGps.lat, lng:pendingGps.lng,
@@ -1106,17 +1120,15 @@ async function confirmCheckin(){
   $("modal-ok-detail").textContent=`${r.data.course_id} · ${r.data.session_id}`;
   $("modal-ok-id").textContent="Presence ID: "+r.data.presence_id;
 
-  // Tampilkan GPS tersimpan
-  if(pendingGps){
+  if(r.data.gps_saved && r.data.gps){
     $("modal-ok-gps").style.display="flex";
-    $("modal-ok-gps-txt").textContent=`GPS tersimpan: ${pendingGps.lat.toFixed(5)}, ${pendingGps.lng.toFixed(5)}`;
+    $("modal-ok-gps-txt").textContent=`GPS: ${r.data.gps.lat.toFixed(5)}, ${r.data.gps.lng.toFixed(5)}`;
   }
-  // Tampilkan accel tersimpan
-  if(gateSamples.length>0){
+  if(r.data.accel_verified){
     $("modal-ok-accel").style.display="flex";
-    $("modal-ok-accel-txt").textContent=`Accel: ${Math.min(gateSamples.length,20)} sampel gerakan tersimpan`;
+    $("modal-ok-accel-txt").textContent=`Gerakan terverifikasi (${r.data.accel_samples} sampel)`;
   }
-  // Reset gate untuk sesi berikutnya
+
   gateVerified=false; gateSamples=[];
   setTimeout(closeModal,4000);
 }
