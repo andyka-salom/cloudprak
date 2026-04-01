@@ -1216,9 +1216,70 @@ function buildSidebar() {
 }
 function buildDash() {
   $("dash-greeting").innerHTML = `Halo, <strong>${S.name}</strong>! Role: <span class="badge b-${S.role}">${S.role}</span>` + (S.nim ? ` &nbsp; NIM: <code>${S.nim}</code>` : "");
-  $("dash-stats").innerHTML = S.role === "mahasiswa"
-    ? `<div class="stat s-grn"><div class="stat-n">—</div><div class="stat-l">Total Hadir</div></div><div class="stat s-ind"><div class="stat-n">—</div><div class="stat-l">Mata Kuliah</div></div><div class="stat s-amb"><div class="stat-n">—</div><div class="stat-l">Device</div></div>`
-    : `<div class="stat s-grn"><div class="stat-n">—</div><div class="stat-l">Matkul</div></div><div class="stat s-ind"><div class="stat-n">—</div><div class="stat-l">Sesi</div></div><div class="stat s-amb"><div class="stat-n">—</div><div class="stat-l">Mahasiswa</div></div>`;
+  // Render skeleton dulu, lalu fetch data
+  if (S.role === "mahasiswa") {
+    $("dash-stats").innerHTML = `
+      <div class="stat s-grn"><div class="stat-n" id="ds-hadir"><span class="spinner" style="border-color:rgba(6,214,160,.3);border-top-color:var(--grn2)"></span></div><div class="stat-l">Total Hadir</div></div>
+      <div class="stat s-ind"><div class="stat-n" id="ds-matkul"><span class="spinner" style="border-color:rgba(67,97,238,.3);border-top-color:var(--ind)"></span></div><div class="stat-l">Mata Kuliah</div></div>
+      <div class="stat s-amb"><div class="stat-n" id="ds-nim" style="font-size:1rem">${S.nim||"—"}</div><div class="stat-l">NIM</div></div>`;
+    fetchDashMhs();
+  } else {
+    $("dash-stats").innerHTML = `
+      <div class="stat s-grn"><div class="stat-n" id="ds-matkul"><span class="spinner" style="border-color:rgba(6,214,160,.3);border-top-color:var(--grn2)"></span></div><div class="stat-l">Matkul</div></div>
+      <div class="stat s-ind"><div class="stat-n" id="ds-sesi"><span class="spinner" style="border-color:rgba(67,97,238,.3);border-top-color:var(--ind)"></span></div><div class="stat-l">Sesi</div></div>
+      <div class="stat s-amb"><div class="stat-n" id="ds-mhs">—</div><div class="stat-l">Mahasiswa</div></div>`;
+    fetchDashDosenAdmin();
+  }
+}
+
+async function fetchDashMhs() {
+  // Hitung total matkul yang punya absen
+  try {
+    const courses = await loadCourses();
+    const mk = $("ds-matkul");
+    if (mk) mk.textContent = courses.length;
+    // Hitung total hadir dari semua matkul
+    let totalHadir = 0;
+    await Promise.all(courses.map(async c => {
+      const r = await api("presence/history", { course_id: c.course_id });
+      if (r.ok) totalHadir += (r.data.items || []).length;
+    }));
+    const dh = $("ds-hadir");
+    if (dh) dh.textContent = totalHadir;
+  } catch(e) {
+    const dh = $("ds-hadir"), mk = $("ds-matkul");
+    if (dh) dh.textContent = "?";
+    if (mk) mk.textContent = "?";
+  }
+}
+
+async function fetchDashDosenAdmin() {
+  try {
+    const courses = await loadCourses();
+    const mk = $("ds-matkul");
+    if (mk) mk.textContent = courses.length;
+    // Hitung total sesi dan total mahasiswa unik
+    let totalSesi = 0, mahasiswaSet = new Set();
+    await Promise.all(courses.map(async c => {
+      const r = await api("sessions", { course_id: c.course_id });
+      if (!r.ok) return;
+      const sesiList = r.data.items || [];
+      totalSesi += sesiList.length;
+      // Hitung mahasiswa dari rekap tiap sesi
+      await Promise.all(sesiList.map(async s => {
+        const rh = await api("presence/history/all", { session_id: s.session_id });
+        if (rh.ok) (rh.data.items || []).forEach(p => { if(p.user_id) mahasiswaSet.add(p.user_id); });
+      }));
+    }));
+    const ds = $("ds-sesi"), dm = $("ds-mhs");
+    if (ds) ds.textContent = totalSesi;
+    if (dm) dm.textContent = mahasiswaSet.size;
+  } catch(e) {
+    const ds = $("ds-sesi"), dm = $("ds-mhs"), mk = $("ds-matkul");
+    if (mk) mk.textContent = "?";
+    if (ds) ds.textContent = "?";
+    if (dm) dm.textContent = "?";
+  }
 }
 
 // ══════════════════════════════════════════════════
@@ -1598,96 +1659,143 @@ function startScan() {
     const gc=$("accel-gate-card");if(gc)gc.scrollIntoView({behavior:"smooth",block:"start"});
     return;
   }
+  // Hentikan scanner lama jika ada (fire-and-forget), lalu langsung mulai baru
   if (scanner) {
-    try{scanner.stop().then(()=>{try{scanner.clear();}catch(e){}scanner=null;_doStartScan();});}
-    catch(e){scanner=null;_doStartScan();}
+    const _sc = scanner;
+    scanner = null;
+    try { _sc.stop().catch(()=>{}); } catch(e) {}
+    // Tunggu sebentar agar resource kamera dilepas sebelum buka ulang
+    setTimeout(_doStartScan, 400);
     return;
   }
   _doStartScan();
 }
 
 function _doStartScan() {
-  $("btn-cam").style.display="none";$("btn-stop").style.display="inline-flex";
-  const readerEl=$("qr-reader");readerEl.innerHTML="";
-  const dbg=$("scan-debug");if(dbg){dbg.style.display="block";dbg.textContent="🎥 Memulai kamera...";}
-  showAlert("cin-alert","📷 Kamera aktif — arahkan ke QR Code dosen","info");
+  $("btn-cam").style.display="none";
+  $("btn-stop").style.display="inline-flex";
 
-  // Mulai timer reveal input manual
+  // Hapus & rebuild elemen qr-reader — Html5Qrcode butuh div bersih setiap inisialisasi
+  const container=$("qr-reader").parentNode;
+  const oldReader=$("qr-reader");
+  oldReader.remove();
+  const newReader=document.createElement("div");
+  newReader.id="qr-reader";
+  newReader.style.cssText="width:100%;max-width:360px;margin:0 auto;border-radius:12px;overflow:hidden;border:1.5px solid var(--bdr)";
+  container.insertBefore(newReader, $("cin-alert"));
+
+  const dbg=$("scan-debug");
+  if(dbg){dbg.style.display="block";dbg.textContent="🎥 Memulai kamera...";}
+  showAlert("cin-alert","📷 Kamera aktif — arahkan ke QR Code dosen","info");
   startManualRevealTimer();
 
-  scanner=new Html5Qrcode("qr-reader");
+  // Flag untuk mencegah callback sukses diproses lebih dari sekali
+  let qrHandled = false;
+
+  scanner = new Html5Qrcode("qr-reader");
   scanner.start(
     {facingMode:"environment"},
-    {fps:10,qrbox:{width:240,height:240},aspectRatio:1.0},
-    (text)=>{
-      console.log("[QR] Raw text:", text);
-      if (dbg) dbg.textContent="✅ QR terdeteksi: "+text.substring(0,60)+"...";
+    {fps:10, qrbox:{width:240,height:240}, aspectRatio:1.0},
 
-      // QR berhasil terbaca — batalkan timer reveal
+    // ── SUKSES: QR terbaca ────────────────────────────────────
+    (text) => {
+      if (qrHandled) return;   // Abaikan deteksi ganda
+      qrHandled = true;
+
+      console.log("[QR] Raw:", text);
       clearManualRevealTimer();
-      stopScan();
 
-      let qrData=null;
-      try{
-        const p=JSON.parse(text);
-        if (p.qr_token&&p.course_id&&p.session_id){qrData=p;}
-        else if (p.qr_token||p.token){qrData={qr_token:p.qr_token||p.token,course_id:p.course_id||p.courseId||"",session_id:p.session_id||p.sessionId||""};}
-      }catch(e){
-        const trimmed=text.trim().toUpperCase();
-        if (trimmed.startsWith("TKN-")){
-          // Token plain — isi field manual dan tampilkan box
-          if ($("msb-token")) $("msb-token").value=trimmed;
+      // Hentikan scanner langsung (fire-and-forget, JANGAN tunggu promise)
+      // supaya tidak ada race condition sebelum modal dibuka
+      const _sc = scanner;
+      scanner = null;
+      try { _sc.stop().catch(()=>{}); } catch(e){}
+      $("btn-cam").style.display="inline-flex";
+      $("btn-stop").style.display="none";
+      if(dbg) { dbg.textContent="✅ QR terdeteksi — memproses..."; }
+
+      // Parse payload QR
+      let qrData = null;
+      try {
+        const p = JSON.parse(text);
+        if (p.qr_token && p.course_id && p.session_id) {
+          qrData = p;
+        } else if (p.qr_token || p.token) {
+          qrData = {
+            qr_token  : p.qr_token || p.token,
+            course_id : p.course_id || p.courseId || "",
+            session_id: p.session_id || p.sessionId || ""
+          };
+        }
+      } catch(e) {
+        // Bukan JSON — coba sebagai plain token
+        const trimmed = text.trim().toUpperCase();
+        if (trimmed.startsWith("TKN-")) {
+          if ($("msb-token")) $("msb-token").value = trimmed;
           showAlert("cin-alert","⚠️ QR hanya berisi token. Isi Course ID & Session ID di bawah lalu Submit.","warn");
-          if(dbg)dbg.textContent="Token plain: "+trimmed+" — isi form manual di bawah";
+          if(dbg) dbg.textContent = "Token plain: "+trimmed+" — isi form manual";
           showManualSubmitBox();
-          $("btn-cam").style.display="inline-flex";$("btn-stop").style.display="none";
           return;
         }
       }
 
-      if (qrData&&qrData.qr_token&&qrData.course_id&&qrData.session_id){
-        if(dbg)dbg.textContent="✅ Data valid — membuka konfirmasi...";
-        openCheckinModal(qrData);
+      if (qrData && qrData.qr_token && qrData.course_id && qrData.session_id) {
+        if(dbg) dbg.textContent = "✅ Data valid — membuka konfirmasi...";
+        // Buka modal setelah 150ms agar UI scanner sempat bersih
+        setTimeout(() => openCheckinModal(qrData), 150);
       } else {
-        const errMsg="QR tidak valid — format harus JSON: {qr_token, course_id, session_id}";
-        showAlert("cin-alert",errMsg,"err");
-        if(dbg)dbg.textContent="❌ "+errMsg+" | Raw: "+text.substring(0,80);
-        $("btn-cam").style.display="inline-flex";$("btn-stop").style.display="none";
-        // Tampilkan input manual karena QR tidak valid
+        showAlert("cin-alert","❌ Format QR tidak dikenali. Gunakan input manual di bawah.","err");
+        if(dbg) dbg.textContent = "❌ QR tidak valid | Raw: "+text.substring(0,80);
         showManualSubmitBox();
       }
     },
-    (errMsg)=>{
-      if (!errMsg.includes("No MultiFormat")&&!errMsg.includes("No QR")&&!errMsg.includes("NotFoundException")){
-        console.warn("[QR scan]",errMsg);
+
+    // ── ERROR SCANNING: abaikan "No QR found" yang normal ───────
+    (errMsg) => {
+      if (!errMsg.includes("No MultiFormat") &&
+          !errMsg.includes("No QR") &&
+          !errMsg.includes("NotFoundException")) {
+        console.warn("[QR scan err]", errMsg);
       }
     }
-  ).then(()=>{
-    if(dbg)dbg.textContent="🎥 Kamera aktif — arahkan ke QR Code";
-  }).catch(e=>{
+  )
+  .then(() => {
+    if(dbg) dbg.textContent = "🎥 Kamera aktif — arahkan ke QR Code dosen";
+  })
+  .catch(e => {
     clearManualRevealTimer();
-    console.error("[Camera]",e);
-    let msg="Kamera error: "+e;
-    if (String(e).includes("NotAllowed"))  msg="Izin kamera ditolak. Buka pengaturan browser dan izinkan kamera, lalu coba lagi.";
-    else if (String(e).includes("NotFound"))     msg="Kamera tidak ditemukan di perangkat ini.";
-    else if (String(e).includes("NotSupported")) msg="Browser tidak mendukung kamera. Gunakan Chrome/Safari via HTTPS.";
-    else if (String(e).includes("NotReadable"))  msg="Kamera sedang dipakai aplikasi lain. Tutup aplikasi lain dan coba lagi.";
-    showAlert("cin-alert",msg,"err");
-    if(dbg)dbg.textContent="❌ "+msg;
-    $("btn-cam").style.display="inline-flex";$("btn-stop").style.display="none";
-    // Tampilkan input manual sebagai fallback kamera gagal
+    qrHandled = true;
+    scanner = null;
+    console.error("[Camera]", e);
+    let msg = "Kamera tidak dapat dibuka.";
+    const es = String(e);
+    if (es.includes("NotAllowed") || es.includes("Permission"))
+      msg = "Izin kamera ditolak. Buka Pengaturan → Izin Situs → Kamera, lalu muat ulang halaman.";
+    else if (es.includes("NotFound"))
+      msg = "Tidak ada kamera yang ditemukan di perangkat ini.";
+    else if (es.includes("NotReadable") || es.includes("Busy"))
+      msg = "Kamera sedang digunakan aplikasi lain. Tutup tab/aplikasi lain dan coba lagi.";
+    else if (es.includes("NotSupported") || es.includes("https"))
+      msg = "Browser membutuhkan koneksi HTTPS untuk mengakses kamera.";
+    showAlert("cin-alert", msg, "err");
+    if(dbg) dbg.textContent = "❌ " + msg;
+    $("btn-cam").style.display = "inline-flex";
+    $("btn-stop").style.display = "none";
     showManualSubmitBox();
   });
 }
 
-function stopScan(){
+function stopScan() {
   clearManualRevealTimer();
-  if (scanner){
-    try{scanner.stop().then(()=>{try{scanner.clear();}catch(e){}scanner=null;}).catch(()=>{scanner=null;});}
-    catch(e){scanner=null;}
+  if (scanner) {
+    const _sc = scanner;
+    scanner = null;
+    try { _sc.stop().catch(()=>{}); } catch(e) {}
   }
-  $("btn-cam").style.display="inline-flex";$("btn-stop").style.display="none";
-  const dbg=$("scan-debug");if(dbg)dbg.style.display="none";
+  $("btn-cam").style.display = "inline-flex";
+  $("btn-stop").style.display = "none";
+  const dbg = $("scan-debug");
+  if (dbg) dbg.style.display = "none";
 }
 
 // ══════════════════════════════════════════════════
