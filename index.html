@@ -329,7 +329,8 @@ code{font-family:var(--mono);font-size:.81rem;color:var(--ind);background:rgba(6
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes pop-in{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
 .success-check{text-align:center;animation:pop-in .4s cubic-bezier(.175,.885,.32,1.275)}
-#qr-reader{width:100%;max-width:360px;margin:0 auto;border-radius:12px;overflow:hidden;border:1.5px solid var(--bdr)}
+#qr-reader-wrap{width:100%;max-width:380px;margin:0 auto;display:none;margin-bottom:10px}
+#qr-reader{width:100%;border-radius:10px}
 .leaflet-popup-content-wrapper{border-radius:12px!important;box-shadow:0 8px 24px rgba(15,23,41,.15)!important;border:1px solid var(--bdr)!important}
 .pop-title{font-weight:800;color:var(--ind);font-size:.84rem;margin-bottom:4px}
 .leaflet-popup-content{font-size:.81rem;line-height:1.55;color:var(--txt2)}
@@ -683,7 +684,9 @@ code{font-family:var(--mono);font-size:.81rem;color:var(--ind);background:rgba(6
             <!-- Debug info area -->
             <div id="scan-debug" style="display:none;background:var(--bg);border:1px solid var(--bdr);border-radius:8px;padding:10px;margin-bottom:10px;font-family:var(--mono);font-size:.75rem;color:var(--txt3)"></div>
 
-            <div id="qr-reader"></div>
+            <div id="qr-reader-wrap" style="display:none">
+              <div id="qr-reader"></div>
+            </div>
             <div class="alert" id="cin-alert"></div>
 
             <!-- ════════════════════════════════════════════
@@ -1656,144 +1659,184 @@ async function doManualScanSubmit() {
 function startScan() {
   if (!gateVerified && !gateSkipped) {
     showAlert("cin-alert","⚠️ Selesaikan verifikasi gerak atau klik 'Lewati →' terlebih dahulu!","err");
-    const gc=$("accel-gate-card");if(gc)gc.scrollIntoView({behavior:"smooth",block:"start"});
+    const gc=$("accel-gate-card");
+    if(gc) gc.scrollIntoView({behavior:"smooth",block:"start"});
     return;
   }
-  // Hentikan scanner lama jika ada (fire-and-forget), lalu langsung mulai baru
+  // Jika scanner sedang jalan, stop dulu lalu tunggu sebelum restart
   if (scanner) {
-    const _sc = scanner;
-    scanner = null;
-    try { _sc.stop().catch(()=>{}); } catch(e) {}
-    // Tunggu sebentar agar resource kamera dilepas sebelum buka ulang
-    setTimeout(_doStartScan, 400);
+    stopScan();
+    setTimeout(startScan, 600);
     return;
   }
   _doStartScan();
 }
 
 function _doStartScan() {
-  $("btn-cam").style.display="none";
-  $("btn-stop").style.display="inline-flex";
+  $("btn-cam").style.display = "none";
+  $("btn-stop").style.display = "inline-flex";
 
-  // Hapus & rebuild elemen qr-reader — Html5Qrcode butuh div bersih setiap inisialisasi
-  const container=$("qr-reader").parentNode;
-  const oldReader=$("qr-reader");
-  oldReader.remove();
-  const newReader=document.createElement("div");
-  newReader.id="qr-reader";
-  newReader.style.cssText="width:100%;max-width:360px;margin:0 auto;border-radius:12px;overflow:hidden;border:1.5px solid var(--bdr)";
-  container.insertBefore(newReader, $("cin-alert"));
+  // Tampilkan wrapper, kosongkan isi div
+  const wrap = $("qr-reader-wrap");
+  const readerDiv = $("qr-reader");
+  if (wrap) wrap.style.display = "block";
+  // Bersihkan sisa render Html5Qrcode sebelumnya
+  readerDiv.innerHTML = "";
 
-  const dbg=$("scan-debug");
-  if(dbg){dbg.style.display="block";dbg.textContent="🎥 Memulai kamera...";}
-  showAlert("cin-alert","📷 Kamera aktif — arahkan ke QR Code dosen","info");
+  const dbg = $("scan-debug");
+  if (dbg) { dbg.style.display="block"; dbg.textContent="🎥 Memulai kamera..."; }
+  $("cin-alert").className = "alert"; // sembunyikan alert lama
+
   startManualRevealTimer();
 
-  // Flag untuk mencegah callback sukses diproses lebih dari sekali
+  // Gunakan Html5Qrcode (bukan Scanner) — lebih kontrol
+  // PENTING: buat instance baru setiap kali, jangan reuse
+  try {
+    scanner = new Html5Qrcode("qr-reader", {
+      verbose: false   // set true untuk debug di console
+    });
+  } catch(e) {
+    _onCamError("Gagal inisialisasi: " + e);
+    return;
+  }
+
+  // Config: TANPA aspectRatio — ini yang sering bikin gagal di HP tertentu
+  const config = {
+    fps: 10,
+    qrbox: { width: 250, height: 250 },
+    rememberLastUsedCamera: true,
+  };
+
   let qrHandled = false;
 
-  scanner = new Html5Qrcode("qr-reader");
-  scanner.start(
-    {facingMode:"environment"},
-    {fps:10, qrbox:{width:240,height:240}, aspectRatio:1.0},
-
-    // ── SUKSES: QR terbaca ────────────────────────────────────
-    (text) => {
-      if (qrHandled) return;   // Abaikan deteksi ganda
-      qrHandled = true;
-
-      console.log("[QR] Raw:", text);
-      clearManualRevealTimer();
-
-      // Hentikan scanner langsung (fire-and-forget, JANGAN tunggu promise)
-      // supaya tidak ada race condition sebelum modal dibuka
-      const _sc = scanner;
-      scanner = null;
-      try { _sc.stop().catch(()=>{}); } catch(e){}
-      $("btn-cam").style.display="inline-flex";
-      $("btn-stop").style.display="none";
-      if(dbg) { dbg.textContent="✅ QR terdeteksi — memproses..."; }
-
-      // Parse payload QR
-      let qrData = null;
-      try {
-        const p = JSON.parse(text);
-        if (p.qr_token && p.course_id && p.session_id) {
-          qrData = p;
-        } else if (p.qr_token || p.token) {
-          qrData = {
-            qr_token  : p.qr_token || p.token,
-            course_id : p.course_id || p.courseId || "",
-            session_id: p.session_id || p.sessionId || ""
-          };
-        }
-      } catch(e) {
-        // Bukan JSON — coba sebagai plain token
-        const trimmed = text.trim().toUpperCase();
-        if (trimmed.startsWith("TKN-")) {
-          if ($("msb-token")) $("msb-token").value = trimmed;
-          showAlert("cin-alert","⚠️ QR hanya berisi token. Isi Course ID & Session ID di bawah lalu Submit.","warn");
-          if(dbg) dbg.textContent = "Token plain: "+trimmed+" — isi form manual";
-          showManualSubmitBox();
-          return;
-        }
-      }
-
-      if (qrData && qrData.qr_token && qrData.course_id && qrData.session_id) {
-        if(dbg) dbg.textContent = "✅ Data valid — membuka konfirmasi...";
-        // Buka modal setelah 150ms agar UI scanner sempat bersih
-        setTimeout(() => openCheckinModal(qrData), 150);
-      } else {
-        showAlert("cin-alert","❌ Format QR tidak dikenali. Gunakan input manual di bawah.","err");
-        if(dbg) dbg.textContent = "❌ QR tidak valid | Raw: "+text.substring(0,80);
-        showManualSubmitBox();
-      }
-    },
-
-    // ── ERROR SCANNING: abaikan "No QR found" yang normal ───────
-    (errMsg) => {
-      if (!errMsg.includes("No MultiFormat") &&
-          !errMsg.includes("No QR") &&
-          !errMsg.includes("NotFoundException")) {
-        console.warn("[QR scan err]", errMsg);
-      }
-    }
-  )
-  .then(() => {
-    if(dbg) dbg.textContent = "🎥 Kamera aktif — arahkan ke QR Code dosen";
-  })
-  .catch(e => {
-    clearManualRevealTimer();
+  function onScanSuccess(text) {
+    if (qrHandled) return;
     qrHandled = true;
+    clearManualRevealTimer();
+
+    if (dbg) dbg.textContent = "✅ QR terdeteksi! Memproses...";
+    console.log("[QR detected]", text);
+
+    // Stop scanner (fire-and-forget)
+    _stopScannerInstance(scanner);
     scanner = null;
-    console.error("[Camera]", e);
-    let msg = "Kamera tidak dapat dibuka.";
-    const es = String(e);
-    if (es.includes("NotAllowed") || es.includes("Permission"))
-      msg = "Izin kamera ditolak. Buka Pengaturan → Izin Situs → Kamera, lalu muat ulang halaman.";
-    else if (es.includes("NotFound"))
-      msg = "Tidak ada kamera yang ditemukan di perangkat ini.";
-    else if (es.includes("NotReadable") || es.includes("Busy"))
-      msg = "Kamera sedang digunakan aplikasi lain. Tutup tab/aplikasi lain dan coba lagi.";
-    else if (es.includes("NotSupported") || es.includes("https"))
-      msg = "Browser membutuhkan koneksi HTTPS untuk mengakses kamera.";
-    showAlert("cin-alert", msg, "err");
-    if(dbg) dbg.textContent = "❌ " + msg;
     $("btn-cam").style.display = "inline-flex";
     $("btn-stop").style.display = "none";
-    showManualSubmitBox();
+    if (wrap) wrap.style.display = "none";
+
+    // Parse
+    let qrData = null;
+    const textTrim = text.trim();
+    try {
+      const p = JSON.parse(textTrim);
+      if (p.qr_token && p.course_id && p.session_id) {
+        qrData = p;
+      } else if (p.qr_token || p.token) {
+        qrData = {
+          qr_token  : p.qr_token || p.token,
+          course_id : p.course_id || p.courseId || "",
+          session_id: p.session_id || p.sessionId || ""
+        };
+      }
+    } catch(e) {
+      const up = textTrim.toUpperCase();
+      if (up.startsWith("TKN-")) {
+        if ($("msb-token")) $("msb-token").value = up;
+        showAlert("cin-alert","⚠️ QR hanya berisi token. Lengkapi Course ID & Session ID di bawah.","warn");
+        if (dbg) dbg.textContent = "Token saja: " + up;
+        showManualSubmitBox();
+        return;
+      }
+      // QR tidak dikenali sama sekali
+      showAlert("cin-alert","❌ QR tidak dikenali. Gunakan input manual.","err");
+      if (dbg) dbg.textContent = "❌ Parse gagal: " + textTrim.substring(0,60);
+      showManualSubmitBox();
+      return;
+    }
+
+    if (qrData && qrData.qr_token && qrData.course_id && qrData.session_id) {
+      if (dbg) dbg.textContent = "✅ Membuka konfirmasi absen...";
+      setTimeout(() => openCheckinModal(qrData), 200);
+    } else {
+      showAlert("cin-alert","❌ QR kurang lengkap — isi manual di bawah.","err");
+      if (dbg) dbg.textContent = "❌ Data tidak lengkap: " + JSON.stringify(qrData);
+      showManualSubmitBox();
+    }
+  }
+
+  function onScanError(err) {
+    // "No QR" adalah normal — jangan tampilkan
+    // Hanya log error yang benar-benar tidak biasa
+    if (typeof err === "string" &&
+        (err.includes("NotFoundException") ||
+         err.includes("No MultiFormat") ||
+         err.includes("No QR"))) return;
+    // Error lain (misal kamera terputus di tengah) — log saja
+    console.warn("[scan-err]", err);
+  }
+
+  scanner.start(
+    { facingMode: "environment" },
+    config,
+    onScanSuccess,
+    onScanError
+  )
+  .then(() => {
+    if (dbg) dbg.textContent = "🟢 Kamera aktif — arahkan ke QR Code dosen";
+    showAlert("cin-alert","📷 Kamera aktif — arahkan ke QR Code","info");
+  })
+  .catch(err => {
+    qrHandled = true;
+    _stopScannerInstance(scanner);
+    scanner = null;
+    _onCamError(err);
   });
+}
+
+// Helper: stop scanner tanpa crash
+function _stopScannerInstance(sc) {
+  if (!sc) return;
+  try { sc.stop().catch(()=>{}); } catch(e) {}
+}
+
+// Helper: tampilkan error kamera
+function _onCamError(err) {
+  clearManualRevealTimer();
+  console.error("[Camera error]", err);
+  const wrap = $("qr-reader-wrap");
+  if (wrap) wrap.style.display = "none";
+  $("btn-cam").style.display = "inline-flex";
+  $("btn-stop").style.display = "none";
+
+  const es = String(err);
+  let msg = "Kamera gagal dibuka.";
+  if (es.includes("NotAllowed") || es.includes("Permission") || es.includes("denied"))
+    msg = "❌ Izin kamera ditolak. Tap ikon kunci di address bar → izinkan Kamera → muat ulang.";
+  else if (es.includes("NotFound") || es.includes("Requested device not found"))
+    msg = "❌ Tidak ada kamera di perangkat ini.";
+  else if (es.includes("NotReadable") || es.includes("Could not start"))
+    msg = "❌ Kamera dipakai aplikasi lain. Tutup app kamera / tab lain lalu coba lagi.";
+  else if (es.includes("OverconstrainedError") || es.includes("Overconstrained"))
+    msg = "❌ Resolusi/mode kamera tidak didukung. Coba browser lain.";
+  else if (es.includes("https") || es.includes("secure"))
+    msg = "❌ Butuh HTTPS untuk akses kamera. Buka via https:// bukan http://.";
+  else
+    msg = "❌ Error kamera: " + es.substring(0, 100);
+
+  showAlert("cin-alert", msg, "err");
+  const dbg = $("scan-debug");
+  if (dbg) { dbg.style.display="block"; dbg.textContent = msg; }
+  showManualSubmitBox();
 }
 
 function stopScan() {
   clearManualRevealTimer();
-  if (scanner) {
-    const _sc = scanner;
-    scanner = null;
-    try { _sc.stop().catch(()=>{}); } catch(e) {}
-  }
+  _stopScannerInstance(scanner);
+  scanner = null;
   $("btn-cam").style.display = "inline-flex";
   $("btn-stop").style.display = "none";
+  const wrap = $("qr-reader-wrap");
+  if (wrap) wrap.style.display = "none";
   const dbg = $("scan-debug");
   if (dbg) dbg.style.display = "none";
 }
