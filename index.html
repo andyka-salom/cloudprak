@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>PresensiQR — Sistem Absen Cloud</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -230,10 +230,8 @@ tbody tr:hover{background:var(--bg)}
 .agv-bars{display:flex;flex-direction:column;gap:6px;flex:1}
 .agv-bar-wrap{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:.65rem;font-weight:700;color:var(--txt3)}
 .agv-bar{height:8px;width:10px;border-radius:4px;transition:width .15s;min-width:8px;max-width:180px}
-.accel-verified{background:linear-gradient(135deg,rgba(6,214,160,.08),rgba(67,97,238,.05));border:1.5px solid rgba(6,214,160,.3);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px;margin-bottom:12px}
-.scan-unlocked{opacity:1!important;pointer-events:auto!important;transition:opacity .4s}
 
-/* ACCEL DISPLAY — 3-column grid */
+/* ACCEL DISPLAY */
 .accel-display{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
 .accel-axis{background:var(--bg);border:1px solid var(--bdr);border-radius:10px;padding:14px;text-align:center;position:relative;overflow:hidden}
 .accel-axis::after{content:"";position:absolute;bottom:0;left:0;right:0;height:3px}
@@ -266,14 +264,16 @@ code{font-family:var(--mono);font-size:.81rem;color:var(--ind);background:rgba(6
 .pop-title{font-weight:800;color:var(--ind);font-size:.84rem;margin-bottom:4px}
 .leaflet-popup-content{font-size:.81rem;line-height:1.55;color:var(--txt2)}
 .gps-saved-tag{display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(6,214,160,.08);border:1px solid rgba(6,214,160,.25);border-radius:8px;margin-top:10px;font-size:.8rem;color:var(--grn2);font-weight:600}
-
-/* Accel live badge */
 .live-badge{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:.68rem;padding:3px 10px;border-radius:20px}
 .lb-on{background:rgba(6,214,160,.12);color:var(--grn2);border:1px solid rgba(6,214,160,.3)}
 .lb-off{background:var(--bg2);color:var(--txt3);border:1px solid var(--bdr)}
 .lb-dot{width:6px;height:6px;border-radius:50%}
 .lb-on .lb-dot{background:var(--grn);animation:pulse-g 1.2s infinite}
 .lb-off .lb-dot{background:var(--txt4)}
+
+/* FIX v3.2: scan card locked state */
+.scan-card-locked{opacity:.5;pointer-events:none;transition:opacity .4s,pointer-events .4s}
+.scan-card-unlocked{opacity:1;pointer-events:auto;transition:opacity .4s}
 
 @media(max-width:700px){
   .layout{grid-template-columns:1fr}
@@ -296,7 +296,7 @@ code{font-family:var(--mono);font-size:.81rem;color:var(--ind);background:rgba(6
     <div class="nav-logo">🎓</div>
     <div>
       <div class="nav-title">Presensi<span>QR</span></div>
-      <div class="nav-sub">Cloud Computing / Versi A</div>
+      <div class="nav-sub">Cloud Computing / v3.2</div>
     </div>
   </div>
   <div class="nav-r" id="nav-user" style="display:none">
@@ -306,7 +306,7 @@ code{font-family:var(--mono);font-size:.81rem;color:var(--ind);background:rgba(6
   </div>
 </nav>
 
-<!-- ════ PAGE AUTH ════ -->
+<!-- PAGE AUTH -->
 <div class="page active" id="page-auth">
   <div class="wrap auth-wrap">
     <div class="auth-hero">
@@ -345,7 +345,7 @@ code{font-family:var(--mono);font-size:.81rem;color:var(--ind);background:rgba(6
   </div>
 </div>
 
-<!-- ════ PAGE APP ════ -->
+<!-- PAGE APP -->
 <div class="page" id="page-app">
   <div class="wrap">
     <div class="layout">
@@ -541,13 +541,13 @@ code{font-family:var(--mono);font-size:.81rem;color:var(--ind);background:rgba(6
               <span class="card-badge" id="accel-gate-badge">BELUM TERVERIFIKASI</span>
             </div>
             <p class="mut" style="margin-bottom:14px">
-              Goyangkan handphone Anda minimal <strong>5 detik</strong> untuk membuktikan Anda hadir dan membawa perangkat sendiri.
+              Goyangkan handphone minimal <strong>5 detik</strong> untuk membuktikan Anda hadir membawa perangkat sendiri.
             </p>
             <div class="accel-gate-viz" id="accel-gate-viz">
               <div class="agv-ring" id="agv-ring">
                 <div class="agv-inner">
                   <div class="agv-icon" id="agv-icon">📱</div>
-                  <div class="agv-label" id="agv-label">Tekan Mulai</div>
+                  <div style="font-size:.65rem;color:var(--txt3);font-weight:700;margin-top:4px" id="agv-label">Tekan Mulai</div>
                 </div>
               </div>
               <div class="agv-bars">
@@ -574,7 +574,7 @@ code{font-family:var(--mono);font-size:.81rem;color:var(--ind);background:rgba(6
           </div>
 
           <!-- STEP 2: SCAN QR -->
-          <div class="card" id="scan-qr-card" style="opacity:.5;pointer-events:none">
+          <div class="card scan-card-locked" id="scan-qr-card">
             <div class="card-hd">
               <h2><div class="hd-icon">📷</div>Langkah 2 — Scan QR Absen</h2>
               <span class="card-badge" style="background:rgba(139,145,171,.1);color:var(--txt3);border-color:var(--bdr)" id="scan-lock-badge">🔒 TERKUNCI</span>
@@ -659,8 +659,6 @@ code{font-family:var(--mono);font-size:.81rem;color:var(--ind);background:rgba(6
               <span id="ac-live-badge" class="live-badge lb-off"><span class="lb-dot"></span>OFF</span>
             </div>
             <p class="mut" style="margin-bottom:14px">Pantau data sensor accelerometer secara realtime dari perangkat Anda.</p>
-
-            <!-- Controls -->
             <div class="row2" style="align-items:flex-end;margin-bottom:14px">
               <div class="fg" style="margin:0"><label>Device ID</label><input id="ac-dev" value="web-browser-01"></div>
               <div style="display:flex;gap:8px">
@@ -668,8 +666,6 @@ code{font-family:var(--mono);font-size:.81rem;color:var(--ind);background:rgba(6
                 <button class="btn btn-red" id="btn-ac-stop" style="display:none" onclick="stopAccel()">⏹ Stop</button>
               </div>
             </div>
-
-            <!-- 3-axis display -->
             <div class="accel-display">
               <div class="accel-axis ax-x">
                 <div class="axis-label">X-Axis</div>
@@ -687,8 +683,6 @@ code{font-family:var(--mono);font-size:.81rem;color:var(--ind);background:rgba(6
                 <div class="axis-unit">m/s²</div>
               </div>
             </div>
-
-            <!-- Magnitude & status -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
               <div style="background:var(--bg);border:1px solid var(--bdr);border-radius:10px;padding:12px;text-align:center">
                 <div class="axis-label">Magnitude</div>
@@ -701,19 +695,14 @@ code{font-family:var(--mono);font-size:.81rem;color:var(--ind);background:rgba(6
                 <div class="axis-unit">sensor</div>
               </div>
             </div>
-
-            <!-- Mini live chart -->
             <div class="accel-chart-wrap">
               <div class="accel-chart-title">📊 Graf Realtime (50 titik terakhir)</div>
               <canvas id="accel-canvas" height="120"></canvas>
             </div>
-
             <p style="font-size:.75rem;color:var(--txt3);margin-bottom:10px;text-align:center">
               📱 Buka via HTTPS atau localhost agar sensor HP dapat diakses browser
             </p>
             <div class="alert" id="ac-alert"></div>
-
-            <!-- Kirim ke server -->
             <hr class="divider">
             <p style="font-size:.88rem;font-weight:700;margin-bottom:10px;color:var(--txt2)">☁️ Kirim & Ambil Data Server</p>
             <div class="row2" style="align-items:flex-end">
@@ -773,7 +762,7 @@ code{font-family:var(--mono);font-size:.81rem;color:var(--ind);background:rgba(6
   </div><!-- /wrap -->
 </div><!-- /page-app -->
 
-<!-- ════ MODAL AUTO CHECKIN ════ -->
+<!-- MODAL AUTO CHECKIN -->
 <div class="modal-overlay" id="modal-checkin">
   <div class="modal">
     <div id="modal-state-gps">
@@ -787,10 +776,10 @@ code{font-family:var(--mono);font-size:.81rem;color:var(--ind);background:rgba(6
         <span id="modal-gps-txt" style="font-size:.82rem;color:var(--txt2)">Mendeteksi lokasi GPS…</span>
       </div>
       <div style="display:flex;gap:10px">
-        <button class="btn btn-primary" style="flex:1" id="btn-modal-checkin" onclick="confirmCheckin()"><span class="cins"></span>✅ Absen Sekarang</button>
+        <button class="btn btn-primary" style="flex:1" id="btn-modal-checkin" onclick="confirmCheckin()" disabled><span class="cins"></span>✅ Absen Sekarang</button>
         <button class="btn btn-outline" style="padding:10px 14px" onclick="closeModal()">✕</button>
       </div>
-      <p class="mut" style="font-size:.74rem;text-align:center;margin-top:8px">GPS <strong>wajib</strong> — disimpan otomatis ke server</p>
+      <p class="mut" style="font-size:.74rem;text-align:center;margin-top:8px">GPS otomatis disimpan ke server jika tersedia</p>
     </div>
     <div id="modal-state-ok" style="display:none">
       <div class="modal-strip ms-grn"></div>
@@ -815,14 +804,14 @@ code{font-family:var(--mono);font-size:.81rem;color:var(--ind);background:rgba(6
 </div>
 
 <script>
-// ════════════════════════════════════════════
-//  CONFIG
-// ════════════════════════════════════════════
-const BASE_URL = "https://script.google.com/macros/s/AKfycbx85Sb45S4bQ4b_NQVxdizFIWJdah8A-Rqs8nrasFN_6PvLW7lcu7gqzDlSaVzpEC4mjw/exec";
+// ══════════════════════════════════════════════════
+//  CONFIG — ganti URL GAS sesuai deployment Anda
+// ══════════════════════════════════════════════════
+const BASE_URL = "https://script.google.com/macros/s/AKfycby0KkmVu9fEFgOZdh5iwLM_B-AIHW3z1TzgnBXwL0a3AyO4O5u1tBIQG7KQdAvrbNozVw/exec";
 
-// ════════════════════════════════════════════
-//  QR CANVAS RENDERER (custom, no library)
-// ════════════════════════════════════════════
+// ══════════════════════════════════════════════════
+//  QR CANVAS RENDERER (no library required)
+// ══════════════════════════════════════════════════
 function renderQRCanvas(container, text, size) {
   size = size || 228;
   if (!text || typeof text !== "string") text = "QR-ERROR";
@@ -914,86 +903,128 @@ function renderQRCanvas(container, text, size) {
   container.appendChild(canvas);
 }
 
-// ════════════════════════════════════════════
-//  GLOBALS
-// ════════════════════════════════════════════
-let S = {}, qrTimer = null, scanner = null;
+// ══════════════════════════════════════════════════
+//  GLOBAL STATE
+// ══════════════════════════════════════════════════
+let S = {};
+let qrTimer = null;
+let scanner = null;
 let accelTimer = null, accelActive = false, accelBatch = [];
-let accelHistory = { x:[], y:[], z:[], mag:[] }; // for mini chart
+let accelHistory = { x:[], y:[], z:[], mag:[] };
 const ACCEL_MAX_PTS = 50;
-let gpsWatcher = null, pendingCheckin = null, pendingGps = null, gpsTimeoutId = null;
+let gpsWatcher = null;
+let pendingCheckin = null, pendingGps = null, gpsTimeoutId = null;
 let gateActive = false, gateVerified = false, gateTimer = null;
 let gateAccumMove = 0, gateLastX = null, gateLastY = null, gateLastZ = null;
 let gateSamples = [], gateMotionHandler = null;
 const GATE_NEEDED = 5.0;
-const MAPS = {}, TILE = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+const MAPS = {};
+let accelMotionHandler = null, accelSimTimer = null, accelCanvasCtx = null;
+let manLat = null, manLng = null, manMapVis = false, manMark = null;
+let gpsMarker = null, gpsCircle = null, gpsPts = [], gpsPoly = null, histLayer = null;
+let recapLayer = null, mhsLayer = null;
+
+const TILE = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 const ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>';
 const DEF_C = [-7.2575, 112.7521];
+const QR_TOTAL = 120;
 
-function mkIcon(c,s=28){return L.divIcon({className:"",html:`<div style="background:${c};width:${s}px;height:${s}px;border-radius:50%;border:3px solid #fff;box-shadow:0 3px 12px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;font-size:${s*.36}px">📍</div>`,iconSize:[s,s],iconAnchor:[s/2,s/2],popupAnchor:[0,-s/2]})}
-function mkDot(c){return L.divIcon({className:"",html:`<div style="background:${c};width:9px;height:9px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.2)"></div>`,iconSize:[9,9],iconAnchor:[4,4]})}
-const IC_IND=mkIcon("#4361ee"),IC_GRN=mkIcon("#06d6a0",26),IC_RED=mkIcon("#ef233c",26),IC_PUR=mkIcon("#7b2d8b");
+function mkIcon(c, s=28) {
+  return L.divIcon({
+    className:"",
+    html:`<div style="background:${c};width:${s}px;height:${s}px;border-radius:50%;border:3px solid #fff;box-shadow:0 3px 12px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;font-size:${s*.36}px">📍</div>`,
+    iconSize:[s,s],iconAnchor:[s/2,s/2],popupAnchor:[0,-s/2]
+  });
+}
+function mkDot(c) {
+  return L.divIcon({
+    className:"",
+    html:`<div style="background:${c};width:9px;height:9px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.2)"></div>`,
+    iconSize:[9,9],iconAnchor:[4,4]
+  });
+}
+const IC_IND = mkIcon("#4361ee");
+const IC_GRN = mkIcon("#06d6a0", 26);
+const IC_RED = mkIcon("#ef233c", 26);
+const IC_PUR = mkIcon("#7b2d8b");
 
-// ════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 //  SIDEBAR MENUS
-// ════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 const MENUS = {
   admin:[
     {icon:"🏠",lbl:"Dashboard",panel:"dash"},
-    {sep:"Admin"},{icon:"👤",lbl:"Kelola User",panel:"admin-users",fn:loadUserList},
-    {sep:"Akademik"},{icon:"⚙️",lbl:"Setup Kelas",panel:"setup",fn:loadSetup},
+    {sep:"Admin"},
+    {icon:"👤",lbl:"Kelola User",panel:"admin-users",fn:loadUserList},
+    {sep:"Akademik"},
+    {icon:"⚙️",lbl:"Setup Kelas",panel:"setup",fn:loadSetup},
     {icon:"🔲",lbl:"Generate QR",panel:"qr",fn:loadQrCourses},
     {icon:"📋",lbl:"Rekap Absen",panel:"history-all",fn:loadHaCourses},
-    {sep:"Sensor"},{icon:"📈",lbl:"Accelerometer",panel:"accel"},
+    {sep:"Sensor"},
+    {icon:"📈",lbl:"Accelerometer",panel:"accel"},
     {icon:"🗺️",lbl:"GPS Tracking",panel:"gps",fn:initGpsPanel}
   ],
   dosen:[
     {icon:"🏠",lbl:"Dashboard",panel:"dash"},
-    {sep:"Akademik"},{icon:"⚙️",lbl:"Setup Kelas",panel:"setup",fn:loadSetup},
+    {sep:"Akademik"},
+    {icon:"⚙️",lbl:"Setup Kelas",panel:"setup",fn:loadSetup},
     {icon:"🔲",lbl:"Generate QR",panel:"qr",fn:loadQrCourses},
     {icon:"📋",lbl:"Rekap Absen",panel:"history-all",fn:loadHaCourses},
-    {sep:"Sensor"},{icon:"📈",lbl:"Accelerometer",panel:"accel"},
+    {sep:"Sensor"},
+    {icon:"📈",lbl:"Accelerometer",panel:"accel"},
     {icon:"🗺️",lbl:"GPS Tracking",panel:"gps",fn:initGpsPanel}
   ],
   mahasiswa:[
     {icon:"🏠",lbl:"Dashboard",panel:"dash"},
-    {sep:"Presensi"},{icon:"📷",lbl:"Scan QR",panel:"scan"},
+    {sep:"Presensi"},
+    {icon:"📷",lbl:"Scan QR",panel:"scan"},
     {icon:"⌨️",lbl:"Token Manual",panel:"manual",fn:loadMhsCourses},
     {icon:"📋",lbl:"History Saya",panel:"history-mhs",fn:loadMhsCourses},
-    {sep:"Sensor"},{icon:"📈",lbl:"Accelerometer",panel:"accel"},
+    {sep:"Sensor"},
+    {icon:"📈",lbl:"Accelerometer",panel:"accel"},
     {icon:"🗺️",lbl:"GPS Tracking",panel:"gps",fn:initGpsPanel}
   ]
 };
 
-// ════════════════════════════════════════════
-//  API
-// ════════════════════════════════════════════
+// ══════════════════════════════════════════════════
+//  API — FIX: robust POST+GET fallback dengan auth_token
+// ══════════════════════════════════════════════════
 async function api(path, data = {}) {
   const body = { path, ...data };
   if (S.token) body.auth_token = S.token;
+
+  // Coba POST dulu
   try {
     const r = await fetch(BASE_URL, {
       method: "POST",
       body: JSON.stringify(body),
-      headers: { "Content-Type": "text/plain" }
+      headers: { "Content-Type": "text/plain;charset=UTF-8" }
     });
+    if (!r.ok) throw new Error("HTTP " + r.status);
     const txt = await r.text();
-    return JSON.parse(txt);
+    const parsed = JSON.parse(txt);
+    return parsed;
   } catch(e1) {
+    // Fallback GET — seluruh body (termasuk auth_token) di-encode
     try {
       const encoded = encodeURIComponent(JSON.stringify(body));
-      const url = BASE_URL + "?body=" + encoded + "&path=" + encodeURIComponent(path);
+      const url = BASE_URL + "?body=" + encoded;
       const r2 = await fetch(url, { mode: "cors" });
-      return JSON.parse(await r2.text());
+      const txt2 = await r2.text();
+      return JSON.parse(txt2);
     } catch(e2) {
-      return { ok: false, error: "Koneksi gagal. Pastikan deploy GAS sudah 'Anyone'. Error: " + e1.message };
+      console.error("[API] POST error:", e1.message, "| GET error:", e2.message);
+      return {
+        ok: false,
+        error: "Koneksi gagal. Pastikan: (1) GAS sudah deploy 'Anyone', (2) URL benar. Detail: " + e1.message
+      };
     }
   }
 }
 
-// ════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 //  HELPERS
-// ════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 const $ = id => document.getElementById(id);
 const _v = id => $(id) ? $(id).value.trim() : "";
 
@@ -1019,9 +1050,9 @@ function fmtTime(ts) {
   catch { return ts; }
 }
 
-// ════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 //  AUTH
-// ════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 function authTab(t) {
   $("auth-login").style.display = t === "login" ? "block" : "none";
   $("auth-reg").style.display   = t === "reg"   ? "block" : "none";
@@ -1062,8 +1093,8 @@ function afterLogin() {
   $("nav-user").style.display = "flex";
   $("nav-name").textContent   = S.name;
   const chip = $("nav-chip");
-  chip.textContent  = S.role === "admin" ? "Admin" : S.role === "dosen" ? "Dosen" : "Mahasiswa";
-  chip.className    = "role-pill rp-" + S.role;
+  chip.textContent = S.role === "admin" ? "Admin" : S.role === "dosen" ? "Dosen" : "Mahasiswa";
+  chip.className   = "role-pill rp-" + S.role;
   buildSidebar();
   showPage("page-app");
   showPanel("dash");
@@ -1077,30 +1108,26 @@ function logout() {
   stopScan();
   stopAccel();
   stopGPS();
+  if (qrTimer) { clearInterval(qrTimer); qrTimer = null; }
   Object.values(MAPS).forEach(m => { try { m.remove(); } catch(e){} });
   for (const k in MAPS) delete MAPS[k];
   showPage("page-auth");
 }
 
-// ════════════════════════════════════════════
-//  SESSION RESTORE — hanya sekali
-// ════════════════════════════════════════════
+// Session restore
 (function initApp() {
   try {
     const s = sessionStorage.getItem("ps");
     if (s) {
       const parsed = JSON.parse(s);
-      if (parsed && parsed.token) {
-        S = parsed;
-        afterLogin();
-      }
+      if (parsed && parsed.token) { S = parsed; afterLogin(); }
     }
-  } catch(e) {}
+  } catch(e) { console.warn("Session restore failed:", e); }
 })();
 
-// ════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 //  PAGE & PANEL
-// ════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 function showPage(id) {
   document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
   $(id).classList.add("active");
@@ -1145,16 +1172,16 @@ function buildDash() {
     : `<div class="stat s-grn"><div class="stat-n">—</div><div class="stat-l">Matkul</div></div><div class="stat s-ind"><div class="stat-n">—</div><div class="stat-l">Sesi</div></div><div class="stat s-amb"><div class="stat-n">—</div><div class="stat-l">Mahasiswa</div></div>`;
 }
 
-// ════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 //  ADMIN
-// ════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 async function doAddUser() {
   const name=_v("au-name"),email=_v("au-email"),password=_v("au-pw"),role=$("au-role").value,nim=_v("au-nim");
-  if(!name||!email||!password||!role)return showAlert("au-alert","Semua field wajib.");
+  if(!name||!email||!password||!role) return showAlert("au-alert","Semua field wajib.");
   setSpin("aus",true);
-  const r=await api("admin/add-user",{name,email,password,role,nim});
+  const r = await api("admin/add-user",{name,email,password,role,nim});
   setSpin("aus",false);
-  if(!r.ok)return showAlert("au-alert",r.error);
+  if(!r.ok) return showAlert("au-alert",r.error);
   showAlert("au-alert",`✅ ${r.data.name} (${r.data.role}) ditambahkan.`,"ok");
   ["au-name","au-email","au-pw","au-nim"].forEach(id=>$(id)&&($(id).value=""));
   $("au-role").value="";
@@ -1163,28 +1190,35 @@ async function doAddUser() {
 
 async function doResetPw() {
   const te=_v("rp-email"),np=_v("rp-pw");
-  if(!te||!np)return showAlert("rp-alert","Isi email dan password baru.");
+  if(!te||!np) return showAlert("rp-alert","Isi email dan password baru.");
   setSpin("rps",true);
-  const r=await api("admin/reset-password",{target_email:te,new_password:np});
+  const r = await api("admin/reset-password",{target_email:te,new_password:np});
   setSpin("rps",false);
-  if(!r.ok)return showAlert("rp-alert",r.error);
+  if(!r.ok) return showAlert("rp-alert",r.error);
   showAlert("rp-alert","✅ Password direset.","ok");
 }
 
 async function loadUserList() {
-  const role=$("ul-filter").value;
-  const r=await api("admin/list-users",role?{role}:{});
-  if(!r.ok)return;
-  const items=r.data.items||[];
-  const rc={admin:"b-adm",dosen:"b-dos",mahasiswa:"b-mhs"};
-  $("user-list-tbody").innerHTML=items.length===0
-    ?'<tr><td colspan="6" class="empty">Tidak ada user</td></tr>'
-    :items.map((u,i)=>`<tr><td>${i+1}</td><td><strong>${u.name}</strong></td><td style="font-size:.8rem;color:var(--txt2)">${u.email}</td><td><span class="badge ${rc[u.role]||""}">${u.role}</span></td><td><code>${u.nim||"-"}</code></td><td style="color:var(--txt3);font-size:.8rem">${fmtDt(u.created_at)}</td></tr>`).join("");
+  const role = $("ul-filter").value;
+  const r = await api("admin/list-users", role ? {role} : {});
+  if(!r.ok) return;
+  const items = r.data.items || [];
+  const rc = {admin:"b-adm",dosen:"b-dos",mahasiswa:"b-mhs"};
+  $("user-list-tbody").innerHTML = items.length === 0
+    ? '<tr><td colspan="6" class="empty">Tidak ada user</td></tr>'
+    : items.map((u,i) => `<tr>
+        <td>${i+1}</td>
+        <td><strong>${u.name}</strong></td>
+        <td style="font-size:.8rem;color:var(--txt2)">${u.email}</td>
+        <td><span class="badge ${rc[u.role]||""}">${u.role}</span></td>
+        <td><code>${u.nim||"-"}</code></td>
+        <td style="color:var(--txt3);font-size:.8rem">${fmtDt(u.created_at)}</td>
+      </tr>`).join("");
 }
 
-// ════════════════════════════════════════════
-//  COURSES — FIX: populate semua dropdown sekaligus
-// ════════════════════════════════════════════
+// ══════════════════════════════════════════════════
+//  COURSES
+// ══════════════════════════════════════════════════
 async function loadCourses() {
   const r = await api("courses");
   if (!r.ok) return [];
@@ -1202,9 +1236,7 @@ function populateCourseSelect(elId, items, placeholder = "— Pilih —") {
 
 async function loadSetup() {
   const items = await loadCourses();
-  // Populate dropdown di panel setup
   populateCourseSelect("ses-csel", items);
-  // Update table
   $("course-tbl").innerHTML = items.length === 0
     ? '<tr><td colspan="2" class="empty">Belum ada matkul</td></tr>'
     : items.map(c => `<tr><td><code>${c.course_id}</code></td><td><strong>${c.course_name}</strong></td></tr>`).join("");
@@ -1222,7 +1254,6 @@ async function loadHaCourses() {
   $("ha-ssel").innerHTML = '<option value="">— Pilih —</option>';
 }
 
-// FIX: mahasiswa juga bisa load courses (endpoint GET courses tersedia untuk semua role)
 async function loadMhsCourses() {
   const items = await loadCourses();
   populateCourseSelect("mh-csel", items, "— Pilih Mata Kuliah —");
@@ -1230,11 +1261,11 @@ async function loadMhsCourses() {
 
 async function doCreateCourse() {
   const cid=_v("ci-id"),cn=_v("ci-name");
-  if(!cid||!cn)return showAlert("cc-alert","Isi semua field.");
+  if(!cid||!cn) return showAlert("cc-alert","Isi semua field.");
   setSpin("ccs",true);
-  const r=await api("courses/create",{course_id:cid,course_name:cn});
+  const r = await api("courses/create",{course_id:cid,course_name:cn});
   setSpin("ccs",false);
-  if(!r.ok)return showAlert("cc-alert",r.error);
+  if(!r.ok) return showAlert("cc-alert",r.error);
   showAlert("cc-alert","✅ Mata kuliah dibuat!","ok");
   $("ci-id").value=$("ci-name").value="";
   loadSetup();
@@ -1242,22 +1273,22 @@ async function doCreateCourse() {
 
 async function doCreateSession() {
   const cid=$("ses-csel").value,date=_v("ses-date"),label=_v("ses-label");
-  if(!cid||!date||!label)return showAlert("cs-alert","Isi semua field.");
+  if(!cid||!date||!label) return showAlert("cs-alert","Isi semua field.");
   setSpin("css2",true);
-  const r=await api("sessions/create",{course_id:cid,date,label});
+  const r = await api("sessions/create",{course_id:cid,date,label});
   setSpin("css2",false);
-  if(!r.ok)return showAlert("cs-alert",r.error);
+  if(!r.ok) return showAlert("cs-alert",r.error);
   showAlert("cs-alert","✅ Sesi dibuat! ID: "+r.data.session_id,"ok");
   $("ses-date").value=$("ses-label").value="";
 }
 
-// ════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 //  QR SESSIONS
-// ════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 async function loadQrSessions() {
   const cid = $("qr-csel").value;
   if (!cid) return;
-  const r = await api("sessions", { course_id: cid });
+  const r = await api("sessions",{course_id:cid});
   const el = $("qr-ssel");
   el.innerHTML = '<option value="">— Pilih Sesi —</option>';
   if (r.ok) r.data.items.forEach(s =>
@@ -1268,7 +1299,7 @@ async function loadQrSessions() {
 async function loadHaSessions() {
   const cid = $("ha-csel").value;
   if (!cid) return;
-  const r = await api("sessions", { course_id: cid });
+  const r = await api("sessions",{course_id:cid});
   const el = $("ha-ssel");
   el.innerHTML = '<option value="">— Pilih Sesi —</option>';
   if (r.ok) r.data.items.forEach(s =>
@@ -1276,20 +1307,18 @@ async function loadHaSessions() {
   );
 }
 
-// ════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 //  GENERATE QR
-// ════════════════════════════════════════════
-const QR_TOTAL = 120;
-
+// ══════════════════════════════════════════════════
 async function doGenQR() {
   const cid = $("qr-csel").value, sid = $("qr-ssel").value;
-  if (!cid || !sid) return showAlert("gen-alert", "Pilih mata kuliah dan sesi.");
-  setSpin("gens", true);
-  const r = await api("presence/qr/generate", { course_id: cid, session_id: sid, ts: new Date().toISOString() });
-  setSpin("gens", false);
-  if (!r.ok) return showAlert("gen-alert", r.error);
+  if (!cid || !sid) return showAlert("gen-alert","Pilih mata kuliah dan sesi.");
+  setSpin("gens",true);
+  const r = await api("presence/qr/generate",{course_id:cid,session_id:sid,ts:new Date().toISOString()});
+  setSpin("gens",false);
+  if (!r.ok) return showAlert("gen-alert",r.error);
 
-  const { qr_token, qr_payload, expires_at } = r.data;
+  const {qr_token, qr_payload, expires_at} = r.data;
   $("qr-tok").textContent = qr_token;
   $("qr-box").style.display = "block";
 
@@ -1298,7 +1327,7 @@ async function doGenQR() {
   qDiv.style.cssText = "display:flex;align-items:center;justify-content:center;background:#fff;border-radius:10px;overflow:hidden;min-width:228px;min-height:228px";
   const qrContent = (qr_payload && typeof qr_payload === "string" && qr_payload.length > 0)
     ? qr_payload
-    : JSON.stringify({ qr_token, course_id: cid, session_id: sid });
+    : JSON.stringify({qr_token, course_id:cid, session_id:sid});
   renderQRCanvas(qDiv, qrContent, 228);
 
   $("qr-info-pills").innerHTML = `
@@ -1310,10 +1339,10 @@ async function doGenQR() {
   const arc = $("timer-arc"), CIRC = 119.38;
   function tick() {
     const rem = Math.max(0, Math.floor((exp - Date.now()) / 1000));
-    const m = String(Math.floor(rem/60)).padStart(2,"0"), s = String(rem%60).padStart(2,"0");
-    const pct = rem / QR_TOTAL;
-    $("qr-timer").textContent = rem > 0 ? `${m}:${s}` : "Expired!";
+    const m = String(Math.floor(rem/60)).padStart(2,"0"), sec = String(rem%60).padStart(2,"0");
+    $("qr-timer").textContent = rem > 0 ? `${m}:${sec}` : "Expired!";
     $("qr-timer").className = "timer-countdown" + (rem <= 30 ? " danger" : "");
+    const pct = rem / QR_TOTAL;
     $("timer-pct").textContent = Math.round(pct*100) + "%";
     arc.style.strokeDashoffset = CIRC * (1 - pct);
     arc.style.stroke = rem <= 30 ? "#ef233c" : "url(#tg)";
@@ -1324,18 +1353,16 @@ async function doGenQR() {
   qrTimer = setInterval(tick, 1000);
 }
 
-// ════════════════════════════════════════════
-//  HISTORY ALL (Dosen/Admin)
-// ════════════════════════════════════════════
-let recapLayer = null;
-
+// ══════════════════════════════════════════════════
+//  HISTORY ALL
+// ══════════════════════════════════════════════════
 async function loadHistoryAll() {
   const sid = $("ha-ssel").value;
-  if (!sid) return showAlert("ha-ssel", "Pilih sesi terlebih dahulu.", "err");
-  const r = await api("presence/history/all", { session_id: sid });
+  if (!sid) return showAlert("ha-tbody", "Pilih sesi terlebih dahulu.", "err");
+  const r = await api("presence/history/all",{session_id:sid});
   if (!r.ok) return;
   const d = r.data, items = d.items || [];
-  $("ha-n").textContent  = d.total_hadir;
+  $("ha-n").textContent    = d.total_hadir;
   $("ha-sesi").textContent = d.pertemuan || sid;
   $("ha-tgl").textContent  = d.tanggal || "-";
   $("ha-stats").style.display = "grid";
@@ -1360,21 +1387,21 @@ async function loadHistoryAll() {
     recapLayer = L.layerGroup().addTo(map);
     const bounds = [];
     wl.forEach(p => {
-      const { lat, lng } = p.lokasi;
-      bounds.push([lat, lng]);
-      L.marker([lat, lng], { icon: IC_IND }).bindPopup(`<div class="pop-title">${p.nama}</div>NIM: ${p.nim||"-"}<br>Jam: ${fmtTime(p.jam_checkin)}`).addTo(recapLayer);
-      if (p.lokasi.accuracy_m) L.circle([lat, lng], { radius:p.lokasi.accuracy_m, color:"#4361ee", weight:1, fillOpacity:.06 }).addTo(recapLayer);
+      const {lat,lng} = p.lokasi;
+      bounds.push([lat,lng]);
+      L.marker([lat,lng],{icon:IC_IND}).bindPopup(`<div class="pop-title">${p.nama}</div>NIM: ${p.nim||"-"}<br>Jam: ${fmtTime(p.jam_checkin)}`).addTo(recapLayer);
+      if (p.lokasi.accuracy_m) L.circle([lat,lng],{radius:p.lokasi.accuracy_m,color:"#4361ee",weight:1,fillOpacity:.06}).addTo(recapLayer);
     });
-    if (bounds.length) try { map.fitBounds(bounds, { padding:[40,40], maxZoom:17 }); } catch(e) {}
+    if (bounds.length) try { map.fitBounds(bounds,{padding:[40,40],maxZoom:17}); } catch(e){}
     setTimeout(() => map.invalidateSize(), 150);
   } else {
     $("recap-map-wrap").style.display = "none";
   }
 }
 
-// ════════════════════════════════════════════
-//  ACCELEROMETER GATE
-// ════════════════════════════════════════════
+// ══════════════════════════════════════════════════
+//  ACCELEROMETER GATE — FIX: reset state yang benar
+// ══════════════════════════════════════════════════
 function startAccelGate() {
   if (gateVerified) return;
   gateActive = true;
@@ -1395,7 +1422,7 @@ function startAccelGate() {
     if (!gateActive) return;
     const vx = Math.abs(ax), vy = Math.abs(ay);
     const vz = Math.abs(Math.abs(az) > 5 ? az - 9.81 : az);
-    const bx = $("agv-bx"), by = $("agv-by"), bz = $("agv-bz");
+    const bx=$("agv-bx"), by=$("agv-by"), bz=$("agv-bz");
     if (bx) bx.style.width = Math.min(180, vx * 20) + "px";
     if (by) by.style.width = Math.min(180, vy * 20) + "px";
     if (bz) bz.style.width = Math.min(180, vz * 20) + "px";
@@ -1411,7 +1438,7 @@ function startAccelGate() {
     }
     gateLastX = ax; gateLastY = ay; gateLastZ = az;
     lastMoved = (mag > 0.5);
-    gateSamples.push({ t:new Date().toISOString(), x:+ax.toFixed(3), y:+ay.toFixed(3), z:+az.toFixed(3) });
+    gateSamples.push({t:new Date().toISOString(), x:+ax.toFixed(3), y:+ay.toFixed(3), z:+az.toFixed(3)});
   }
 
   const progressTimer = setInterval(() => {
@@ -1424,7 +1451,7 @@ function startAccelGate() {
   window._gateProgressTimer = progressTimer;
 
   if (!window.DeviceMotionEvent) {
-    showAlert("gate-alert", "📱 Sensor tidak tersedia — simulasi aktif di desktop", "info");
+    showAlert("gate-alert","📱 Sensor tidak tersedia — simulasi aktif di desktop","info");
     startGateSimulation(processMotion);
     return;
   }
@@ -1433,16 +1460,19 @@ function startAccelGate() {
       .then(state => {
         if (state === "granted") {
           attachMotionGate(processMotion);
-          showAlert("gate-alert", "✅ Sensor aktif — gerakkan HP Anda!", "info");
+          showAlert("gate-alert","✅ Sensor aktif — gerakkan HP Anda!","info");
         } else {
-          showAlert("gate-alert", "⚠️ Izin ditolak — pakai simulasi", "info");
+          showAlert("gate-alert","⚠️ Izin ditolak — pakai simulasi","info");
           startGateSimulation(processMotion);
         }
       })
-      .catch(err => { showAlert("gate-alert", "⚠️ " + err.message + " — pakai simulasi", "info"); startGateSimulation(processMotion); });
+      .catch(err => {
+        showAlert("gate-alert","⚠️ " + err.message + " — pakai simulasi","info");
+        startGateSimulation(processMotion);
+      });
   } else {
     attachMotionGate(processMotion);
-    showAlert("gate-alert", "✅ Sensor aktif — gerakkan HP Anda!", "info");
+    showAlert("gate-alert","✅ Sensor aktif — gerakkan HP Anda!","info");
   }
 }
 
@@ -1498,48 +1528,179 @@ function onGateVerified() {
   gateVerified = true;
   stopAccelGate(true);
 
+  // Kirim ke server
   if (gateSamples.length > 0) {
-    api("telemetry/accel/gate", {
-      device_id: "scan-gate-" + (S.user_id || "01"),
+    api("telemetry/accel/gate",{
+      device_id: "scan-gate-" + (S.user_id||"01"),
       ts: new Date().toISOString(),
       samples: gateSamples.slice(-20),
       session_id: "",
       duration_sec: GATE_NEEDED
-    });
+    }).catch(e => console.warn("Gate accel send failed:", e));
   }
 
+  // Update UI gate
   const ring=$("agv-ring"), icon=$("agv-icon"), lbl=$("agv-label");
   if (ring) ring.className = "agv-ring done";
   if (icon) icon.textContent = "✅";
   if (lbl)  lbl.textContent = "Terverifikasi!";
 
   const badge = $("accel-gate-badge");
-  if (badge) { badge.textContent="✅ TERVERIFIKASI"; badge.style.cssText="font-family:var(--mono);font-size:.68rem;font-weight:700;padding:4px 10px;border-radius:20px;background:rgba(6,214,160,.1);color:var(--grn2);border:1px solid rgba(6,214,160,.25)"; }
+  if (badge) {
+    badge.textContent = "✅ TERVERIFIKASI";
+    badge.style.cssText = "font-family:var(--mono);font-size:.68rem;font-weight:700;padding:4px 10px;border-radius:20px;background:rgba(6,214,160,.1);color:var(--grn2);border:1px solid rgba(6,214,160,.25)";
+  }
 
   const msg = $("accel-prog-msg");
   if (msg) msg.textContent = "✅ Terverifikasi — " + gateSamples.length + " sampel tersimpan";
   const progBar = $("accel-prog-bar");
   if (progBar) progBar.style.background = "var(--gradg)";
 
+  // FIX: unlock scan card
   const scanCard = $("scan-qr-card");
-  if (scanCard) { scanCard.style.opacity = "1"; scanCard.style.pointerEvents = "auto"; }
+  if (scanCard) {
+    scanCard.className = "card scan-card-unlocked";
+  }
   const lockDiv = $("accel-gate-lock");
   if (lockDiv) lockDiv.style.display = "none";
 
   const lockBadge = $("scan-lock-badge");
-  if (lockBadge) { lockBadge.textContent="✅ TERBUKA"; lockBadge.style.cssText="font-family:var(--mono);font-size:.68rem;font-weight:700;padding:4px 10px;border-radius:20px;background:rgba(6,214,160,.1);color:var(--grn2);border:1px solid rgba(6,214,160,.25)"; }
+  if (lockBadge) {
+    lockBadge.textContent = "✅ TERBUKA";
+    lockBadge.style.cssText = "font-family:var(--mono);font-size:.68rem;font-weight:700;padding:4px 10px;border-radius:20px;background:rgba(6,214,160,.1);color:var(--grn2);border:1px solid rgba(6,214,160,.25)";
+  }
 
-  showAlert("gate-alert", "✅ Verifikasi gerak berhasil! Silakan scan QR di bawah.", "ok");
+  showAlert("gate-alert","✅ Verifikasi gerak berhasil! Silakan scan QR di bawah.","ok");
+
+  // Scroll ke scan card
+  setTimeout(() => {
+    const sc = $("scan-qr-card");
+    if (sc) sc.scrollIntoView({behavior:"smooth", block:"start"});
+  }, 400);
 }
 
-// ════════════════════════════════════════════
-//  SCAN QR
-// ════════════════════════════════════════════
+// FIX: Reset gate UI setelah checkin berhasil
+function resetGateUI() {
+  gateVerified = false;
+  gateSamples  = [];
+  gateAccumMove = 0;
+
+  const ring=$("agv-ring"), icon=$("agv-icon"), lbl=$("agv-label");
+  if (ring) ring.className = "agv-ring";
+  if (icon) icon.textContent = "📱";
+  if (lbl)  lbl.textContent = "Tekan Mulai";
+
+  const badge = $("accel-gate-badge");
+  if (badge) { badge.textContent = "BELUM TERVERIFIKASI"; badge.removeAttribute("style"); badge.className = "card-badge"; }
+
+  const progBar = $("accel-prog-bar");
+  if (progBar) { progBar.style.width = "0%"; progBar.style.background = "var(--grad)"; }
+  const pctEl = $("accel-pct");
+  if (pctEl) pctEl.textContent = "0%";
+  const msg = $("accel-prog-msg");
+  if (msg) msg.textContent = "Teruskan menggerakkan perangkat…";
+  $("accel-progress-wrap").style.display = "none";
+
+  $("btn-start-gate").style.display = "inline-flex";
+  $("btn-stop-gate").style.display  = "none";
+
+  const scanCard = $("scan-qr-card");
+  if (scanCard) scanCard.className = "card scan-card-locked";
+
+  const lockDiv = $("accel-gate-lock");
+  if (lockDiv) lockDiv.style.display = "block";
+
+  const lockBadge = $("scan-lock-badge");
+  if (lockBadge) { lockBadge.textContent = "🔒 TERKUNCI"; lockBadge.removeAttribute("style"); lockBadge.className = "card-badge"; lockBadge.style.cssText = "background:rgba(139,145,171,.1);color:var(--txt3);border-color:var(--bdr)"; }
+}
+
+// ══════════════════════════════════════════════════
+//  SCAN QR — FIX: semua bug diperbaiki
+// ══════════════════════════════════════════════════
+function startScan() {
+  // FIX: Guard yang jelas dengan scroll ke gate card jika belum verified
+  if (!gateVerified) {
+    showAlert("cin-alert","⚠️ Selesaikan verifikasi gerak di Langkah 1 terlebih dahulu!","err");
+    const gc = $("accel-gate-card");
+    if (gc) gc.scrollIntoView({behavior:"smooth", block:"start"});
+    return;
+  }
+
+  // FIX: Bersihkan scanner lama jika masih ada
+  if (scanner) {
+    try { scanner.stop().then(() => { scanner.clear(); scanner = null; _doStartScan(); }); }
+    catch(e) { scanner = null; _doStartScan(); }
+    return;
+  }
+  _doStartScan();
+}
+
+function _doStartScan() {
+  $("btn-cam").style.display  = "none";
+  $("btn-stop").style.display = "inline-flex";
+
+  // Bersihkan container reader
+  const readerEl = $("qr-reader");
+  readerEl.innerHTML = "";
+
+  scanner = new Html5Qrcode("qr-reader");
+  scanner.start(
+    {facingMode:"environment"},
+    {fps:10, qrbox:{width:250,height:250}},
+    text => {
+      stopScan();
+      let qrData = null;
+      try {
+        const p = JSON.parse(text);
+        if (p.qr_token && p.course_id && p.session_id) qrData = p;
+      } catch(e) {
+        // Coba parse sebagai URL param atau plain token
+        console.log("QR raw:", text);
+      }
+      if (qrData) {
+        openCheckinModal(qrData);
+      } else {
+        showAlert("cin-alert","QR tidak valid atau bukan dari sistem ini. Format harus JSON dengan qr_token, course_id, session_id.","err");
+        $("btn-cam").style.display = "inline-flex";
+        $("btn-stop").style.display = "none";
+      }
+    },
+    err => {} // scan error diabaikan (terus coba)
+  ).catch(e => {
+    console.error("Camera error:", e);
+    let msg = "Kamera error: " + e;
+    if (String(e).includes("NotAllowed")) msg = "Izin kamera ditolak. Buka pengaturan browser dan izinkan kamera.";
+    else if (String(e).includes("NotFound")) msg = "Kamera tidak ditemukan di perangkat ini.";
+    else if (String(e).includes("NotSupported")) msg = "Browser tidak mendukung akses kamera. Gunakan Chrome/Safari via HTTPS.";
+    showAlert("cin-alert", msg, "err");
+    $("btn-cam").style.display  = "inline-flex";
+    $("btn-stop").style.display = "none";
+  });
+}
+
+function stopScan() {
+  if (scanner) {
+    try {
+      scanner.stop()
+        .then(() => { try { scanner.clear(); } catch(e){} scanner = null; })
+        .catch(() => { scanner = null; });
+    } catch(e) { scanner = null; }
+  }
+  $("btn-cam").style.display  = "inline-flex";
+  $("btn-stop").style.display = "none";
+}
+
+// ══════════════════════════════════════════════════
+//  MODAL CHECKIN — FIX: GPS error selalu enable tombol
+// ══════════════════════════════════════════════════
 function openCheckinModal(qrData) {
-  pendingCheckin = qrData; pendingGps = null;
+  pendingCheckin = qrData;
+  pendingGps = null;
+
   $("modal-state-gps").style.display = "block";
   $("modal-state-ok").style.display  = "none";
   $("modal-state-err").style.display = "none";
+
   $("modal-qr-info").innerHTML = `
     <div class="mdr"><span style="font-size:.9rem">🔑</span><span class="mdr-key">Token</span><span class="mdr-val">${qrData.qr_token}</span></div>
     <div class="mdr"><span style="font-size:.9rem">📚</span><span class="mdr-key">Kelas</span><span class="mdr-val">${qrData.course_id}</span></div>
@@ -1551,114 +1712,136 @@ function openCheckinModal(qrData) {
   $("btn-modal-checkin").disabled = true;
   $("modal-checkin").classList.add("open");
 
+  // FIX: Fungsi helper untuk enable tombol
+  function enableCheckinBtn(statusMsg, isOk) {
+    clearTimeout(gpsTimeoutId);
+    gpsTimeoutId = null;
+    dot.className = "gps-spin " + (isOk ? "ok" : "err");
+    $("modal-gps-txt").textContent = statusMsg;
+    $("btn-modal-checkin").disabled = false;
+  }
+
   if (navigator.geolocation) {
+    // FIX: Timeout sebagai safety net
     gpsTimeoutId = setTimeout(() => {
-      dot.className = "gps-spin err";
-      $("modal-gps-txt").textContent = "GPS timeout — absen tanpa koordinat";
-      $("btn-modal-checkin").disabled = false;
+      enableCheckinBtn("GPS timeout — absen tanpa koordinat", false);
     }, 10000);
+
     navigator.geolocation.getCurrentPosition(
       pos => {
-        clearTimeout(gpsTimeoutId);
-        const { latitude:lat, longitude:lng, accuracy } = pos.coords;
-        pendingGps = { lat, lng, accuracy_m: accuracy };
-        dot.className = "gps-spin ok";
-        $("modal-gps-txt").textContent = `📍 ${lat.toFixed(5)}, ${lng.toFixed(5)} (±${accuracy.toFixed(0)}m)`;
-        $("btn-modal-checkin").disabled = false;
+        const {latitude:lat, longitude:lng, accuracy} = pos.coords;
+        pendingGps = {lat, lng, accuracy_m: accuracy};
+        enableCheckinBtn(`📍 ${lat.toFixed(5)}, ${lng.toFixed(5)} (±${accuracy.toFixed(0)}m)`, true);
       },
-      () => { clearTimeout(gpsTimeoutId); dot.className="gps-spin err"; $("modal-gps-txt").textContent="GPS tidak tersedia"; $("btn-modal-checkin").disabled=false; },
-      { enableHighAccuracy:true, timeout:10000, maximumAge:0 }
+      err => {
+        // FIX: clearTimeout selalu dipanggil saat error
+        enableCheckinBtn(`GPS tidak tersedia (${err.message || "error"}) — absen tetap bisa dilanjutkan`, false);
+      },
+      {enableHighAccuracy:true, timeout:9000, maximumAge:0}
     );
   } else {
+    $("modal-gps-txt").textContent = "Geolocation tidak didukung browser ini";
     dot.className = "gps-spin err";
-    $("modal-gps-txt").textContent = "Geolocation tidak didukung";
     $("btn-modal-checkin").disabled = false;
   }
 }
 
 async function confirmCheckin() {
   if (!pendingCheckin) return;
-  setSpin("cins", true); $("btn-modal-checkin").disabled = true;
+  setSpin("cins", true);
+  $("btn-modal-checkin").disabled = true;
+
   const now = new Date().toISOString();
+
+  // Kirim gate accel dengan session_id yang benar
   if (gateSamples.length > 0) {
-    api("telemetry/accel/gate", {
+    api("telemetry/accel/gate",{
       device_id: "scan-gate-" + (S.user_id||"01"),
       ts: now,
       samples: gateSamples.slice(-20),
       session_id: pendingCheckin.session_id,
       duration_sec: GATE_NEEDED
-    });
+    }).catch(e => console.warn("Gate send failed:", e));
   }
+
   const payload = {
-    device_id: "web-scan-" + (S.user_id||"01"),
-    course_id: pendingCheckin.course_id,
-    session_id: pendingCheckin.session_id,
-    qr_token: pendingCheckin.qr_token,
-    ts: now,
+    device_id  : "web-scan-" + (S.user_id||"01"),
+    course_id  : pendingCheckin.course_id,
+    session_id : pendingCheckin.session_id,
+    qr_token   : pendingCheckin.qr_token,
+    ts         : now,
     accel_verified: gateVerified,
-    accel_samples: gateSamples.length
+    accel_samples : gateSamples.length
   };
-  if (pendingGps) { payload.lat=pendingGps.lat; payload.lng=pendingGps.lng; payload.accuracy_m=pendingGps.accuracy_m; }
+  if (pendingGps) {
+    payload.lat        = pendingGps.lat;
+    payload.lng        = pendingGps.lng;
+    payload.accuracy_m = pendingGps.accuracy_m;
+  }
 
   const r = await api("presence/checkin", payload);
   setSpin("cins", false);
-  if (!r.ok) { $("modal-state-gps").style.display="none"; $("modal-state-err").style.display="block"; $("modal-err-txt").textContent=r.error; return; }
 
-  if (pendingGps && !r.data.gps_saved) {
-    api("telemetry/gps", { device_id:"web-scan-"+(S.user_id||"01"), ts:now, lat:pendingGps.lat, lng:pendingGps.lng, accuracy_m:pendingGps.accuracy_m, session_id:pendingCheckin.session_id });
+  if (!r.ok) {
+    $("modal-state-gps").style.display = "none";
+    $("modal-state-err").style.display = "block";
+    $("modal-err-txt").textContent = r.error;
+    return;
   }
+
+  // Double-write GPS jika belum tersimpan
+  if (pendingGps && !r.data.gps_saved) {
+    api("telemetry/gps",{
+      device_id : "web-scan-" + (S.user_id||"01"),
+      ts: now,
+      lat: pendingGps.lat,
+      lng: pendingGps.lng,
+      accuracy_m: pendingGps.accuracy_m,
+      session_id: pendingCheckin.session_id
+    }).catch(e => console.warn("GPS double-write failed:", e));
+  }
+
   $("modal-state-gps").style.display = "none";
   $("modal-state-ok").style.display  = "block";
   $("modal-ok-detail").textContent = `${r.data.course_id} · ${r.data.session_id}`;
   $("modal-ok-id").textContent = "Presence ID: " + r.data.presence_id;
-  if (r.data.gps_saved && r.data.gps) { $("modal-ok-gps").style.display="flex"; $("modal-ok-gps-txt").textContent=`GPS: ${r.data.gps.lat.toFixed(5)}, ${r.data.gps.lng.toFixed(5)}`; }
-  if (r.data.accel_verified) { $("modal-ok-accel").style.display="flex"; $("modal-ok-accel-txt").textContent=`Gerakan terverifikasi (${r.data.accel_samples} sampel)`; }
-  gateVerified = false; gateSamples = [];
+
+  if (r.data.gps_saved && r.data.gps) {
+    $("modal-ok-gps").style.display = "flex";
+    $("modal-ok-gps-txt").textContent = `GPS: ${r.data.gps.lat.toFixed(5)}, ${r.data.gps.lng.toFixed(5)}`;
+  }
+  if (r.data.accel_verified) {
+    $("modal-ok-accel").style.display = "flex";
+    $("modal-ok-accel-txt").textContent = `Gerakan terverifikasi (${r.data.accel_samples} sampel)`;
+  }
+
+  // FIX: Reset gate UI setelah checkin berhasil
+  resetGateUI();
   setTimeout(closeModal, 4000);
 }
 
 function closeModal() {
   $("modal-checkin").classList.remove("open");
   clearTimeout(gpsTimeoutId);
-  pendingCheckin = null; pendingGps = null;
+  gpsTimeoutId = null;
+  pendingCheckin = null;
+  pendingGps = null;
 }
 
-function startScan() {
-  if (!gateVerified) { showAlert("cin-alert","⚠️ Selesaikan verifikasi gerak di Langkah 1 terlebih dahulu!","err"); return; }
-  $("btn-cam").style.display  = "none";
-  $("btn-stop").style.display = "inline-flex";
-  scanner = new Html5Qrcode("qr-reader");
-  scanner.start(
-    { facingMode:"environment" },
-    { fps:10, qrbox:{width:250,height:250} },
-    text => {
-      stopScan();
-      let qrData = null;
-      try { const p=JSON.parse(text); if(p.qr_token&&p.course_id&&p.session_id) qrData=p; } catch(e) {}
-      if (qrData) { openCheckinModal(qrData); }
-      else { showAlert("cin-alert","QR tidak valid. Gunakan QR dari sistem ini.","err"); $("btn-cam").style.display="inline-flex"; }
-    },
-    () => {}
-  ).catch(e => showAlert("cin-alert","Kamera error: "+e));
-}
-
-function stopScan() {
-  if (scanner) { try { scanner.stop().then(() => scanner.clear()); } catch(e) {} scanner=null; }
-  $("btn-cam").style.display  = "inline-flex";
-  $("btn-stop").style.display = "none";
-}
-
-// ════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 //  MANUAL
-// ════════════════════════════════════════════
-let manLat=null, manLng=null, manMapVis=false, manMark=null;
-
+// ══════════════════════════════════════════════════
 function getMyLocationManual() {
-  if (!navigator.geolocation) return;
+  if (!navigator.geolocation) return showAlert("man-alert","Geolocation tidak didukung.","err");
   $("loc-status-m").textContent = "Mendeteksi GPS…";
   navigator.geolocation.getCurrentPosition(
-    pos => { manLat=pos.coords.latitude; manLng=pos.coords.longitude; $("loc-status-m").textContent=`📍 ${manLat.toFixed(5)}, ${manLng.toFixed(5)} (±${pos.coords.accuracy.toFixed(0)}m)`; if(manMapVis) updateManMark(manLat,manLng); },
-    () => $("loc-status-m").textContent = "Gagal mendapat lokasi."
+    pos => {
+      manLat = pos.coords.latitude;
+      manLng = pos.coords.longitude;
+      $("loc-status-m").textContent = `📍 ${manLat.toFixed(5)}, ${manLng.toFixed(5)} (±${pos.coords.accuracy.toFixed(0)}m)`;
+      if (manMapVis) updateManMark(manLat, manLng);
+    },
+    err => { $("loc-status-m").textContent = "Gagal mendapat lokasi: " + err.message; }
   );
 }
 
@@ -1669,12 +1852,12 @@ function toggleManualMap() {
   if (manMapVis) setTimeout(() => {
     const map = initMap("manual-map", DEF_C, 14);
     map.on("click", e => {
-      manLat=e.latlng.lat; manLng=e.latlng.lng;
-      $("loc-status-m").textContent=`📍 ${manLat.toFixed(5)}, ${manLng.toFixed(5)}`;
-      updateManMark(manLat,manLng);
-      $("manual-map-info").textContent=`Dipilih: ${manLat.toFixed(5)}, ${manLng.toFixed(5)}`;
+      manLat = e.latlng.lat; manLng = e.latlng.lng;
+      $("loc-status-m").textContent = `📍 ${manLat.toFixed(5)}, ${manLng.toFixed(5)}`;
+      updateManMark(manLat, manLng);
+      $("manual-map-info").textContent = `Dipilih: ${manLat.toFixed(5)}, ${manLng.toFixed(5)}`;
     });
-    if (manLat&&manLng) { updateManMark(manLat,manLng); MAPS["manual-map"].setView([manLat,manLng],16); }
+    if (manLat && manLng) { updateManMark(manLat, manLng); MAPS["manual-map"].setView([manLat,manLng],16); }
   }, 80);
 }
 
@@ -1688,30 +1871,34 @@ function updateManMark(lat, lng) {
 
 async function doCheckinManual() {
   const qt=_v("mt").toUpperCase(), cid=_v("mc"), sid=_v("ms");
-  if (!qt||!cid||!sid) return showAlert("man-alert","Isi semua field.");
-  const payload = { device_id:"web-manual-"+(S.user_id||"01"), course_id:cid, session_id:sid, qr_token:qt, ts:new Date().toISOString() };
-  if (manLat&&manLng) { payload.lat=manLat; payload.lng=manLng; }
-  setSpin("mans",true);
+  if (!qt||!cid||!sid) return showAlert("man-alert","Isi semua field wajib.");
+  const payload = {
+    device_id  : "web-manual-" + (S.user_id||"01"),
+    course_id  : cid,
+    session_id : sid,
+    qr_token   : qt,
+    ts         : new Date().toISOString()
+  };
+  if (manLat && manLng) { payload.lat = manLat; payload.lng = manLng; }
+  setSpin("mans", true);
   const r = await api("presence/checkin", payload);
-  setSpin("mans",false);
+  setSpin("mans", false);
   if (!r.ok) return showAlert("man-alert", r.error);
   showAlert("man-alert", `✅ Absen berhasil! ID: ${r.data.presence_id}`, "ok");
   $("mt").value = "";
-  manLat=null; manLng=null;
+  manLat = null; manLng = null;
   $("loc-status-m").textContent = "";
   $("manual-map-wrap").style.display = "none";
   manMapVis = false;
 }
 
-// ════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 //  HISTORY MHS
-// ════════════════════════════════════════════
-let mhsLayer = null;
-
+// ══════════════════════════════════════════════════
 async function loadHistoryMhs() {
   const cid = _v("mh-csel") || $("mh-csel").value;
-  if (!cid) return showAlert("mh-tbody", "Pilih mata kuliah.", "err");
-  const r = await api("presence/history", { course_id: cid });
+  if (!cid) return showAlert("man-alert","Pilih mata kuliah.","err");
+  const r = await api("presence/history",{course_id:cid});
   if (!r.ok) { $("mh-tbody").innerHTML=`<tr><td colspan="6" class="empty">${r.error}</td></tr>`; return; }
   const items = r.data.items || [];
   $("mh-total").textContent = items.length;
@@ -1747,13 +1934,9 @@ async function loadHistoryMhs() {
   }
 }
 
-// ════════════════════════════════════════════
-//  ACCELEROMETER PANEL — FIX: full working
-// ════════════════════════════════════════════
-let accelMotionHandler = null;
-let accelSimTimer = null;
-let accelCanvasCtx = null;
-
+// ══════════════════════════════════════════════════
+//  ACCELEROMETER PANEL
+// ══════════════════════════════════════════════════
 function startAccel() {
   if (accelActive) return;
   accelActive = true;
@@ -1764,7 +1947,6 @@ function startAccel() {
   const badge = $("ac-live-badge");
   if (badge) { badge.className="live-badge lb-on"; badge.innerHTML='<span class="lb-dot"></span>LIVE'; }
 
-  // Init canvas
   const canvas = $("accel-canvas");
   if (canvas) {
     canvas.width  = canvas.offsetWidth || 600;
@@ -1780,47 +1962,37 @@ function startAccel() {
     $("av-z").textContent = az.toFixed(3);
     $("av-mag").textContent = mag.toFixed(3);
 
-    // Push history
     accelHistory.x.push(ax); accelHistory.y.push(ay);
     accelHistory.z.push(az); accelHistory.mag.push(mag);
     if (accelHistory.x.length > ACCEL_MAX_PTS) {
       accelHistory.x.shift(); accelHistory.y.shift();
       accelHistory.z.shift(); accelHistory.mag.shift();
     }
-
-    // Batch for server
-    accelBatch.push({ t:new Date().toISOString(), x:+ax.toFixed(3), y:+ay.toFixed(3), z:+az.toFixed(3) });
-
+    accelBatch.push({t:new Date().toISOString(), x:+ax.toFixed(3), y:+ay.toFixed(3), z:+az.toFixed(3)});
     drawAccelChart();
   }
 
-  // Send batch every 5 sec
   accelTimer = setInterval(() => {
     if (!accelActive || accelBatch.length === 0) return;
     const batch = accelBatch.splice(0);
-    api("telemetry/accel", {
+    api("telemetry/accel",{
       device_id: _v("ac-dev") || "web-browser-01",
       ts: new Date().toISOString(),
       samples: batch
-    });
+    }).catch(e => console.warn("Accel send failed:", e));
   }, 5000);
 
   if (!window.DeviceMotionEvent) {
     $("ac-src").textContent = "simulasi";
-    showAlert("ac-alert", "📱 Sensor tidak tersedia di browser/PC ini — mode simulasi aktif", "info");
+    showAlert("ac-alert","📱 Sensor tidak tersedia di browser/PC ini — mode simulasi aktif","info");
     startAccelSim(onData);
     return;
   }
   if (typeof DeviceMotionEvent.requestPermission === "function") {
     DeviceMotionEvent.requestPermission()
       .then(state => {
-        if (state === "granted") {
-          attachAccelSensor(onData);
-        } else {
-          $("ac-src").textContent = "simulasi";
-          showAlert("ac-alert", "⚠️ Izin sensor ditolak — mode simulasi", "info");
-          startAccelSim(onData);
-        }
+        if (state === "granted") { attachAccelSensor(onData); }
+        else { $("ac-src").textContent = "simulasi"; showAlert("ac-alert","⚠️ Izin sensor ditolak — mode simulasi","info"); startAccelSim(onData); }
       })
       .catch(() => { $("ac-src").textContent = "simulasi"; startAccelSim(onData); });
   } else {
@@ -1835,7 +2007,7 @@ function attachAccelSensor(cb) {
     if (a) cb(a.x||0, a.y||0, a.z||9.81);
   };
   window.addEventListener("devicemotion", accelMotionHandler);
-  showAlert("ac-alert", "✅ Sensor accelerometer HP aktif!", "ok");
+  showAlert("ac-alert","✅ Sensor accelerometer HP aktif!","ok");
 }
 
 function startAccelSim(cb) {
@@ -1865,78 +2037,53 @@ function drawAccelChart() {
   const ctx = accelCanvasCtx;
   const canvas = $("accel-canvas");
   if (!ctx || !canvas) return;
-
   const W = canvas.offsetWidth || 600;
   if (canvas.width !== W) canvas.width = W;
   const H = 120;
-
-  ctx.clearRect(0, 0, W, H);
-
-  // Background
+  ctx.clearRect(0,0,W,H);
   ctx.fillStyle = "#f0f4ff";
-  ctx.fillRect(0, 0, W, H);
-
-  // Grid lines
+  ctx.fillRect(0,0,W,H);
   ctx.strokeStyle = "#dde3f5";
   ctx.lineWidth = 0.5;
-  for (let y = 0; y <= H; y += H/4) {
-    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
-  }
-
+  for (let y=0; y<=H; y+=H/4) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
   const data = accelHistory;
-  const n = data.x.length;
-  if (n < 2) return;
-
+  if (data.x.length < 2) return;
   function drawLine(arr, color, minV, maxV) {
     const range = maxV - minV || 1;
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    for (let i = 0; i < arr.length; i++) {
+    ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.beginPath();
+    for (let i=0; i<arr.length; i++) {
       const px = (i / (ACCEL_MAX_PTS-1)) * W;
-      const py = H - ((arr[i] - minV) / range) * (H - 10) - 5;
-      i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      const py = H - ((arr[i] - minV) / range) * (H-10) - 5;
+      i === 0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
     }
     ctx.stroke();
   }
-
-  // Find min/max across all axes for scale
-  const allVals = [...data.x, ...data.y, ...data.z];
-  const minV = Math.min(...allVals) - 0.5;
-  const maxV = Math.max(...allVals) + 0.5;
-
+  const allVals = [...data.x,...data.y,...data.z];
+  const minV = Math.min(...allVals)-.5, maxV = Math.max(...allVals)+.5;
   drawLine(data.x, "#4361ee", minV, maxV);
   drawLine(data.y, "#06d6a0", minV, maxV);
   drawLine(data.z, "#f4a261", minV, maxV);
   drawLine(data.mag, "#ef233c", 0, maxV);
-
-  // Legend
-  const colors = ["#4361ee","#06d6a0","#f4a261","#ef233c"];
-  const labels = ["X","Y","Z","Mag"];
+  const colors=["#4361ee","#06d6a0","#f4a261","#ef233c"], labels=["X","Y","Z","Mag"];
   colors.forEach((c,i) => {
-    ctx.fillStyle = c;
-    ctx.fillRect(6 + i*38, 4, 12, 8);
-    ctx.fillStyle = "#4a5578";
-    ctx.font = "bold 9px monospace";
-    ctx.fillText(labels[i], 20+i*38, 12);
+    ctx.fillStyle = c; ctx.fillRect(6+i*38,4,12,8);
+    ctx.fillStyle = "#4a5578"; ctx.font="bold 9px monospace"; ctx.fillText(labels[i],20+i*38,12);
   });
 }
 
 async function fetchAccelLatest() {
   const dev = _v("ac-q-dev");
   if (!dev) return;
-  const r = await api("telemetry/accel/latest", { device_id: dev });
+  const r = await api("telemetry/accel/latest",{device_id:dev});
   const el = $("accel-latest");
   if (!r.ok) { el.textContent = "Error: " + r.error; return; }
   const d = r.data;
   el.innerHTML = `<strong>${d.device_id}</strong> [${d.source||"realtime"}]<br>🕒 ${fmtDt(d.t)}<br>X: <strong style="color:#4361ee">${Number(d.x).toFixed(3)}</strong> &nbsp; Y: <strong style="color:#06d6a0">${Number(d.y).toFixed(3)}</strong> &nbsp; Z: <strong style="color:#f4a261">${Number(d.z).toFixed(3)}</strong> m/s²`;
 }
 
-// ════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 //  GPS PANEL
-// ════════════════════════════════════════════
-let gpsMarker=null, gpsCircle=null, gpsPts=[], gpsPoly=null, histLayer=null;
-
+// ══════════════════════════════════════════════════
 function initGpsPanel() {
   setTimeout(() => { initMap("gps-map", DEF_C, 15).invalidateSize(); }, 120);
 }
@@ -1957,15 +2104,15 @@ function startGPS() {
 
   gpsWatcher = navigator.geolocation.watchPosition(
     pos => {
-      const { latitude:lat, longitude:lng, accuracy } = pos.coords;
+      const {latitude:lat, longitude:lng, accuracy} = pos.coords;
       const now = new Date();
       $("gps-status-txt").textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
 
       const ab = $("gps-acc-badge");
       ab.style.display = "inline";
-      ab.textContent = `±${accuracy.toFixed(0)}m`;
       const isGood=accuracy<20, isMed=accuracy<60;
-      ab.style.cssText=`display:inline;font-family:var(--mono);font-size:.7rem;padding:3px 9px;border-radius:20px;background:${isGood?"rgba(6,214,160,.12)":isMed?"rgba(244,162,97,.12)":"rgba(239,35,60,.1)"};color:${isGood?"var(--grn2)":isMed?"#c05621":"var(--red)"};border:1px solid ${isGood?"rgba(6,214,160,.3)":isMed?"rgba(244,162,97,.3)":"rgba(239,35,60,.2)"}`;
+      ab.textContent = `±${accuracy.toFixed(0)}m`;
+      ab.style.cssText = `display:inline;font-family:var(--mono);font-size:.7rem;padding:3px 9px;border-radius:20px;background:${isGood?"rgba(6,214,160,.12)":isMed?"rgba(244,162,97,.12)":"rgba(239,35,60,.1)"};color:${isGood?"var(--grn2)":isMed?"#c05621":"var(--red)"};border:1px solid ${isGood?"rgba(6,214,160,.3)":isMed?"rgba(244,162,97,.3)":"rgba(239,35,60,.2)"}`;
 
       $("gps-map-bar").style.display = "flex";
       $("gps-coords").textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
@@ -1984,13 +2131,13 @@ function startGPS() {
       if (gpsPts.length > 1) gpsPoly = L.polyline(gpsPts,{color:"#4361ee",weight:4,opacity:.8,lineCap:"round"}).addTo(map);
       map.panTo([lat,lng],{animate:true,duration:.5});
 
-      api("telemetry/gps", {
+      api("telemetry/gps",{
         device_id: _v("gps-dev") || "web-01",
         ts: now.toISOString(), lat, lng, accuracy_m: accuracy
-      });
+      }).catch(e => console.warn("GPS send failed:", e));
     },
     err => { showAlert("gps-alert","GPS error: "+err.message); setTrackDot(false); },
-    { enableHighAccuracy:true, timeout:15000, maximumAge:0 }
+    {enableHighAccuracy:true, timeout:15000, maximumAge:0}
   );
 }
 
@@ -2004,8 +2151,8 @@ function stopGPS() {
 async function fetchGpsHistory() {
   const dev = _v("gps-q-dev");
   if (!dev) return;
-  const r = await api("telemetry/gps/history", { device_id:dev, limit:200 });
-  if (!r.ok) return showAlert("gps-alert", r.error);
+  const r = await api("telemetry/gps/history",{device_id:dev,limit:200});
+  if (!r.ok) return showAlert("gps-alert",r.error);
   const items = r.data.items || [];
 
   $("gps-hist-tbody").innerHTML = items.length === 0
@@ -2013,9 +2160,9 @@ async function fetchGpsHistory() {
     : items.map((g,i) => `<tr>
         <td>${i+1}</td>
         <td style="font-size:.8rem">${fmtDt(g.ts)}</td>
-        <td style="font-family:var(--mono)">${g.lat.toFixed(5)}</td>
-        <td style="font-family:var(--mono)">${g.lng.toFixed(5)}</td>
-        <td>${g.accuracy_m?`±${g.accuracy_m.toFixed(0)}m`:"-"}</td>
+        <td style="font-family:var(--mono)">${Number(g.lat).toFixed(5)}</td>
+        <td style="font-family:var(--mono)">${Number(g.lng).toFixed(5)}</td>
+        <td>${g.accuracy_m ? `±${Number(g.accuracy_m).toFixed(0)}m` : "-"}</td>
         <td><a class="maps-link" href="https://maps.google.com/?q=${g.lat},${g.lng}" target="_blank">🗺️</a></td>
       </tr>`).join("");
 
@@ -2030,18 +2177,18 @@ async function fetchGpsHistory() {
     L.marker(coords[0],{icon:IC_GRN}).bindPopup(`<div class="pop-title">🟢 Titik Awal</div>${fmtDt(items[0].ts)}`).addTo(histLayer);
     if (coords.length > 1) L.marker(coords[coords.length-1],{icon:IC_RED}).bindPopup(`<div class="pop-title">🔴 Terbaru</div>${fmtDt(items[items.length-1].ts)}`).addTo(histLayer);
     coords.slice(1,-1).forEach((coord,i) => L.marker(coord,{icon:mkDot("#4361ee")}).bindPopup(`<div class="pop-title">Titik ${i+2}</div>${fmtDt(items[i+1].ts)}`).addTo(histLayer));
-    try { map.fitBounds(coords,{padding:[40,40],maxZoom:17}); } catch(e) {}
+    try { map.fitBounds(coords,{padding:[40,40],maxZoom:17}); } catch(e){}
     map.invalidateSize();
   }, 120);
 }
 
-// ════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 //  MAP INIT
-// ════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 function initMap(id, c=DEF_C, z=15) {
   if (MAPS[id]) { MAPS[id].invalidateSize(); return MAPS[id]; }
   const m = L.map(id).setView(c, z);
-  L.tileLayer(TILE, { attribution:ATTR, maxZoom:19 }).addTo(m);
+  L.tileLayer(TILE, {attribution:ATTR, maxZoom:19}).addTo(m);
   MAPS[id] = m;
   return m;
 }
